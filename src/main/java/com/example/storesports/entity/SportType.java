@@ -1,6 +1,6 @@
 package com.example.storesports.entity;
 
-import com.example.storesports.Infrastructure.constant.SportTypeEnum;
+import com.example.storesports.infrastructure.constant.SportTypeEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

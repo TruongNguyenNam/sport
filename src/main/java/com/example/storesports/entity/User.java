@@ -1,7 +1,6 @@
 package com.example.storesports.entity;
 
-import com.example.storesports.Infrastructure.constant.Gender;
-import com.example.storesports.Infrastructure.constant.Role;
+import com.example.storesports.infrastructure.constant.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

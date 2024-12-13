@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.constant;
+package com.example.storesports.infrastructure.constant;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

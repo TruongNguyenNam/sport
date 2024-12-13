@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.security;
+package com.example.storesports.infrastructure.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

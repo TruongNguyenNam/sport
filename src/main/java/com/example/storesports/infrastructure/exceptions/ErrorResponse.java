@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.exceptions;
+package com.example.storesports.infrastructure.exceptions;
 
 
 import lombok.AllArgsConstructor;

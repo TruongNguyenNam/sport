@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.security;
+package com.example.storesports.infrastructure.security;
 
 
 

@@ -1,7 +1,7 @@
 package com.example.storesports.service.auth;
 
 
-import com.example.storesports.Infrastructure.constant.Role;
+import com.example.storesports.infrastructure.constant.Role;
 import com.example.storesports.core.auth.payload.LoginInfoDto;
 import com.example.storesports.core.auth.payload.RegisterForm;
 import com.example.storesports.core.auth.payload.UserResponse;

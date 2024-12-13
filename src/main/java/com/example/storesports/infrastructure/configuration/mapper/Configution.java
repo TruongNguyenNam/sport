@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.configuration.mapper;
+package com.example.storesports.infrastructure.configuration.mapper;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;

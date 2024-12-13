@@ -1,4 +1,4 @@
-package com.example.storesports.Infrastructure.validation;
+package com.example.storesports.infrastructure.validation;
 
 
 import jakarta.validation.Constraint;

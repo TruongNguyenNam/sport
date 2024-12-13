@@ -1,6 +1,6 @@
 package com.example.storesports.core.auth.controller;
 
-import com.example.storesports.Infrastructure.validation.RefreshTokenValid;
+import com.example.storesports.infrastructure.validation.RefreshTokenValid;
 import com.example.storesports.core.auth.payload.*;
 import com.example.storesports.service.auth.IAuthService;
 import com.example.storesports.service.auth.IJWTTokenService;

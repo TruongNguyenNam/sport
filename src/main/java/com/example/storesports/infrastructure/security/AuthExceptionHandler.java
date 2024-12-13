@@ -1,8 +1,8 @@
-package com.example.storesports.Infrastructure.security;
+package com.example.storesports.infrastructure.security;
 
 
 
-import com.example.storesports.Infrastructure.exceptions.ErrorResponse;
+import com.example.storesports.infrastructure.exceptions.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import jakarta.servlet.ServletException;
