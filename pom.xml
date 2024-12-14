@@ -57,11 +57,27 @@
         </dependency>
         <!-- authention        -->
 
-        <!-- Thêm dependency httpclient phiên bản mới -->
+        <!--  dependency httpclient   -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5.13</version> <!-- Sử dụng phiên bản an toàn mới nhất -->
+        </dependency>
+
+
+        <!-- Dependency MapStruct -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.5.5.Final</version> <!-- Kiểm tra phiên bản mới nhất trên Maven Central -->
+        </dependency>
+
+        <!-- Optional: Nếu dùng với Spring Framework -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>1.5.5.Final</version>
+            <scope>provided</scope> <!-- Chỉ sử dụng khi build, không cần đưa vào runtime -->
         </dependency>
 
         <dependency>
