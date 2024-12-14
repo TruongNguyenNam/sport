@@ -1,5 +1,6 @@
 package com.example.storesports.infrastructure.exceptions;
 
+import com.example.storesports.infrastructure.utils.PageUtils;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,16 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalException {
+
+//    @ExceptionHandler(PageUtils.PaginationException.class)
+//    public ResponseEntity<String> handlePaginationException(PageUtils.PaginationException ex) {
+//        return ResponseEntity.badRequest().body(ex.getMessage());
+//    }
+//
+//    @ExceptionHandler(ErrorException.class)
+//    public ResponseEntity<String> handleErrorException(ErrorException ex) {
+//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+//    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
@@ -39,9 +50,9 @@ public class GlobalException {
         return errors;
     }
 
-    @ExceptionHandler( AppException.class)
+    @ExceptionHandler( ErrorException.class)
     public ResponseEntity<Object> handleNoHandlerFoundException(
-            AppException exception
+            ErrorException exception
     ){
 
         System.out.println(exception.getMessage());

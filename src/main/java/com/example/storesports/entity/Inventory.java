@@ -24,6 +24,4 @@ public class Inventory extends Auditable {
 
         private Integer stockQuantity;
 
-
-
 }

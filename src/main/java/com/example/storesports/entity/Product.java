@@ -28,7 +28,7 @@ public class Product extends Auditable{
         private String material;
         private String size;
         private String color;
-        private String sku;
+        private String sku; //UUID
 
         @ManyToOne
         @JoinColumn(name = "supplier_id")
@@ -68,5 +68,7 @@ public class Product extends Auditable{
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<InventoryAdjustment> inventoryAdjustments;
 
+        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
+        private List<Inventory> inventories;
 
 }
