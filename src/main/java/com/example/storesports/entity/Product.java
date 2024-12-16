@@ -38,19 +38,19 @@ public class Product extends Auditable{
         @JoinColumn(name = "category_id")
         private Category category;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<ProductSupplierMapping> productSupplierMappings;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<ProductSportTypeMapping> productSportTypeMappings;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<ProductSpecificationOption> productSpecificationOptions;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<ProductReview> productReviews;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<ProductTagMapping> productTagMappings;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
@@ -59,7 +59,7 @@ public class Product extends Auditable{
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<OrderItem> orderItems;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<ProductImage> productImages;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
@@ -68,7 +68,7 @@ public class Product extends Auditable{
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<InventoryAdjustment> inventoryAdjustments;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<Inventory> inventories;
 
 }

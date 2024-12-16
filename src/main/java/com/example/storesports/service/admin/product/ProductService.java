@@ -8,7 +8,7 @@ public interface ProductService {
 
     Page<ProductResponse> getAllProducts(int page, int size);
 
-    ProductResponse add(ProductRequest request);
+    ProductResponse addNewProduct(ProductRequest request);
 
 
 

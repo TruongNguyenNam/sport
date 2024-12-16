@@ -1,4 +1,4 @@
-package com.example.storesports.infrastructure.configuration.test;
+package com.example.storesports.infrastructure.configuration.auditor;
 
 public class test {
 }

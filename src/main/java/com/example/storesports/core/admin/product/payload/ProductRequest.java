@@ -24,9 +24,9 @@ public class ProductRequest {
     private String color;
     private String sku; //UUID
     private Long supplierId;
-    private Category categoryId;
-    private List<Long> productSportTypeMappingIds;
-    private List<Long> productTagMappingIds;
+    private Long categoryId;
+    private List<Long> sportTypeId;
+    private List<Long> tagId;
     private List<ProductSpecificationOption> productSpecificationOptions = new ArrayList<>();
     private List<Long> productImageIds;
     private List<Long> inventoryIds;
