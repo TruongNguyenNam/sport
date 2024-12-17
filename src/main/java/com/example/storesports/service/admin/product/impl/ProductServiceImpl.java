@@ -2,6 +2,7 @@ package com.example.storesports.service.admin.product.impl;
 
 import com.example.storesports.core.admin.product.payload.ProductRequest;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
+import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
@@ -13,11 +14,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,6 +65,122 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponse addNewProduct(ProductRequest request) {
+        Product product =  mapToProduct(request);
+        Product productSaved = productRepository.save(product);
+
+        handleSportTypes(request, productSaved);
+        handleTags(request, productSaved);
+        handleImages(request, productSaved);
+        handleSpecifications(request, productSaved);
+        updateInventory(productSaved);
+
+
+//
+//        if (request.getTagId() != null && !request.getTagId().isEmpty()) {
+//            for (Long tagId : request.getTagId()) {
+//                ProductTag tag = productTagRepository.findById(tagId)
+//                        .orElseThrow(() -> new ErrorException("Tag not found with ID: " + tagId));
+//                ProductTagMapping mapping = new ProductTagMapping();
+//                mapping.setProduct(productSaved);
+//                mapping.setTag(tag);
+//                productTagMappingRepository.save(mapping);
+//            }
+//        }
+//
+//
+//        if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
+//            for (Long imageId : request.getProductImageIds()) {
+//                ProductImage image = productImageRepository.findById(imageId)
+//                        .orElseThrow(() -> new ErrorException("ProductImage not found with ID: " + imageId));
+//                image.setProduct(productSaved);
+//                productImageRepository.save(image);
+//            }
+//        }
+//
+//
+//        if (request.getProductSpecificationOptions() != null && !request.getProductSpecificationOptions().isEmpty()) {
+//            for (ProductRequest.ProductSpecificationOption option : request.getProductSpecificationOptions()) {
+//                ProductSpecificationOption specificationOption = new ProductSpecificationOption();
+//                specificationOption.setProduct(productSaved);
+//                specificationOption.setSpecification(productSpecificationRepository.findById(option.getSpecificationId())
+//                        .orElseThrow(() -> new ErrorException("Specification not found with ID: " + option.getSpecificationId())));
+//                specificationOption.setValue(option.getValue());
+//                productSpecificationOptionRepository.save(specificationOption);
+//            }
+//        }
+
+//
+//        Inventory inventory = inventoryRepository.findByProductId(productSaved.getId()).orElse(new Inventory());
+//        inventory.setProduct(productSaved);
+//        inventory.setStockQuantity(productSaved.getStockQuantity());
+//        inventoryRepository.save(inventory);
+
+
+
+        Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
+                .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
+
+
+        return  mapToResponse(productWithRelations);
+
+    }
+
+    @Override
+    public Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest) {
+        int validatedPage = PageUtils.validatePageNumber(page);
+        int validatedSize = PageUtils.validatePageSize(size, 2);
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+        Specification<Product> specification = Specification.where(null);
+
+        if (productSearchRequest.getName() != null && !productSearchRequest.getName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
+        }
+        if (productSearchRequest.getSize() != null && !productSearchRequest.getSize().isEmpty()) {
+            specification = specification.and(ProductSpecification.findBySize(productSearchRequest.getSize()));
+        }
+        if (productSearchRequest.getMaterial() != null && !productSearchRequest.getMaterial().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByMaterial(productSearchRequest.getMaterial()));
+        }
+        if (productSearchRequest.getSportType() != null && !productSearchRequest.getSportType().isEmpty()) {
+            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSize()));
+        }
+        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
+        }
+        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
+        }
+        if (productSearchRequest.getSupplierName() != null && !productSearchRequest.getSupplierName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
+        }
+        if (productSearchRequest.getCategoryName() != null && !productSearchRequest.getCategoryName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByCategoryName(productSearchRequest.getCategoryName()));
+        }
+        if (productSearchRequest.getMinPrice() != null && productSearchRequest.getMaxPrice() != null) {
+            specification = specification.and(ProductSpecification.hasPriceRange(productSearchRequest.getMinPrice(),productSearchRequest.getMaxPrice()));
+        }
+
+        Page<Product> productPage = productRepository.findAll(specification, pageable);
+
+        List<ProductResponse> productResponses = productPage.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
+    }
+
+    @Override
+    public void delete(List<Long> id) {
+       List<Product> productList = productRepository.findAllById(id);
+       if(!productList.isEmpty()){
+           productRepository.deleteAllInBatch(productList);
+       }
+    }
+
+
+
+
+    private Product mapToProduct(ProductRequest request) {
         Product product = new Product();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -74,15 +190,15 @@ public class ProductServiceImpl implements ProductService {
         product.setMaterial(request.getMaterial());
         product.setSize(request.getSize());
         product.setColor(request.getColor());
-        product.setSku(request.getSku());
+        product.setSku(UUID.randomUUID().toString()); // UUID
         product.setSupplier(supplierRepository.findById(request.getSupplierId())
-                .orElseThrow(() -> new ErrorException("supplier is not found" + request.getSupplierId())));
-
+                .orElseThrow(() -> new ErrorException("Supplier is not found: " + request.getSupplierId())));
         product.setCategory(categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new ErrorException("supplier is not found" + request.getSupplierId())));
+                .orElseThrow(() -> new ErrorException("Category is not found: " + request.getCategoryId())));
+        return product;
+    }
 
-        Product productSaved = productRepository.save(product);
-
+    private void handleSportTypes(ProductRequest request, Product productSaved) {
         if (request.getSportTypeId() != null && !request.getSportTypeId().isEmpty()) {
             for (Long sportTypeId : request.getSportTypeId()) {
                 SportType sportType = sportTypeRepository.findById(sportTypeId)
@@ -93,7 +209,10 @@ public class ProductServiceImpl implements ProductService {
                 productSportTypeMappingRepository.save(mapping);
             }
         }
+    }
 
+
+    private void handleTags(ProductRequest request, Product productSaved) {
         if (request.getTagId() != null && !request.getTagId().isEmpty()) {
             for (Long tagId : request.getTagId()) {
                 ProductTag tag = productTagRepository.findById(tagId)
@@ -104,8 +223,9 @@ public class ProductServiceImpl implements ProductService {
                 productTagMappingRepository.save(mapping);
             }
         }
+    }
 
-
+    private void handleImages(ProductRequest request, Product productSaved) {
         if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
             for (Long imageId : request.getProductImageIds()) {
                 ProductImage image = productImageRepository.findById(imageId)
@@ -114,8 +234,9 @@ public class ProductServiceImpl implements ProductService {
                 productImageRepository.save(image);
             }
         }
+    }
 
-
+    private void handleSpecifications(ProductRequest request, Product productSaved) {
         if (request.getProductSpecificationOptions() != null && !request.getProductSpecificationOptions().isEmpty()) {
             for (ProductRequest.ProductSpecificationOption option : request.getProductSpecificationOptions()) {
                 ProductSpecificationOption specificationOption = new ProductSpecificationOption();
@@ -126,42 +247,13 @@ public class ProductServiceImpl implements ProductService {
                 productSpecificationOptionRepository.save(specificationOption);
             }
         }
+    }
 
-//        if (request.getInventoryIds() != null && !request.getInventoryIds().isEmpty()) {
-//            for (Long inventoryId : request.getInventoryIds()) {
-//                Inventory inventory = inventoryRepository.findById(inventoryId)
-//                        .orElseThrow(() -> new ErrorException("Inventory not found with ID: " + inventoryId));
-//                inventory.setProduct(productSaved);
-//                inventoryRepository.save(inventory);
-//            }
-//        }
-
+    private void updateInventory(Product productSaved) {
         Inventory inventory = inventoryRepository.findByProductId(productSaved.getId()).orElse(new Inventory());
         inventory.setProduct(productSaved);
         inventory.setStockQuantity(productSaved.getStockQuantity());
         inventoryRepository.save(inventory);
-
-//        List<Inventory> inventories = inventoryRepository.findAllByProductId(productSaved.getId());
-//        if (inventories.isEmpty()) {
-//            // Tạo mới nếu không tồn tại Inventory
-//            Inventory newInventory = new Inventory();
-//            newInventory.setProduct(productSaved);
-//            newInventory.setStockQuantity(productSaved.getStockQuantity());
-//            inventoryRepository.save(newInventory);
-//        } else {
-//            // Cập nhật các Inventory hiện có
-//            for (Inventory inventory : inventories) {
-//                inventory.setStockQuantity(productSaved.getStockQuantity());
-//                inventoryRepository.save(inventory);
-//            }
-//        }
-
-        Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
-                .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
-
-
-        return  mapToResponse(productWithRelations);
-
     }
 
 
@@ -207,12 +299,9 @@ public class ProductServiceImpl implements ProductService {
 //                    .map(mapping -> mapping.getTag().getName())
 //                    .collect(Collectors.toList()));
 //        }
-
         response.setTagName(productTagMappingRepository.findByProductId(product.getId())
                 .stream().map(productTagMapping ->
                   productTagMapping.getTag().getName()).collect(Collectors.toList()));
-
-
 
 //        if (product.getProductImages() != null) {
 //            response.setImageUrl(product.getProductImages().stream()
@@ -236,9 +325,6 @@ public class ProductServiceImpl implements ProductService {
                         })
                         .collect(Collectors.toList())
         );
-
-
-
 
         response.setInventories(
                 inventoryRepository.findByProductId(product.getId()).stream()
