@@ -1,10 +1,10 @@
 package com.example.storesports.service.admin.product.impl;
-
 import com.example.storesports.core.admin.product.payload.ProductRequest;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
+import com.example.storesports.infrastructure.exceptions.NotFoundException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.admin.product.ProductService;
@@ -67,55 +67,11 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse addNewProduct(ProductRequest request) {
         Product product =  mapToProduct(request);
         Product productSaved = productRepository.save(product);
-
         handleSportTypes(request, productSaved);
         handleTags(request, productSaved);
         handleImages(request, productSaved);
         handleSpecifications(request, productSaved);
         updateInventory(productSaved);
-
-
-//
-//        if (request.getTagId() != null && !request.getTagId().isEmpty()) {
-//            for (Long tagId : request.getTagId()) {
-//                ProductTag tag = productTagRepository.findById(tagId)
-//                        .orElseThrow(() -> new ErrorException("Tag not found with ID: " + tagId));
-//                ProductTagMapping mapping = new ProductTagMapping();
-//                mapping.setProduct(productSaved);
-//                mapping.setTag(tag);
-//                productTagMappingRepository.save(mapping);
-//            }
-//        }
-//
-//
-//        if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
-//            for (Long imageId : request.getProductImageIds()) {
-//                ProductImage image = productImageRepository.findById(imageId)
-//                        .orElseThrow(() -> new ErrorException("ProductImage not found with ID: " + imageId));
-//                image.setProduct(productSaved);
-//                productImageRepository.save(image);
-//            }
-//        }
-//
-//
-//        if (request.getProductSpecificationOptions() != null && !request.getProductSpecificationOptions().isEmpty()) {
-//            for (ProductRequest.ProductSpecificationOption option : request.getProductSpecificationOptions()) {
-//                ProductSpecificationOption specificationOption = new ProductSpecificationOption();
-//                specificationOption.setProduct(productSaved);
-//                specificationOption.setSpecification(productSpecificationRepository.findById(option.getSpecificationId())
-//                        .orElseThrow(() -> new ErrorException("Specification not found with ID: " + option.getSpecificationId())));
-//                specificationOption.setValue(option.getValue());
-//                productSpecificationOptionRepository.save(specificationOption);
-//            }
-//        }
-
-//
-//        Inventory inventory = inventoryRepository.findByProductId(productSaved.getId()).orElse(new Inventory());
-//        inventory.setProduct(productSaved);
-//        inventory.setStockQuantity(productSaved.getStockQuantity());
-//        inventoryRepository.save(inventory);
-
-
 
         Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
                 .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
@@ -170,6 +126,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public void delete(List<Long> id) {
        List<Product> productList = productRepository.findAllById(id);
        if(!productList.isEmpty()){
@@ -177,7 +134,39 @@ public class ProductServiceImpl implements ProductService {
        }
     }
 
+    @Override
+    @Transactional
+    public ProductResponse updateProduct(ProductRequest request, Long id) {
+        Product product = Objects.requireNonNull(productRepository.findById(id))
+                .orElseThrow(() -> new NotFoundException("Product not found"));
+        updateAttribute(request,product);
+        Product productSaved = productRepository.save(product);
+        handleSportTypes(request, productSaved);
+        handleTags(request, productSaved);
+        handleImages(request, productSaved);
+        handleSpecifications(request, productSaved);
+        updateInventory(productSaved);
+        Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
+                .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
 
+        return mapToResponse(productWithRelations);
+    }
+
+    private void updateAttribute(ProductRequest request, Product product){
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStockQuantity(request.getStockQuantity());
+        product.setSportType(request.getSportType());
+        product.setMaterial(request.getMaterial());
+        product.setSize(request.getSize());
+        product.setColor(request.getColor());
+        product.setSku(UUID.randomUUID().toString()); // UUID
+        product.setSupplier(supplierRepository.findById(request.getSupplierId())
+                .orElseThrow(() -> new ErrorException("Supplier is not found: " + request.getSupplierId())));
+        product.setCategory(categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ErrorException("Category is not found: " + request.getCategoryId())));
+    }
 
 
     private Product mapToProduct(ProductRequest request) {
@@ -199,6 +188,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void handleSportTypes(ProductRequest request, Product productSaved) {
+        productSportTypeMappingRepository.deleteByProductId(productSaved.getId());
         if (request.getSportTypeId() != null && !request.getSportTypeId().isEmpty()) {
             for (Long sportTypeId : request.getSportTypeId()) {
                 SportType sportType = sportTypeRepository.findById(sportTypeId)
@@ -213,6 +203,7 @@ public class ProductServiceImpl implements ProductService {
 
 
     private void handleTags(ProductRequest request, Product productSaved) {
+        productTagMappingRepository.deleteByProductId(productSaved.getId());
         if (request.getTagId() != null && !request.getTagId().isEmpty()) {
             for (Long tagId : request.getTagId()) {
                 ProductTag tag = productTagRepository.findById(tagId)
@@ -226,6 +217,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void handleImages(ProductRequest request, Product productSaved) {
+        productImageRepository.deleteByProductId(productSaved.getId());
         if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
             for (Long imageId : request.getProductImageIds()) {
                 ProductImage image = productImageRepository.findById(imageId)
@@ -237,6 +229,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void handleSpecifications(ProductRequest request, Product productSaved) {
+        productSpecificationOptionRepository.deleteByProductId(productSaved.getId());
         if (request.getProductSpecificationOptions() != null && !request.getProductSpecificationOptions().isEmpty()) {
             for (ProductRequest.ProductSpecificationOption option : request.getProductSpecificationOptions()) {
                 ProductSpecificationOption specificationOption = new ProductSpecificationOption();

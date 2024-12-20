@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -57,7 +58,7 @@ public class ProductController {
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice
             ) {
-            ProductSearchRequest searchRequest = new ProductSearchRequest(name,sizeParam,material,sportType,color,minPrice,maxPrice,categoryName,supplierName);
+        ProductSearchRequest searchRequest = new ProductSearchRequest(name,sizeParam,material,sportType,color,minPrice,maxPrice,categoryName,supplierName);
         Page<ProductResponse> productResponses = productService.searchProductsByAttribute(page, size, searchRequest);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
 
@@ -69,6 +70,26 @@ public class ProductController {
         ProductResponse response = productService.addNewProduct(productRequest);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateAProduct(
+            @PathVariable Long id,
+            @RequestBody ProductRequest productRequest) {
+        ProductResponse response = productService.updateProduct(productRequest,id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteProducts(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+        productService.delete(ids);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+
+
 
 
 }

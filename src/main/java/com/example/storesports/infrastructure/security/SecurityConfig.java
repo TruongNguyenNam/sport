@@ -36,10 +36,11 @@ public class SecurityConfig  {
                 .csrf(csrf -> csrf.disable())
                 .cors(withDefaults()) // Bật CORS
                 .authorizeHttpRequests(authz -> authz
-
+                        .requestMatchers("/api/v1/admin/product/**").anonymous()
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/product/**").anonymous()
-                        .requestMatchers("/api/v1/auth/**").anonymous()
+
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(withDefaults()) // Sử dụng xác thực cơ bản

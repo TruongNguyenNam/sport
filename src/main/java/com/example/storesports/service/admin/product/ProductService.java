@@ -8,15 +8,15 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface ProductService {
-
     Page<ProductResponse> getAllProducts(int page, int size);
 
     ProductResponse addNewProduct(ProductRequest request);
 
-
     Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest);
 
     void delete(List<Long> id);
+
+    ProductResponse updateProduct(ProductRequest request,Long id);
 
 
 
