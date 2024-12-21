@@ -59,7 +59,7 @@ public class IJWTTokenService implements JWTTokenService {
     public Authentication parseTokenToUserInformation(HttpServletRequest request) {
         String token = request.getHeader("Authorization");
 
-        if (token == null || !token.startsWith("Bearer ")) {
+        if (token == null || !token.startsWith("Bearer")) {
             return null;
         }
 
@@ -111,14 +111,12 @@ public class IJWTTokenService implements JWTTokenService {
         }
     }
 
-
     @Override
     @Transactional
     public Boolean isRefreshTokenValid(String refreshToken) {
         Token entity = tokenRepository.findByKeyAndType(refreshToken, Token.Type.REFRESH_TOKEN);
         if(entity == null || entity.getExpiredDate().before(new Date())){
             throw new IllegalArgumentException("Token không hợp lệ.");
-            // return  false;
         }
         return true;
     }

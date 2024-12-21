@@ -2,6 +2,7 @@ package com.example.storesports.core.admin.image.controller;
 import com.example.storesports.core.admin.image.payload.ProductImageResponse;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.service.admin.image.ProductImageService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,9 +10,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/ProductImage")
+@RequiredArgsConstructor
 public class ProductImageController {
-    @Autowired
-    private ProductImageService productImageService;
+//    @Autowired
+    private final ProductImageService productImageService;
 
 
     @PostMapping("/upload")

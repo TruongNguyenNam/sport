@@ -14,12 +14,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Discount extends Auditable {
-
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
         private String name;
+
         private Double discountPercentage;
 
         private java.util.Date startDate;
