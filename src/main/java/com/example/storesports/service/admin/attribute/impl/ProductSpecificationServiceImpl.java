@@ -1,8 +1,8 @@
 package com.example.storesports.service.admin.attribute.impl;
-import com.example.storesports.core.admin.attribute.payload.ProductSpecificationResponse;
-import com.example.storesports.entity.ProductSpecification;
+import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
+import com.example.storesports.entity.ProductAttribute;
 import com.example.storesports.infrastructure.utils.PageUtils;
-import com.example.storesports.repositories.ProductSpecificationRepository;
+import com.example.storesports.repositories.ProductAttributeRepository;
 import com.example.storesports.service.admin.attribute.AttributeService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -19,19 +19,19 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductSpecificationServiceImpl implements AttributeService {
 
-    private final ProductSpecificationRepository productSpecificationRepository;
+    private final ProductAttributeRepository productSpecificationRepository;
     private final ModelMapper modelMapper;
     @Override
-    public Page<ProductSpecificationResponse> getAllProductAttribute(int page, int size) {
+    public Page<ProductAttributeResponse> getAllProductAttribute(int page, int size) {
     int validatedPage = PageUtils.validatePageNumber(page);
     int validatedSize = PageUtils.validatePageSize(size, 2);
     Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-            Page<ProductSpecification> productSpecificationPage = productSpecificationRepository.findAll(pageable);
+            Page<ProductAttribute> productSpecificationPage = productSpecificationRepository.findAll(pageable);
         if(productSpecificationPage.isEmpty()){
         return new PageImpl<>(Collections.emptyList(),pageable,0);
     }
-        List<ProductSpecificationResponse> productSpecificationResponses = productSpecificationPage.getContent()
-                .stream().map(productSpecification -> modelMapper.map(productSpecification,ProductSpecificationResponse.class))
+        List<ProductAttributeResponse> productSpecificationResponses = productSpecificationPage.getContent()
+                .stream().map(productSpecification -> modelMapper.map(productSpecification, ProductAttributeResponse.class))
                 .toList();
         return new PageImpl<>(productSpecificationResponses,pageable,productSpecificationPage.getTotalElements());
     }

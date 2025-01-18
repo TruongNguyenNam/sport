@@ -11,15 +11,17 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpecificationExecutor<Product> {
 
-    @EntityGraph(attributePaths = {
-            "productSportTypeMappings.sportType",
-            "productTagMappings.tag",
-            "productImages",
-            "productSpecificationOptions.specification",
-            "inventories"
-    })
-    @Nullable
-    Optional<Product> findById(Long id);
+//    @EntityGraph(attributePaths = {
+//            "productSportTypeMappings.sportType",
+//            "productTagMappings.tag",
+//            "productImages",
+//            "productSpecificationOptions.specification",
+//            "inventories"
+//    })
+//    @Nullable
+//    Optional<Product> findById(Long id);
+
+
 
 
 }

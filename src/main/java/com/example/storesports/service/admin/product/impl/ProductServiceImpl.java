@@ -29,19 +29,15 @@ public class ProductServiceImpl implements ProductService {
 
     private final SupplierRepository supplierRepository;
 
-    private final SportTypeRepository sportTypeRepository;
-
     private final ProductImageRepository productImageRepository;
 
     private final  ProductTagRepository productTagRepository;
 
-    private final  ProductSportTypeMappingRepository productSportTypeMappingRepository;
-
     private final  ProductTagMappingRepository productTagMappingRepository;
 
-    private final ProductSpecificationRepository productSpecificationRepository;
+    private final ProductAttributeRepository productAttributeRepository;
 
-    private final ProductSpecificationOptionRepository productSpecificationOptionRepository;
+    private final ProductAttributeValueRepository productAttributeValueRepository;
 
     private final InventoryRepository inventoryRepository;
 
@@ -52,7 +48,6 @@ public class ProductServiceImpl implements ProductService {
         Pageable pageable = PageRequest.of(validatedPage, validatedSize);
         Page<Product> productPage  = productRepository.findAll(pageable);
         if(productPage.isEmpty()){
-//            throw new ErrorException("There are no products in the list yet" + productPage);
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
         List<ProductResponse> productResponses = productPage.getContent().stream()
@@ -62,24 +57,7 @@ public class ProductServiceImpl implements ProductService {
         return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
     }
 
-    @Override
-    @Transactional
-    public ProductResponse addNewProduct(ProductRequest request) {
-        Product product =  mapToProduct(request);
-        Product productSaved = productRepository.save(product);
-        handleSportTypes(request, productSaved);
-        handleTags(request, productSaved);
-        handleImages(request, productSaved);
-        handleSpecifications(request, productSaved);
-        updateInventory(productSaved);
 
-        Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
-                .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
-
-
-        return  mapToResponse(productWithRelations);
-
-    }
 
     @Override
     public Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest) {
@@ -91,21 +69,21 @@ public class ProductServiceImpl implements ProductService {
         if (productSearchRequest.getName() != null && !productSearchRequest.getName().isEmpty()) {
             specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
         }
-        if (productSearchRequest.getSize() != null && !productSearchRequest.getSize().isEmpty()) {
-            specification = specification.and(ProductSpecification.findBySize(productSearchRequest.getSize()));
-        }
-        if (productSearchRequest.getMaterial() != null && !productSearchRequest.getMaterial().isEmpty()) {
-            specification = specification.and(ProductSpecification.findByMaterial(productSearchRequest.getMaterial()));
-        }
+//        if (productSearchRequest.getSize() != null && !productSearchRequest.getSize().isEmpty()) {
+//            specification = specification.and(ProductSpecification.findBySize(productSearchRequest.getSize()));
+//        }
+//        if (productSearchRequest.getMaterial() != null && !productSearchRequest.getMaterial().isEmpty()) {
+//            specification = specification.and(ProductSpecification.findByMaterial(productSearchRequest.getMaterial()));
+//        }
         if (productSearchRequest.getSportType() != null && !productSearchRequest.getSportType().isEmpty()) {
             specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSize()));
         }
-        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
-            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
-        }
-        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
-            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
-        }
+//        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
+//            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
+//        }
+//        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
+//            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
+//        }
         if (productSearchRequest.getSupplierName() != null && !productSearchRequest.getSupplierName().isEmpty()) {
             specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
         }
@@ -141,7 +119,6 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new NotFoundException("Product not found"));
         updateAttribute(request,product);
         Product productSaved = productRepository.save(product);
-        handleSportTypes(request, productSaved);
         handleTags(request, productSaved);
         handleImages(request, productSaved);
         handleSpecifications(request, productSaved);
@@ -158,16 +135,30 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setSportType(request.getSportType());
-        product.setMaterial(request.getMaterial());
-        product.setSize(request.getSize());
-        product.setColor(request.getColor());
-        product.setSku(UUID.randomUUID().toString()); // UUID
+        product.setSku(request.getSku()); // UUID
         product.setSupplier(supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new ErrorException("Supplier is not found: " + request.getSupplierId())));
         product.setCategory(categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ErrorException("Category is not found: " + request.getCategoryId())));
     }
 
+    @Override
+    @Transactional
+    public ProductResponse addNewProduct(ProductRequest request) {
+        Product product =  mapToProduct(request);
+        Product productSaved = productRepository.save(product);
+        handleTags(request, productSaved);
+        handleImages(request, productSaved);
+        handleSpecifications(request, productSaved);
+        updateInventory(productSaved);
+
+        Product productWithRelations = Objects.requireNonNull(productRepository.findById(productSaved.getId()))
+                .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
+
+
+        return  mapToResponse(productWithRelations);
+
+    }
 
     private Product mapToProduct(ProductRequest request) {
         Product product = new Product();
@@ -176,10 +167,7 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity());
         product.setSportType(request.getSportType());
-        product.setMaterial(request.getMaterial());
-        product.setSize(request.getSize());
-        product.setColor(request.getColor());
-        product.setSku(UUID.randomUUID().toString()); // UUID
+        product.setSku(generateSKU(request)); // UUID
         product.setSupplier(supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new ErrorException("Supplier is not found: " + request.getSupplierId())));
         product.setCategory(categoryRepository.findById(request.getCategoryId())
@@ -187,19 +175,35 @@ public class ProductServiceImpl implements ProductService {
         return product;
     }
 
-    private void handleSportTypes(ProductRequest request, Product productSaved) {
-        productSportTypeMappingRepository.deleteByProductId(productSaved.getId());
-        if (request.getSportTypeId() != null && !request.getSportTypeId().isEmpty()) {
-            for (Long sportTypeId : request.getSportTypeId()) {
-                SportType sportType = sportTypeRepository.findById(sportTypeId)
-                        .orElseThrow(() -> new ErrorException("SportType not found with ID: " + sportTypeId));
-                ProductSportTypeMapping mapping = new ProductSportTypeMapping();
-                mapping.setSportType(sportType);
-                mapping.setProduct(productSaved);
-                productSportTypeMappingRepository.save(mapping);
+    private String generateSKU(ProductRequest request) {
+        // Nếu SKU được truyền từ request, sử dụng làm cơ sở
+        String baseSku = (request.getSku() != null && !request.getSku().isEmpty())
+                ? request.getSku().trim()
+                : "SKU01";
+
+        // Danh sách kết hợp để tạo SKU
+        List<String> combination = new ArrayList<>();
+
+        // Thêm các giá trị thuộc tính sản phẩm
+        if (request.getProductAttributeValues() != null) {
+            for (ProductRequest.ProductAttributeValue attributeValue : request.getProductAttributeValues()) {
+                if (attributeValue.getValue() != null && !attributeValue.getValue().isEmpty()) {
+                    combination.add(attributeValue.getValue().trim().toUpperCase());
+                }
             }
         }
+
+        // Ghép các thành phần lại với nhau
+        return buildSku(baseSku, combination);
     }
+
+
+    private String buildSku(String baseSku, List<String> combination) {
+        StringBuilder skuBuilder = new StringBuilder(baseSku);
+        combination.forEach(value -> skuBuilder.append("-").append(value.trim()));
+        return skuBuilder.toString();
+    }
+
 
 
     private void handleTags(ProductRequest request, Product productSaved) {
@@ -229,15 +233,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void handleSpecifications(ProductRequest request, Product productSaved) {
-        productSpecificationOptionRepository.deleteByProductId(productSaved.getId());
-        if (request.getProductSpecificationOptions() != null && !request.getProductSpecificationOptions().isEmpty()) {
-            for (ProductRequest.ProductSpecificationOption option : request.getProductSpecificationOptions()) {
-                ProductSpecificationOption specificationOption = new ProductSpecificationOption();
-                specificationOption.setProduct(productSaved);
-                specificationOption.setSpecification(productSpecificationRepository.findById(option.getSpecificationId())
-                        .orElseThrow(() -> new ErrorException("Specification not found with ID: " + option.getSpecificationId())));
-                specificationOption.setValue(option.getValue());
-                productSpecificationOptionRepository.save(specificationOption);
+        productAttributeValueRepository.deleteByProductId(productSaved.getId());
+        if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
+            for (ProductRequest.ProductAttributeValue value : request.getProductAttributeValues()) {
+                ProductAttributeValue productAttributeValue = new ProductAttributeValue();
+                productAttributeValue.setProduct(productSaved);
+                productAttributeValue.setAttribute(productAttributeRepository.findById(value.getAttributeId())
+                        .orElseThrow(() -> new ErrorException("Attribute not found with Ì:" + value.getAttributeId())));
+                productAttributeValue.setValue(value.getValue());
+                productAttributeValueRepository.save(productAttributeValue);
             }
         }
     }
@@ -264,9 +268,6 @@ public class ProductServiceImpl implements ProductService {
         response.setPrice(product.getPrice());
         response.setStockQuantity(product.getStockQuantity());
         response.setSportType(product.getSportType());
-        response.setMaterial(product.getMaterial());
-        response.setSize(product.getSize());
-        response.setColor(product.getColor());
         response.setSku(product.getSku());
 
         if (product.getSupplier() != null) {
@@ -276,44 +277,24 @@ public class ProductServiceImpl implements ProductService {
             response.setCategoryName(product.getCategory().getName());
         }
 
-//        if (product.getProductSportTypeMappings() != null) {
-//            response.setSportTypeName(product.getProductSportTypeMappings().stream()
-//                    .map(mapping -> mapping.getSportType().getName())
-//                    .collect(Collectors.toList()));
-//        }
 
-        response.setSportTypeName(productSportTypeMappingRepository.findByProductId(product.getId())
-                .stream().map(productSportTypeMapping ->
-                productSportTypeMapping.getSportType().getName()).collect(Collectors.toList()));
-
-
-//        if (product.getProductTagMappings() != null) {
-//            response.setTagName(product.getProductTagMappings().stream()
-//                    .map(mapping -> mapping.getTag().getName())
-//                    .collect(Collectors.toList()));
-//        }
         response.setTagName(productTagMappingRepository.findByProductId(product.getId())
                 .stream().map(productTagMapping ->
                   productTagMapping.getTag().getName()).collect(Collectors.toList()));
 
-//        if (product.getProductImages() != null) {
-//            response.setImageUrl(product.getProductImages().stream()
-//                    .map(ProductImage::getImageUrl)
-//                    .collect(Collectors.toList()));
-//        }
 
         response.setImageUrl(productImageRepository.findByProductId(product.getId())
                 .stream().map(ProductImage::getImageUrl).collect(Collectors.toList()));
 
-        response.setProductSpecificationOptionResponses(
-                productSpecificationOptionRepository
+        response.setProductAttributeValueResponses(
+                productAttributeValueRepository
                         .findByProductId(product.getId()).stream()
-                        .map(productSpecificationOption -> {
-                            ProductResponse.ProductSpecificationOptionResponse optionResponse = new ProductResponse.ProductSpecificationOptionResponse();
-                            optionResponse.setId(productSpecificationOption.getId());
-                            optionResponse.setSpecificationName(productSpecificationOption.getSpecification().getName());
-                            optionResponse.setProductId(productSpecificationOption.getProduct().getId());
-                            optionResponse.setValue(productSpecificationOption.getValue());
+                        .map(productAttributeValue -> {
+                            ProductResponse.ProductAttributeValueResponse optionResponse = new ProductResponse.ProductAttributeValueResponse();
+                            optionResponse.setId(productAttributeValue.getId());
+                            optionResponse.setAttributeName(productAttributeValue.getAttribute().getName());
+                            optionResponse.setProductId(productAttributeValue.getProduct().getId());
+                            optionResponse.setValue(productAttributeValue.getValue());
                             return optionResponse;
                         })
                         .collect(Collectors.toList())
@@ -335,13 +316,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-//    public ProductRequest.ProductSpecificationOption mapToResponse(ProductSpecification productSpecification){
-//        ProductRequest.ProductSpecificationOption option = new ProductRequest.ProductSpecificationOption();
-//
-//        option.setProductId();
-//
-//
-//    }
 
 
 
