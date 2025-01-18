@@ -19,16 +19,12 @@ public class Product extends Auditable{
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
-
         private String name;
         private String description;
         private Double price;
         private Integer stockQuantity;
         private String sportType;
-        private String material;
-        private String size;
-        private String color;
-        private String sku; //UUID
+        private String sku;
 
         @ManyToOne
         @JoinColumn(name = "supplier_id")
@@ -38,14 +34,11 @@ public class Product extends Auditable{
         @JoinColumn(name = "category_id")
         private Category category;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
-        private List<ProductSupplierMapping> productSupplierMappings;
+        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
+        private List<ProductImage> productImages;
 
         @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
-        private List<ProductSportTypeMapping> productSportTypeMappings;
-
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
-        private List<ProductSpecificationOption> productSpecificationOptions;
+        private List<ProductAttributeValue> productAttributeValues;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<ProductReview> productReviews;
@@ -59,14 +52,11 @@ public class Product extends Auditable{
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<OrderItem> orderItems;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
-        private List<ProductImage> productImages;
+
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<ProductDiscountMapping> productDiscountMappings;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
-        private List<InventoryAdjustment> inventoryAdjustments;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
         private List<Inventory> inventories;

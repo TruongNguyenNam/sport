@@ -1,32 +1,30 @@
 package com.example.storesports.entity;
 
 import jakarta.persistence.*;
-import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
 @Entity
-@Table(name = "InventoryAdjustment")
+@Table(name = "ProductAttribute")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class InventoryAdjustment extends Auditable {
-
+public class ProductAttribute extends Auditable {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
-        @ManyToOne
-        @JoinColumn(name = "product_id")
-        private Product product;
+        private String name;
+        private String description;
 
-        private Integer adjustmentQuantity;
-        private String reason;
-        private java.util.Date adjustmentDate;
+        @OneToMany(mappedBy = "attribute",cascade = CascadeType.REMOVE)
+        private List<ProductAttributeValue> productAttributeValues;
+
 
 
 }

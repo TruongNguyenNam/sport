@@ -7,12 +7,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "ProductSportTypeMapping")
+@Table(name = "ProductAttributeValue")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductSportTypeMapping extends Auditable {
+public class ProductAttributeValue extends Auditable {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,9 +23,10 @@ public class ProductSportTypeMapping extends Auditable {
         private Product product;
 
         @ManyToOne
-        @JoinColumn(name = "sport_type_id")
-        private SportType sportType;
+        @JoinColumn(name = "attribute_id")
+        private ProductAttribute attribute;
 
+        private String value;
 
 
 

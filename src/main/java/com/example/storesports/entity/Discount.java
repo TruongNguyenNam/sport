@@ -26,9 +26,9 @@ public class Discount extends Auditable {
 
         private java.util.Date endDate;
 
-        @ManyToOne
-        @JoinColumn(name = "sport_type_id")
-        private SportType sportType;
+//        @ManyToOne
+//        @JoinColumn(name = "sport_type_id")
+//        private SportType sportType;
         // Getters and Setters
 
 
