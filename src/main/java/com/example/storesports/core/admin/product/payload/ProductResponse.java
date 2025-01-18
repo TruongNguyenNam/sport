@@ -18,27 +18,23 @@ public class ProductResponse {
     private Double price;
     private Integer stockQuantity;
     private String sportType;
-    private String material;
-    private String size;
-    private String color;
     private String sku;
     private String supplierName;
     private String categoryName;
-    private List<String> sportTypeName;
-    private List<ProductSpecificationOptionResponse> productSpecificationOptionResponses;
+//    private List<String> sportTypeName;
+    private List<ProductAttributeValueResponse> productAttributeValueResponses;
     private List<String> tagName;
     private List<String> ImageUrl;
     private List<InventoryResponse> inventories;
 
     @Data
     @NoArgsConstructor
-    public static class ProductSpecificationOptionResponse {
+    public static class ProductAttributeValueResponse {
         private Long id;
-        private String specificationName;
+        private String attributeName;
         private Long productId;
         private String value;
     }
-
 
     @Data
     @NoArgsConstructor

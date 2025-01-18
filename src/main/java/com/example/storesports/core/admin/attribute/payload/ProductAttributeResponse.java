@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class ProductSpecificationRequest {
+public class ProductAttributeResponse {
     private Long id;
     private String name;
     private String description;
