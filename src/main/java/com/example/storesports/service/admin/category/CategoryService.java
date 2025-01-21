@@ -12,7 +12,9 @@ public interface CategoryService {
 
     CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id);
 
-    Page<CategoryResponse> findByName(String name);
+    List<CategoryResponse> findByName(String name);
+
+    void deleteCategory(List<Long> id);
 
 
 }

@@ -3,6 +3,7 @@ package com.example.storesports.service.admin.category.impl;
 import com.example.storesports.core.admin.category.payload.CategoryRequest;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.entity.Category;
+import com.example.storesports.entity.Product;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.CategoryRepository;
 import com.example.storesports.service.admin.category.CategoryService;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
+
     @Override
     public Page<CategoryResponse> getAllCategories(int page, int size) {
         int validatedPage = PageUtils.validatePageNumber(page);
@@ -40,11 +42,38 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id) {
-        return null;
+        Category category;
+        if (id != null) {
+            category = categoryRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
+        } else {
+            category = new Category();
+        }
+        category.setName(categoryRequest.getName());
+        category.setDescription(categoryRequest.getDescription());
+
+        Category savedCategory = categoryRepository.save(category);
+
+        return modelMapper.map(savedCategory, CategoryResponse.class);
     }
 
     @Override
-    public Page<CategoryResponse> findByName(String name) {
-        return null;
+    public List<CategoryResponse> findByName(String name) {
+        List<Category> categories = categoryRepository.findAll(CategorySpecification.findByName(name));
+        if (categories.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return categories.stream()
+                .map(category -> modelMapper.map(category,CategoryResponse.class))
+                .collect(Collectors.toList());
     }
+
+    @Override
+    public void deleteCategory(List<Long> id) {
+        List<Category> categories = categoryRepository.findAllById(id);
+        if(!categories.isEmpty()){
+                categoryRepository.deleteAllInBatch(categories);
+        }
+    }
+
 }

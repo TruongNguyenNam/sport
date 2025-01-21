@@ -1,8 +1,10 @@
 package com.example.storesports.service.admin.tag.impl;
 
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
+import com.example.storesports.core.admin.tag.payload.ProductTagRequest;
 import com.example.storesports.core.admin.tag.payload.ProductTagResponse;
 import com.example.storesports.entity.ProductTag;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.ProductTagRepository;
 import com.example.storesports.service.admin.tag.ProductTagService;
@@ -42,12 +44,30 @@ public class ProductTagServiceImpl implements ProductTagService {
         return new PageImpl<>(productTagResponses,pageable,productTagPage.getTotalElements());
     }
 
+    @Override
+    public ProductTagResponse saveOrUpdateTag(ProductTagRequest productTagRequest, Long id) {
+        ProductTag productTag;
+        if(id != null){
+            productTag = productTagRepository.findById(id)
+                    .orElseThrow(() -> new ErrorException("tag is not found" + id));
+        }else{
+            productTag = new ProductTag();
+        }
 
+        productTag.setName(productTagRequest.getName());
 
+        ProductTag tagSaved = productTagRepository.save(productTag);
 
+        return modelMapper.map(tagSaved,ProductTagResponse.class);
+    }
 
-
-
+    @Override
+    public void deleteTag(List<Long> id) {
+    List<ProductTag> productTags = productTagRepository.findAllById(id);
+    if(!productTags.isEmpty()){
+            productTagRepository.deleteAllInBatch(productTags);
+    }
+    }
 
 
 }

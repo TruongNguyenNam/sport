@@ -8,4 +8,7 @@ import lombok.NoArgsConstructor;
 public class ProductTagRequest {
 
     private String name;
+
+
+
 }

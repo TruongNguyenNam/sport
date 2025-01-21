@@ -1,6 +1,7 @@
 package com.example.storesports.service.admin.supplier.impl;
 
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
+import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.Category;
 import com.example.storesports.entity.Supplier;
@@ -38,6 +39,45 @@ public class SupplierServiceImpl implements SupplierService {
                 .map(supplier -> modelMapper.map(supplier, SupplierResponse.class))
                 .collect(Collectors.toList());
         return new PageImpl<>(supplierResponses, pageable, supplierPage.getTotalElements());
+    }
+
+    @Override
+    public SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id) {
+        Supplier supplier;
+
+        if (id != null) {
+            supplier = supplierRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
+        } else {
+            supplier = new Supplier();
+        }
+        supplier.setName(supplierRequest.getName());
+        supplier.setDescription(supplierRequest.getDescription());
+
+        Supplier supplierSaved = supplierRepository.save(supplier);
+
+        return modelMapper.map(supplierSaved, SupplierResponse.class);
+
+    }
+
+    @Override
+    public List<SupplierResponse> findByName(String name) {
+        List<Supplier> suppliers = supplierRepository.findAll(SupplierSpecification.findByName(name));
+            if(suppliers.isEmpty()){
+                    return Collections.emptyList();
+            }
+
+        return suppliers.stream()
+                .map(supplier -> modelMapper.map(supplier,SupplierResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteSupplier(List<Long> id) {
+        List<Supplier> suppliers = supplierRepository.findAllById(id);
+        if(!suppliers.isEmpty()){
+            supplierRepository.deleteAllInBatch(suppliers);
+        }
     }
 
 }
