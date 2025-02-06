@@ -20,20 +20,6 @@ public class ProductSpecification {
                 StringUtils.hasText(sportType) ? criteriaBuilder.like(root.get("sportType"),"%" + sportType + "%") : null;
     }
 
-//    public static Specification<Product> findBySize(String size){
-//        return (root, query, criteriaBuilder) ->
-//                StringUtils.hasText(size) ? criteriaBuilder.like(root.get("size"),"%" + size + "%") : null;
-//    }
-
-//    public static Specification<Product> findByColor(String color){
-//        return (root, query, criteriaBuilder) ->
-//                StringUtils.hasText(color) ? criteriaBuilder.like(root.get("color"),"%" + color + "%") : null;
-//    }
-
-//    public static Specification<Product> findByMaterial(String material){
-//        return (root, query, criteriaBuilder) ->
-//                StringUtils.hasText(material) ? criteriaBuilder.like(root.get("material"),"%" + material + "%") : null;
-//    }
 
     public static Specification<Product> findByCategoryName(String categoryName) {
         return (root, query, criteriaBuilder) -> {

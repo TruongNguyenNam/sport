@@ -37,13 +37,14 @@ public class SecurityConfig  {
                 .cors(withDefaults()) // Bật CORS
                 .authorizeHttpRequests(authz -> authz
 //                        api/v1/admin/product
-                        .requestMatchers("/api/v1/admin/**").permitAll()
+                     //   .anyRequest().permitAll()
+                    //    .requestMatchers("/api/v1/admin/**").permitAll()
                         //.requestMatchers("/api/v1/auth/**").permitAll()
                         //.requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/product/**").anonymous()
 
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .anyRequest().authenticated())
+                     //   .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .anyRequest().permitAll())
                 .httpBasic(withDefaults()) // Sử dụng xác thực cơ bản
                 .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling()

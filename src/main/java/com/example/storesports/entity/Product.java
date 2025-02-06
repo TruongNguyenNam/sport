@@ -34,7 +34,7 @@ public class Product extends Auditable{
         @JoinColumn(name = "category_id")
         private Category category;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
         private List<ProductImage> productImages;
 
         @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
@@ -54,11 +54,11 @@ public class Product extends Auditable{
 
 
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL)
         private List<ProductDiscountMapping> productDiscountMappings;
 
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
         private List<Inventory> inventories;
 
 }

@@ -69,21 +69,10 @@ public class ProductServiceImpl implements ProductService {
         if (productSearchRequest.getName() != null && !productSearchRequest.getName().isEmpty()) {
             specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
         }
-//        if (productSearchRequest.getSize() != null && !productSearchRequest.getSize().isEmpty()) {
-//            specification = specification.and(ProductSpecification.findBySize(productSearchRequest.getSize()));
-//        }
-//        if (productSearchRequest.getMaterial() != null && !productSearchRequest.getMaterial().isEmpty()) {
-//            specification = specification.and(ProductSpecification.findByMaterial(productSearchRequest.getMaterial()));
-//        }
+
         if (productSearchRequest.getSportType() != null && !productSearchRequest.getSportType().isEmpty()) {
-            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSize()));
+            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSportType()));
         }
-//        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
-//            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
-//        }
-//        if (productSearchRequest.getColor() != null && !productSearchRequest.getColor().isEmpty()) {
-//            specification = specification.and(ProductSpecification.findByColor(productSearchRequest.getColor()));
-//        }
         if (productSearchRequest.getSupplierName() != null && !productSearchRequest.getSupplierName().isEmpty()) {
             specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
         }
@@ -107,9 +96,18 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void delete(List<Long> id) {
        List<Product> productList = productRepository.findAllById(id);
-       if(!productList.isEmpty()){
-           productRepository.deleteAllInBatch(productList);
-       }
+        if (!productList.isEmpty()) {
+            // Xóa hình ảnh liên quan đến sản phẩm trước
+            for (Product product : productList) {
+                productImageRepository.deleteByProductId(product.getId());
+                productTagMappingRepository.deleteByProductId(product.getId());
+                inventoryRepository.deleteByProductId(product.getId());
+                productAttributeValueRepository.deleteByProductId(product.getId());
+            }
+
+            // Sau đó xóa sản phẩm
+            productRepository.deleteAllInBatch(productList);
+        }
     }
 
     @Override
@@ -127,6 +125,12 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ErrorException("Product not found after saving: " + productSaved.getId()));
 
         return mapToResponse(productWithRelations);
+    }
+
+    @Override
+    public ProductResponse findById(Long id) {
+        Product product = productRepository.findById(id).orElseThrow(() -> new ErrorException("product is not found"));
+        return mapToResponse(product);
     }
 
     private void updateAttribute(ProductRequest request, Product product){
@@ -221,7 +225,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void handleImages(ProductRequest request, Product productSaved) {
-        productImageRepository.deleteByProductId(productSaved.getId());
+//        productImageRepository.deleteByProductId(productSaved.getId());
         if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
             for (Long imageId : request.getProductImageIds()) {
                 ProductImage image = productImageRepository.findById(imageId)
@@ -247,10 +251,18 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void updateInventory(Product productSaved) {
-        Inventory inventory = inventoryRepository.findByProductId(productSaved.getId()).orElse(new Inventory());
-        inventory.setProduct(productSaved);
-        inventory.setStockQuantity(productSaved.getStockQuantity());
-        inventoryRepository.save(inventory);
+        Inventory inventory = inventoryRepository.findByProductId(productSaved.getId()).orElse(null);
+
+        if (inventory != null) {
+            // Nếu tồn kho hiện tại tồn tại, xóa nó
+            inventoryRepository.deleteByProductId(productSaved.getId());
+        }
+
+        // Tạo hoặc cập nhật tồn kho mới
+        Inventory newInventory = new Inventory();
+        newInventory.setProduct(productSaved);
+        newInventory.setStockQuantity(productSaved.getStockQuantity());
+        inventoryRepository.save(newInventory);
     }
 
 

@@ -21,7 +21,6 @@ public class ProductResponse {
     private String sku;
     private String supplierName;
     private String categoryName;
-//    private List<String> sportTypeName;
     private List<ProductAttributeValueResponse> productAttributeValueResponses;
     private List<String> tagName;
     private List<String> ImageUrl;

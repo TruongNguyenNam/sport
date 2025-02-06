@@ -4,6 +4,7 @@ import com.example.storesports.core.admin.product.payload.ProductRequest;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
 import com.example.storesports.entity.Product;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.service.admin.product.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,15 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateAProduct(
+            @PathVariable Long id,
+            @RequestBody ProductRequest productRequest) {
+        ProductResponse response = productService.updateProduct(productRequest,id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+
     @Operation(summary = "Get all products", description = "Retrieve a paginated list of products")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successful retrieval of products"),
@@ -44,40 +54,50 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        try {
+            ProductResponse productResponse = productService.findById(id);
+            return new ResponseEntity<>(productResponse, HttpStatus.OK);
+        } catch (ErrorException e) {
+            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        }
+    }
+
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> searchProductsByAttribute(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "2") int size,
+            @RequestParam(defaultValue = "5") int size,
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String sizeParam,
-            @RequestParam(required = false) String material,
-            @RequestParam(required = false) String sportType,
-            @RequestParam(required = false) String color,
-            @RequestParam(required = false) String supplierName,
-            @RequestParam(required = false) String categoryName,
             @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice
-            ) {
-        ProductSearchRequest searchRequest = new ProductSearchRequest(name,sizeParam,material,sportType,color,minPrice,maxPrice,categoryName,supplierName);
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String sportType,
+            @RequestParam(required = false) String supplierName,
+            @RequestParam(required = false) String categoryName) {
+
+        ProductSearchRequest searchRequest = new ProductSearchRequest(
+                name,
+                minPrice,
+                maxPrice,
+                sportType,
+                supplierName,
+                categoryName
+        );
+
         Page<ProductResponse> productResponses = productService.searchProductsByAttribute(page, size, searchRequest);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
 
+        System.out.println("Page: " + page + " | Size: " + size);
+        System.out.println("Total elements: " + productResponses.getTotalElements());
+        System.out.println("conyent" + productResponses.getContent());
         return ResponseEntity.ok(response);
     }
-
     @PostMapping
     public ResponseEntity<ProductResponse> addProduct(@RequestBody ProductRequest productRequest) {
         ProductResponse response = productService.addNewProduct(productRequest);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateAProduct(
-            @PathVariable Long id,
-            @RequestBody ProductRequest productRequest) {
-        ProductResponse response = productService.updateProduct(productRequest,id);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteProducts(@RequestBody List<Long> ids) {

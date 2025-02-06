@@ -18,6 +18,8 @@ public interface ProductService {
 
     ProductResponse updateProduct(ProductRequest request,Long id);
 
+    ProductResponse findById(Long id);
+
 
 
 
