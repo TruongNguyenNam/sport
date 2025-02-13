@@ -18,4 +18,8 @@ public interface SupplierService {
     List<SupplierResponse> findByName(String name);
 
     void deleteSupplier(List<Long> id);
+
+
+    SupplierResponse findById(Long id);
+
 }

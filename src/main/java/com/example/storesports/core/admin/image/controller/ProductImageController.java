@@ -13,7 +13,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductImageController {
 //    @Autowired
-    private final ProductImageService productImageService;
+      private final ProductImageService productImageService;
 
 
     @PostMapping("/upload")
@@ -35,4 +35,12 @@ public class ProductImageController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProductImageById(@PathVariable Long id) {
+        productImageService.deleteById(id);
+        return ResponseEntity.noContent().build();  // HTTP 204 No Content
+    }
+
+
 }

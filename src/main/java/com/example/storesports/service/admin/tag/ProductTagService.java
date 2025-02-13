@@ -18,6 +18,8 @@ public interface ProductTagService {
 
     void deleteTag(List<Long> id);
 
+    ProductTagResponse findById(Long id);
+
 
 
 }

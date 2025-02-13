@@ -26,7 +26,6 @@ public class ReturnRequest extends Auditable{
         private java.util.Date requestDate;
 
 
-        // Getters and Setters
 
 
 }

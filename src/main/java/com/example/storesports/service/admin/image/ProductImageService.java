@@ -10,6 +10,8 @@ public interface ProductImageService {
     List<Long> saveProductImage(List<MultipartFile> images);
     ProductImageResponse getPictureById(Long id);
 
+    void deleteById(Long id);
+
 
 
 }

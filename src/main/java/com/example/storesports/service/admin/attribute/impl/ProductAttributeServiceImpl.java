@@ -51,7 +51,7 @@ public class ProductAttributeServiceImpl implements AttributeService {
         }
 
         productAttribute.setName(productAttributeRequest.getName());
-        productAttribute.setDescription(productAttribute.getDescription());
+        productAttribute.setDescription(productAttributeRequest.getDescription());
 
         ProductAttribute attributeSaved = productAttributeRepository.save(productAttribute);
 
@@ -67,6 +67,16 @@ public class ProductAttributeServiceImpl implements AttributeService {
         if(!productAttributes.isEmpty()){
                 productAttributeRepository.deleteAllInBatch(productAttributes);
         }
+
+
+    }
+
+    @Override
+    public ProductAttributeResponse findById(Long id) {
+            ProductAttribute productAttribute = productAttributeRepository.findById(id).
+                    orElseThrow(() -> new ErrorException("AttributeId is not found"));
+
+            return modelMapper.map(productAttribute,ProductAttributeResponse.class);
 
 
     }

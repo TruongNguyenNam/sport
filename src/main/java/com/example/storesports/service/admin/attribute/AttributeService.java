@@ -19,4 +19,7 @@ public interface AttributeService {
 
     void deleteAttribute(List<Long> id);
 
+
+    ProductAttributeResponse findById(Long id);
+
 }

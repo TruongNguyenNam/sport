@@ -5,6 +5,7 @@ import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.Category;
 import com.example.storesports.entity.Supplier;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.SupplierRepository;
 import com.example.storesports.service.admin.supplier.SupplierService;
@@ -78,6 +79,12 @@ public class SupplierServiceImpl implements SupplierService {
         if(!suppliers.isEmpty()){
             supplierRepository.deleteAllInBatch(suppliers);
         }
+    }
+
+    @Override
+    public SupplierResponse findById(Long id) {
+        Supplier supplier = supplierRepository.findById(id).orElseThrow(() -> new ErrorException("supplierId is not found"));
+        return modelMapper.map(supplier,SupplierResponse.class);
     }
 
 }

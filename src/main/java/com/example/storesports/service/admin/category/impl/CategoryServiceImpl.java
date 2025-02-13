@@ -4,6 +4,7 @@ import com.example.storesports.core.admin.category.payload.CategoryRequest;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.entity.Category;
 import com.example.storesports.entity.Product;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.CategoryRepository;
 import com.example.storesports.service.admin.category.CategoryService;
@@ -74,6 +75,14 @@ public class CategoryServiceImpl implements CategoryService {
         if(!categories.isEmpty()){
                 categoryRepository.deleteAllInBatch(categories);
         }
+    }
+
+    @Override
+    public CategoryResponse findById(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new ErrorException("Id category is not found"));
+
+        return modelMapper.map(category,CategoryResponse.class);
     }
 
 }

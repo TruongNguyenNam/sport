@@ -18,6 +18,12 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
+            CategoryResponse categoryResponse = categoryService.findById(id);
+            return ResponseEntity.ok(categoryResponse);
+    }
+
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllCategories(
             @RequestParam(defaultValue = "0") int page,

@@ -20,6 +20,12 @@ public class ProductAttributeController {
 
         private final AttributeService attributeService;
 
+        @GetMapping("/{id}")
+        public ResponseEntity<ProductAttributeResponse> getProductAttributeById(@PathVariable Long id) {
+            ProductAttributeResponse response = attributeService.findById(id);
+            return ResponseEntity.ok(response);
+        }
+
         @GetMapping
         public ResponseEntity<Map<String, Object>> getAllProductAttribute(
                 @RequestParam(defaultValue = "0") int page,

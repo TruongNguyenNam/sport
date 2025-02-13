@@ -69,5 +69,13 @@ public class ProductTagServiceImpl implements ProductTagService {
     }
     }
 
+    @Override
+    public ProductTagResponse findById(Long id) {
+            ProductTag productTag = productTagRepository.
+                    findById(id).orElseThrow(() -> new ErrorException("TagId is not found"));
+            return modelMapper.map(productTag,ProductTagResponse.class);
+
+    }
+
 
 }

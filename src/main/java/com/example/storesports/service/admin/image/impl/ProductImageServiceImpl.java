@@ -1,6 +1,7 @@
 package com.example.storesports.service.admin.image.impl;
 import com.example.storesports.core.admin.image.payload.ProductImageResponse;
 import com.example.storesports.entity.ProductImage;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.exceptions.NotFoundException;
 import com.example.storesports.repositories.ProductImageRepository;
 import com.example.storesports.service.admin.image.ProductImageService;
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class ProductImageServiceImpl implements ProductImageService {
@@ -67,4 +70,16 @@ public class ProductImageServiceImpl implements ProductImageService {
                 orElseThrow(() -> new NotFoundException("productImage is not found"));
         return modelMapper.map(productImage,ProductImageResponse.class);
     }
+
+    @Override
+    public void deleteById(Long id) {
+        Optional<ProductImage> productImage = productImageRepository.findById(id);
+        if (productImage.isPresent()) {
+            productImageRepository.deleteById(id);
+        } else {
+            throw new ErrorException("ProductImage with id " + id + " is not found");
+        }
+    }
+
+
 }
