@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
+
 @Entity
 @Table(name = "Wishlist")
 @Getter
@@ -26,7 +28,7 @@ public class Wishlist extends Auditable {
         @JoinColumn(name = "product_id")
         private Product product;
 
-        private java.util.Date addedDate;
+        private Date addedDate;
 
 
 
