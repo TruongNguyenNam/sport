@@ -42,21 +42,43 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id) {
-        Category category;
-        if (id != null) {
-            category = categoryRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
-        } else {
-            category = new Category();
-        }
+    public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
+
+        category.setName(categoryRequest.getName());
+        category.setDescription(categoryRequest.getDescription());
+
+        Category updatedCategory = categoryRepository.save(category);
+        return modelMapper.map(updatedCategory, CategoryResponse.class);
+    }
+
+    @Override
+    public CategoryResponse saveCategory(CategoryRequest categoryRequest) {
+        Category category = new Category();
         category.setName(categoryRequest.getName());
         category.setDescription(categoryRequest.getDescription());
 
         Category savedCategory = categoryRepository.save(category);
-
         return modelMapper.map(savedCategory, CategoryResponse.class);
     }
+
+//    @Override
+//    public CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id) {
+//        Category category;
+//        if (id != null) {
+//            category = categoryRepository.findById(id)
+//                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
+//        } else {
+//            category = new Category();
+//        }
+//        category.setName(categoryRequest.getName());
+//        category.setDescription(categoryRequest.getDescription());
+//
+//        Category savedCategory = categoryRepository.save(category);
+//
+//        return modelMapper.map(savedCategory, CategoryResponse.class);
+//    }
 
     @Override
     public List<CategoryResponse> findByName(String name) {

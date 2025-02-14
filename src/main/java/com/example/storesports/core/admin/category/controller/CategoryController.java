@@ -15,15 +15,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/admin/category")
 @RequiredArgsConstructor
 public class CategoryController {
-
     private final CategoryService categoryService;
-
-    @GetMapping("/{id}")
-    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
-            CategoryResponse categoryResponse = categoryService.findById(id);
-            return ResponseEntity.ok(categoryResponse);
-    }
-
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllCategories(
             @RequestParam(defaultValue = "0") int page,
@@ -33,17 +25,38 @@ public class CategoryController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping
+    public ResponseEntity<CategoryResponse> addCategory(@RequestBody CategoryRequest categoryRequest) {
+        CategoryResponse savedCategory = categoryService.saveCategory(categoryRequest);
+        return ResponseEntity.ok(savedCategory);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoryResponse> updateCategory(
+            @RequestBody CategoryRequest categoryRequest,
+            @PathVariable Long id) {
+        CategoryResponse updatedCategory = categoryService.updateCategory(categoryRequest, id);
+        return ResponseEntity.ok(updatedCategory);
+    }
+
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long id) {
+            CategoryResponse categoryResponse = categoryService.findById(id);
+            return ResponseEntity.ok(categoryResponse);
+    }
+
+
+
     @GetMapping("/search")
     public ResponseEntity<List<CategoryResponse>> findByName(@RequestParam String name) {
         List<CategoryResponse> categories = categoryService.findByName(name);
         return ResponseEntity.ok(categories);
     }
 
-    @PostMapping("/{id}")
-    public ResponseEntity<CategoryResponse> saveOrUpdateCategory(@RequestBody CategoryRequest categoryRequest, @PathVariable Long id) {
-        CategoryResponse savedCategory = categoryService.saveOrUpdateCategory(categoryRequest, id);
-        return ResponseEntity.ok(savedCategory);
-    }
+
+
 
     @DeleteMapping
     public ResponseEntity<Void> deleteCategory(@RequestParam List<Long> id) {

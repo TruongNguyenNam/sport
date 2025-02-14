@@ -10,8 +10,10 @@ import java.util.List;
 public interface CategoryService {
     Page<CategoryResponse> getAllCategories(int page, int size);
 
-    CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id);
+   // CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id);
 
+    CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id);
+    CategoryResponse saveCategory(CategoryRequest categoryRequest);
     List<CategoryResponse> findByName(String name);
 
     void deleteCategory(List<Long> id);

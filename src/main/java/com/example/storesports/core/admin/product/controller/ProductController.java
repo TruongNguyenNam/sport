@@ -30,13 +30,7 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateAProduct(
-            @PathVariable Long id,
-            @RequestBody ProductRequest productRequest) {
-        ProductResponse response = productService.updateProduct(productRequest,id);
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
+
 
 
     @Operation(summary = "Get all products", description = "Retrieve a paginated list of products")
@@ -52,6 +46,14 @@ public class ProductController {
         Page<ProductResponse> productResponses = productService.getAllProducts(page, size);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductResponse> updateAProduct(
+            @PathVariable Long id,
+            @RequestBody ProductRequest productRequest) {
+        ProductResponse response = productService.updateProduct(productRequest,id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
