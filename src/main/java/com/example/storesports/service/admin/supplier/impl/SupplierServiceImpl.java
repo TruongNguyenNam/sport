@@ -43,9 +43,8 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
-    public SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id) {
+    public SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id) {
         Supplier supplier;
-
         if (id != null) {
             supplier = supplierRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
@@ -58,8 +57,38 @@ public class SupplierServiceImpl implements SupplierService {
         Supplier supplierSaved = supplierRepository.save(supplier);
 
         return modelMapper.map(supplierSaved, SupplierResponse.class);
-
     }
+
+    @Override
+    public SupplierResponse saveSupplier(SupplierRequest supplierRequest) {
+      Supplier supplier=new Supplier();
+        supplier.setName(supplierRequest.getName());
+        supplier.setDescription(supplierRequest.getDescription());
+
+        Supplier supplierSaved = supplierRepository.save(supplier);
+
+        return modelMapper.map(supplierSaved, SupplierResponse.class);
+    }
+
+//
+//    @Override
+//    public SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id) {
+//        Supplier supplier;
+//
+//        if (id != null) {
+//            supplier = supplierRepository.findById(id)
+//                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
+//        } else {
+//            supplier = new Supplier();
+//        }
+//        supplier.setName(supplierRequest.getName());
+//        supplier.setDescription(supplierRequest.getDescription());
+//
+//        Supplier supplierSaved = supplierRepository.save(supplier);
+//
+//        return modelMapper.map(supplierSaved, SupplierResponse.class);
+//
+//    }
 
     @Override
     public List<SupplierResponse> findByName(String name) {
