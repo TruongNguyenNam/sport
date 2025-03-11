@@ -12,14 +12,11 @@ public interface SupplierService {
 
     Page<SupplierResponse> getAllSupplier(int size,int page);
 
-
-//    SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id);
-SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id);
-    SupplierResponse saveSupplier(SupplierRequest supplierRequest);
-
-    SupplierResponse saveSupplier(SupplierRequest supplierRequest);
-
     SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id);
+
+
+    SupplierResponse saveSupplier(SupplierRequest supplierRequest);
+
 
     List<SupplierResponse> findByName(String name);
 

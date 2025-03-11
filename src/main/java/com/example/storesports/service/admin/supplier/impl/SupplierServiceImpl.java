@@ -43,23 +43,28 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
-    public SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id) {
-        Supplier supplier;
-
-        if (id != null) {
-            supplier = supplierRepository.findById(id)
-                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
-        } else {
-            supplier = new Supplier();
-        }
+    public SupplierResponse saveSupplier(SupplierRequest supplierRequest) {
+        Supplier supplier = new Supplier();
         supplier.setName(supplierRequest.getName());
         supplier.setDescription(supplierRequest.getDescription());
 
         Supplier supplierSaved = supplierRepository.save(supplier);
-
         return modelMapper.map(supplierSaved, SupplierResponse.class);
-
     }
+
+    @Override
+    public SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id) {
+        Supplier supplier = supplierRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Supplier with id " + id + " not found"));
+
+        supplier.setName(supplierRequest.getName());
+        supplier.setDescription(supplierRequest.getDescription());
+
+        Supplier supplierUpdated = supplierRepository.save(supplier);
+        return modelMapper.map(supplierUpdated, SupplierResponse.class);
+    }
+
+
 
     @Override
     public List<SupplierResponse> findByName(String name) {
