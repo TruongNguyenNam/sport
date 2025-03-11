@@ -43,10 +43,15 @@ public class SupplierController {
         return ResponseEntity.ok(categories);
     }
 
-    @PostMapping("/{id}")
-    public ResponseEntity<SupplierResponse> saveOrUpdateSupplier(@RequestBody SupplierRequest supplierRequest, @PathVariable Long id) {
-        SupplierResponse savedSupplier = supplierService.saveOrUpdateSupplier(supplierRequest, id);
+    @PutMapping("/{id}")
+    public ResponseEntity<SupplierResponse> UpdateSupplier(@RequestBody SupplierRequest supplierRequest, @PathVariable Long id) {
+        SupplierResponse savedSupplier = supplierService.updateSupplier(supplierRequest, id);
         return ResponseEntity.ok(savedSupplier);
+    }
+    @PostMapping
+    public ResponseEntity<SupplierResponse> saveSupplier(@RequestBody SupplierRequest supplierRequest){
+        SupplierResponse response=supplierService.saveSupplier(supplierRequest);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping

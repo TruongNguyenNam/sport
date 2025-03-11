@@ -1,6 +1,5 @@
 package com.example.storesports.service.admin.supplier.impl;
 
-import com.example.storesports.core.admin.category.payload.CategoryRequest;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
@@ -12,7 +11,6 @@ import com.example.storesports.repositories.SupplierRepository;
 import com.example.storesports.service.admin.supplier.SupplierService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.internal.bytebuddy.implementation.bytecode.Throw;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -61,28 +59,6 @@ public class SupplierServiceImpl implements SupplierService {
 
         return modelMapper.map(supplierSaved, SupplierResponse.class);
 
-    }
-
-    @Override
-    public SupplierResponse saveSupplier(SupplierRequest supplierRequest) {
-            Supplier supplier = new Supplier();
-            supplier.setName(supplierRequest.getName());
-            supplier.setDescription(supplierRequest.getDescription());
-
-            Supplier supplierSaved = supplierRepository.save(supplier);
-            return modelMapper.map(supplierSaved,SupplierResponse.class);
-
-    }
-
-
-
-    @Override
-    public SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id) {
-        Supplier supplier = supplierRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("supplier id not found"));
-        supplier.setName(supplierRequest.getName());
-        supplier.setDescription(supplierRequest.getDescription());
-        Supplier supplier1 = supplierRepository.save(supplier);
-        return modelMapper.map(supplier1,SupplierResponse.class);
     }
 
     @Override
