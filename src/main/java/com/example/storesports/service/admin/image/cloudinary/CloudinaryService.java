@@ -15,9 +15,6 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-//    public CloudinaryService(Cloudinary cloudinary) {
-//        this.cloudinary = cloudinary;
-//    }
 
     public Map uploadFile(MultipartFile file, String folderName) throws IOException {
         return cloudinary.uploader().upload(file.getBytes(),

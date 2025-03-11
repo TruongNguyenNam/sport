@@ -26,6 +26,9 @@ public class Product extends Auditable{
         private String sportType;
         private String sku;
 
+        @Column(name = "parent_product_id")
+        private Long parentProductId;
+
         @ManyToOne
         @JoinColumn(name = "supplier_id")
         private Supplier supplier;
@@ -34,17 +37,12 @@ public class Product extends Auditable{
         @JoinColumn(name = "category_id")
         private Category category;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY,orphanRemoval = true)
         private List<ProductImage> productImages;
 
-        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
+        @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY,orphanRemoval = true)
         private List<ProductAttributeValue> productAttributeValues;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
-        private List<ProductReview> productReviews;
-
-        @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
-        private List<ProductTagMapping> productTagMappings;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<ShoppingCartItem> shoppingCartItems;
@@ -52,7 +50,8 @@ public class Product extends Auditable{
         @OneToMany(mappedBy = "product",cascade = CascadeType.REMOVE)
         private List<OrderItem> orderItems;
 
-
+        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,orphanRemoval = true)
+        private List<ProductTagMapping> productTagMappings;
 
         @OneToMany(mappedBy = "product",cascade = CascadeType.ALL)
         private List<ProductDiscountMapping> productDiscountMappings;

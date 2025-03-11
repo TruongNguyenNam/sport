@@ -22,4 +22,5 @@ public class ProductImage extends Auditable {
     private Product product;
 
     private String imageUrl;
+
 }

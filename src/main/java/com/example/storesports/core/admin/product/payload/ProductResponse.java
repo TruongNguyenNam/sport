@@ -1,7 +1,5 @@
 package com.example.storesports.core.admin.product.payload;
 
-import com.example.storesports.entity.*;
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

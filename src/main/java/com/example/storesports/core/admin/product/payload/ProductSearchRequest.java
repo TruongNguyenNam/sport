@@ -13,9 +13,5 @@ public class ProductSearchRequest {
     private String sportType;
     private String supplierName;
     private String categoryName;
-//    public ProductSearchRequest(String name, String sizeParam, String material, String sportType, String color, Double minPrice, Double maxPrice) {
-//    }
-//
-//    public ProductSearchRequest(String name, String sizeParam, String material, String sportType, String color, Double minPrice, Double maxPrice,String supplierName, String categoryName) {
-//    }
+
 }

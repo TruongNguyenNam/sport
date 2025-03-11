@@ -22,9 +22,10 @@ public class ProductRequest {
     private String sku;
     private Long supplierId;
     private Long categoryId;
+    private Long childProductId;
     private List<Long> tagId;
     private List<ProductAttributeValue> productAttributeValues = new ArrayList<>();
-    private List<Long> productImageIds;
+   private List<MultipartFile> parentImages; // Ảnh cho sản phẩm cha
     private List<Long> inventoryIds;
 
     @Data
@@ -34,6 +35,7 @@ public class ProductRequest {
         private Long attributeId;
         private Long productId;
         private String value;
+        private List<MultipartFile> variantImages;
     }
 
 }

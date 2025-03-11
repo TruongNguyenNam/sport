@@ -25,41 +25,32 @@ public class ProductImageServiceImpl implements ProductImageService {
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
 
-//    @Autowired
-//    public ProductImageServiceImpl(ProductImageRepository productImageRepository, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
-//        this.productImageRepository = productImageRepository;
-//        this.cloudinaryService = cloudinaryService;
-//        this.modelMapper = modelMapper;
-//    }
     @Override
     @Transactional
     public List<Long> saveProductImage(List<MultipartFile> images) {
-        // Tạo một danh sách để lưu ID ảnh
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("No images provided to upload");
+        }
+
         List<Long> imageIds = new ArrayList<>();
-
         for (MultipartFile image : images) {
+            if (image.isEmpty()) continue;
             try {
-                // Tải ảnh lên Cloudinary
                 Map<String, Object> uploadResult = cloudinaryService.uploadFile(image, "product_images");
-
-                // Lấy URL ảnh từ Cloudinary
                 String imageUrl = (String) uploadResult.get("url");
 
-                // Tạo đối tượng ProductImage và lưu vào cơ sở dữ liệu
                 ProductImage productImage = new ProductImage();
                 productImage.setImageUrl(imageUrl);
-
-                // Lưu vào CSDL
                 ProductImage savedImage = productImageRepository.save(productImage);
-
-                // Thêm ID của ảnh đã lưu vào danh sách
                 imageIds.add(savedImage.getId());
             } catch (IOException e) {
-                e.printStackTrace();
-
+                throw new RuntimeException("Failed to upload image: " + image.getOriginalFilename(), e);
             }
         }
-        // Trả về danh sách ID ảnh đã lưu
+
+        if (imageIds.isEmpty()) {
+            throw new IllegalStateException("No images were successfully uploaded");
+        }
         return imageIds;
     }
 
@@ -73,12 +64,18 @@ public class ProductImageServiceImpl implements ProductImageService {
 
     @Override
     public void deleteById(Long id) {
-        Optional<ProductImage> productImage = productImageRepository.findById(id);
-        if (productImage.isPresent()) {
-            productImageRepository.deleteById(id);
-        } else {
+        if (!productImageRepository.existsById(id)) {
             throw new ErrorException("ProductImage with id " + id + " is not found");
         }
+        productImageRepository.deleteById(id);
+    }
+
+    @Override
+    public void deleteByProductId(Long id) {
+        if (!productImageRepository.existsByProductId(id)) {
+            throw new ErrorException("No ProductImages found for Product with id " + id);
+        }
+        productImageRepository.deleteByProductId(id);
     }
 
 

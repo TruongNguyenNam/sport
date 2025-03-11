@@ -42,5 +42,16 @@ public class ProductImageController {
         return ResponseEntity.noContent().build();  // HTTP 204 No Content
     }
 
+    // Xóa tất cả ProductImage theo Product ID
+    @DeleteMapping("/product/{productId}")
+    public ResponseEntity<Void> deleteProductImagesByProductId(@PathVariable Long productId) {
+        productImageService.deleteByProductId(productId);
+        return ResponseEntity.noContent().build();  // HTTP 204 No Content
+    }
+
+
+
+
+
 
 }

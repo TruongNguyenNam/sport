@@ -15,6 +15,10 @@ public interface SupplierService {
 
     SupplierResponse saveOrUpdateSupplier(SupplierRequest supplierRequest, Long id);
 
+    SupplierResponse saveSupplier(SupplierRequest supplierRequest);
+
+    SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id);
+
     List<SupplierResponse> findByName(String name);
 
     void deleteSupplier(List<Long> id);

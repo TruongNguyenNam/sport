@@ -21,6 +21,4 @@ public class ReturnRequestReason extends Auditable {
         private String name;
         private String description;
 
-
-
 }

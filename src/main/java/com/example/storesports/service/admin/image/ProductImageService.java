@@ -12,6 +12,8 @@ public interface ProductImageService {
 
     void deleteById(Long id);
 
+    void deleteByProductId(Long id);
+
 
 
 }

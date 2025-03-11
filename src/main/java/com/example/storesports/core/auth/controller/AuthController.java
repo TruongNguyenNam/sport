@@ -65,29 +65,6 @@ public class AuthController {
 
 
 
-//    @Autowired
-//    private ModelMapper modelMapper;
-//    @Autowired
-//    private UserRepository userRepository;
-//
-//    @Autowired
-//    private PasswordEncoder encoder;
-//    @PostMapping("/addUser")
-//    public UserResponse addUser(@RequestBody UserRequest userRequest) {
-//        String encodedPassword = encoder.encode(userRequest.getPassword());
-//        User newUser = new User();
-//        newUser.setUsername(userRequest.getUsername());
-//        newUser.setPassword(encodedPassword);
-//        newUser.setEmail(userRequest.getEmail());
-//        newUser.setRole(Role.ADMIN);
-////        newUser.setDeleted(userRequest.isDeleted());
-//
-//        User savedUser = userRepository.save(newUser);
-//        return modelMapper.map(savedUser, UserResponse.class);
-//    }
-
-
-
 
 
 }

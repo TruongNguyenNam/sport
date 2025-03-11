@@ -11,14 +11,20 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +36,30 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
 
+//    @PostMapping(consumes = "multipart/form-data")
+//    public ResponseEntity<ProductResponse> addProduct(@Valid @ModelAttribute ProductRequest productRequest) {
+//        ProductResponse response = productService.createProductWithVariants(productRequest);
+//        return new ResponseEntity<>(response, HttpStatus.CREATED);
+//    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductResponse> addProduct(@Valid @ModelAttribute ProductRequest productRequest) {
+        try {
+            ProductResponse response = productService.createProductWithVariants(productRequest);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create product", e);
+        }
+    }
+//    @PostMapping()
+//    public ResponseEntity<ProductResponse> addProduct(@RequestBody ProductRequest productRequest) {
+//        ProductResponse response = productService.createProductWithVariants(productRequest);
+//        return new ResponseEntity<>(response, HttpStatus.CREATED);
+//    }
 
 
 
@@ -89,17 +119,11 @@ public class ProductController {
         Page<ProductResponse> productResponses = productService.searchProductsByAttribute(page, size, searchRequest);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
 
-        System.out.println("Page: " + page + " | Size: " + size);
-        System.out.println("Total elements: " + productResponses.getTotalElements());
-        System.out.println("conyent" + productResponses.getContent());
+//        System.out.println("Page: " + page + " | Size: " + size);
+//        System.out.println("Total elements: " + productResponses.getTotalElements());
+//        System.out.println("conyent" + productResponses.getContent());
         return ResponseEntity.ok(response);
     }
-    @PostMapping
-    public ResponseEntity<ProductResponse> addProduct(@RequestBody ProductRequest productRequest) {
-        ProductResponse response = productService.addNewProduct(productRequest);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
-
 
     @DeleteMapping
     public ResponseEntity<Void> deleteProducts(@RequestBody List<Long> ids) {
@@ -110,6 +134,11 @@ public class ProductController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @GetMapping("/parent/{parentId}")
+    public ResponseEntity<List<ProductResponse>> getProductsByParentId(@PathVariable Long parentId) {
+        List<ProductResponse> products = productService.findByParentId(parentId);
+        return ResponseEntity.ok(products);
+    }
 
 
 
