@@ -4,14 +4,13 @@ import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
-import com.example.storesports.infrastructure.exceptions.NotFoundException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.*;
-import com.example.storesports.service.admin.image.ProductImageService;
+import com.example.storesports.service.admin.image.cloudinary.CloudinaryService;
 import com.example.storesports.service.admin.product.ProductService;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -20,12 +19,14 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
-import java.util.function.Function;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
 
@@ -45,7 +46,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final InventoryRepository inventoryRepository;
 
-    private final ProductImageService productImageService;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public Page<ProductResponse> getAllProducts(int page, int size) {
@@ -62,6 +63,16 @@ public class ProductServiceImpl implements ProductService {
 
         return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
     }
+
+
+    @Override
+    public List<ProductResponse> getAllParentProduct() {
+        List<Product> productList = productRepository.findAllParentProducts();
+        return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+
+
 
     @Override
     public Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest) {
@@ -120,214 +131,6 @@ public class ProductServiceImpl implements ProductService {
         return mapToResponse(product);
     }
 
-    @Override
-    @Transactional
-    public ProductResponse updateProduct(ProductRequest request, Long id) {
-        Product parent = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found"));
-
-        if (request.getChildProductId() == null) {
-            return updateParentOnly(request, parent); // TH1: Cập nhật sản phẩm cha
-        } else {
-            return updateChildProduct(request, parent, request.getChildProductId()); // TH2: Cập nhật sản phẩm con
-        }
-    }
-
-    private ProductResponse updateParentOnly(ProductRequest request, Product parent) {
-        if (request.getName() != null) {
-            parent.setName(request.getName());
-        }
-        if (request.getDescription() != null) {
-            parent.setDescription(request.getDescription());
-        }
-        if (request.getSupplierId() != null) {
-            Supplier supplier = supplierRepository.findById(request.getSupplierId())
-                    .orElseThrow(() -> new EntityNotFoundException("Nhà cung cấp không tồn tại"));
-            parent.setSupplier(supplier);
-        }
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Danh mục không tồn tại"));
-            parent.setCategory(category);
-        }
-        if (request.getSku() != null) {
-            parent.setSku(request.getSku());
-        }
-
-        // Lưu sản phẩm cha trước khi xử lý tag
-        productRepository.save(parent);
-
-        // Xử lý tag cho sản phẩm cha
-        if (request.getTagId() != null) {
-            handleTags(request, parent);
-        }
-
-        // Đồng bộ sản phẩm con
-        if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
-            updateChildProductsOnParentChange(parent, request);
-        } else {
-            updateChildNamesAndSkus(parent);
-        }
-
-        return mapToResponse(parent);
-    }
-
-    private void updateChildNamesAndSkus(Product parent) {
-        List<Product> children = productRepository.findByParentProductId(parent.getId());
-        for (Product child : children) {
-            String variantSuffix = extractVariantSuffix(child, parent.getSku());
-            child.setName(parent.getName() + "-" + variantSuffix);
-            child.setSku(parent.getSku() + "-" + variantSuffix);
-        }
-        productRepository.saveAll(children);
-    }
-
-    private void updateChildProductsOnParentChange(Product parent, ProductRequest request) {
-        Map<Long, List<String>> attributeMap = buildAttributeMap(request.getProductAttributeValues());
-        List<List<String>> combinations = generateCombinations(new ArrayList<>(attributeMap.values()));
-
-        List<Product> existingChildren = productRepository.findByParentProductId(parent.getId());
-        Map<String, Product> existingChildMap = existingChildren.stream()
-                .collect(Collectors.toMap(Product::getSku, Function.identity()));
-
-        List<Product> updatedChildren = new ArrayList<>();
-        for (List<String> combo : combinations) {
-            String variantSuffix = String.join("-", combo);
-            String childSku = parent.getSku() + "-" + variantSuffix;
-
-            Product child = existingChildMap.getOrDefault(childSku, new Product());
-            child.setName(parent.getName() + "-" + variantSuffix);
-            child.setSku(childSku);
-            child.setDescription(parent.getDescription());
-            child.setPrice(parent.getPrice());
-            child.setStockQuantity(parent.getStockQuantity());
-            child.setSportType(parent.getSportType());
-            child.setSupplier(parent.getSupplier());
-            child.setCategory(parent.getCategory());
-            child.setParentProductId(parent.getId());
-            updatedChildren.add(child);
-        }
-
-        // Lưu tất cả sản phẩm con trước
-        productRepository.saveAll(updatedChildren);
-
-        // Cập nhật thuộc tính và ảnh sau khi tất cả child đã được persist
-        int index = 0;
-        for (List<String> combo : combinations) {
-            Product child = updatedChildren.get(index);
-            updateChildAttributes(child, attributeMap, combo);
-//            if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
-//                updateChildImage(child, request.getProductImageIds());
-//            }
-            index++;
-        }
-
-        for (Product child : updatedChildren) {
-            handleTags(request, child);
-        }
-
-        existingChildMap.keySet().removeAll(updatedChildren.stream()
-                .map(Product::getSku)
-                .collect(Collectors.toSet()));
-        if (!existingChildMap.isEmpty()) {
-            productRepository.deleteAll(existingChildMap.values());
-        }
-    }
-
-    private void updateChildAttributes(Product child, Map<Long, List<String>> attributeMap, List<String> combo) {
-        List<ProductAttributeValue> existingAttributes = productAttributeValueRepository.findByProductId(child.getId());
-        productAttributeValueRepository.deleteAll(existingAttributes);
-
-        int attributeIndex = 0;
-        for (Map.Entry<Long, List<String>> entry : attributeMap.entrySet()) {
-            Long attributeId = entry.getKey();
-            ProductAttribute attribute = productAttributeRepository.findById(attributeId)
-                    .orElseThrow(() -> new EntityNotFoundException("Thuộc tính không tồn tại"));
-
-            ProductAttributeValue attributeValue = new ProductAttributeValue();
-            attributeValue.setAttribute(attribute);
-            attributeValue.setProduct(child);
-            attributeValue.setValue(combo.get(attributeIndex));
-            productAttributeValueRepository.save(attributeValue);
-            attributeIndex++;
-        }
-    }
-
-    private ProductResponse updateChildProduct(ProductRequest request, Product parent, Long childProductId) {
-        Product child = productRepository.findById(childProductId)
-                .orElseThrow(() -> new EntityNotFoundException("Child product not found"));
-
-        if (!child.getParentProductId().equals(parent.getId())) {
-            throw new IllegalArgumentException("Child product does not belong to the specified parent");
-        }
-
-        updateChildProductDetails(request, child);
-
-//        if (request.getProductImageIds() != null && !request.getProductImageIds().isEmpty()) {
-//            updateChildImage(child, request.getProductImageIds());
-//        }
-
-        productRepository.save(child);
-        return mapToResponse(parent);
-    }
-
-    private void updateChildProductDetails(ProductRequest request, Product child) {
-        if (request.getPrice() != null) {
-            child.setPrice(request.getPrice());
-        }
-        if (request.getStockQuantity() != null) {
-            child.setStockQuantity(request.getStockQuantity());
-        }
-        if (request.getDescription() != null) {
-            child.setDescription(request.getDescription());
-        }
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new EntityNotFoundException("Danh mục không tồn tại"));
-            child.setCategory(category);
-        }
-        if (request.getSupplierId() != null) {
-            Supplier supplier = supplierRepository.findById(request.getSupplierId())
-                    .orElseThrow(() -> new EntityNotFoundException("Nhà cung cấp không tồn tại"));
-            child.setSupplier(supplier);
-        }
-    }
-
-    private void updateChildImage(Product child, List<Long> productImageIds) {
-        // Nếu productImageIds là null hoặc rỗng, giữ nguyên ảnh cũ và không làm gì cả
-        if (productImageIds == null || productImageIds.isEmpty()) {
-            return;
-        }
-
-        // Lấy danh sách ảnh hiện tại của sản phẩm con
-        List<ProductImage> existingImages = productImageRepository.findByProductId(child.getId());
-        Map<Long, ProductImage> existingImageMap = existingImages.stream()
-                .collect(Collectors.toMap(ProductImage::getId, Function.identity()));
-
-        // Lấy danh sách ảnh mới từ productImageIds
-        List<ProductImage> newImages = productImageRepository.findAllById(productImageIds);
-        if (newImages.size() != productImageIds.size()) {
-            throw new IllegalArgumentException("Một hoặc nhiều hình ảnh không tồn tại");
-        }
-
-        // Cập nhật danh sách ảnh mới
-        List<ProductImage> updatedImages = new ArrayList<>();
-        for (ProductImage image : newImages) {
-            image.setProduct(child); // Gắn ảnh vào sản phẩm con
-            updatedImages.add(image);
-        }
-
-        // Xóa các ảnh cũ không còn trong danh sách mới
-        existingImageMap.keySet().removeAll(productImageIds);
-        if (!existingImageMap.isEmpty()) {
-            productImageRepository.deleteAll(existingImageMap.values());
-        }
-
-        // Lưu các ảnh mới hoặc cập nhật
-        productImageRepository.saveAll(updatedImages);
-    }
-
-
 
     @Override
     public List<ProductResponse> findByParentId(Long parentId) {
@@ -335,226 +138,258 @@ public class ProductServiceImpl implements ProductService {
         return products.stream().map(this::mapToResponse).toList();
     }
 
+
     @Override
-    @Transactional
-    public ProductResponse createProductWithVariants(ProductRequest productRequest) {
-        Product parentProduct = createParentProduct(productRequest);
-        handleTags(productRequest, parentProduct);
-        List<Product> childProducts = createChildProducts(parentProduct, productRequest);
-        for (Product child : childProducts) {
-            handleTags(productRequest, child);
+    @Transactional(rollbackOn = Exception.class)
+    public void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] images) {
+        if (requests.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
         }
-        handleProductAttributes(childProducts, productRequest);
-        handleProductImages(parentProduct, childProducts, productRequest);
-        return mapToResponse(parentProduct);
+
+        ProductRequest request = requests.get(0);
+        Product parentProduct = createParentProduct(request);
+        handleTags(request, parentProduct);
+
+        // Upload và lưu ảnh cho sản phẩm cha
+        List<String> parentImageUrls = uploadImages(request.getParentImages());
+        if (!parentImageUrls.isEmpty()) {
+            List<ProductImage> parentProductImages = parentImageUrls.stream()
+                    .map(url -> {
+                        ProductImage productImage = new ProductImage();
+                        productImage.setImageUrl(url);
+                        productImage.setProduct(parentProduct);
+                        return productImage;
+                    })
+                    .collect(Collectors.toList());
+            productImageRepository.saveAll(parentProductImages);
+            parentProduct.getImages().addAll(parentProductImages);
+            productRepository.save(parentProduct);
+            System.out.println("✅ Đã gán " + parentProductImages.size() + " ảnh cho sản phẩm cha " + parentProduct.getSku() + ": " + parentImageUrls);
+        }
+
+        List<Set<String>> attributeValues = request.getProductAttributeValues().stream()
+                .collect(Collectors.groupingBy(
+                        ProductRequest.ProductAttributeValue::getAttributeId,
+                        Collectors.mapping(ProductRequest.ProductAttributeValue::getValue, Collectors.toSet())
+                )).values().stream().collect(Collectors.toList());
+
+        List<List<String>> valueCombinations = generateCombinations(attributeValues);
+        int expectedCombinations = attributeValues.stream().mapToInt(Set::size).reduce(1, (a, b) -> a * b);
+        if (valueCombinations.size() != expectedCombinations) {
+            throw new IllegalArgumentException("Số tổ hợp không khớp với số giá trị thuộc tính!");
+        }
+
+        if (request.getVariants().size() != valueCombinations.size()) {
+            throw new IllegalArgumentException("Số biến thể (" + request.getVariants().size() + ") không khớp với số tổ hợp (" + valueCombinations.size() + ")!");
+        }
+        if (images != null && images.length > 0 && images.length < valueCombinations.size()) {
+            throw new IllegalArgumentException("Số ảnh (" + images.length + ") không đủ cho " + valueCombinations.size() + " tổ hợp!");
+        }
+
+        // Gán ảnh cho các biến thể nếu không có ảnh riêng
+        if (images != null && images.length > 0) {
+            associateImagesWithVariants(request.getVariants(), images);
+        }
+
+        List<Product> childProducts = new ArrayList<>();
+        List<ProductAttributeValue> attributeValuesList = new ArrayList<>();
+        AtomicInteger variantIndex = new AtomicInteger(0);
+
+        for (List<String> combination : valueCombinations) {
+            ProductRequest.ProductVariant variant = request.getVariants().get(variantIndex.get());
+            Product childProduct = new Product();
+            String variantName = String.join(" - ", combination);
+            childProduct.setName(request.getName() + " - " + variantName);
+            childProduct.setDescription(request.getDescription());
+            childProduct.setSportType(request.getSportType());
+            childProduct.setPrice(variant.getPrice() != null ? variant.getPrice() : 0.0);
+            childProduct.setStockQuantity(variant.getStockQuantity() != null ? variant.getStockQuantity() : 0);
+            childProduct.setParentProductId(parentProduct.getId());
+            childProduct.setSupplier(parentProduct.getSupplier());
+            childProduct.setCategory(parentProduct.getCategory());
+
+            String sku = generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+            childProduct.setSku(sku);
+
+            // Tải ảnh và thêm vào danh sách images của childProduct
+            List<String> imageUrls = uploadImages(variant);
+            List<ProductImage> childProductImages = new ArrayList<>();
+            for (String imageUrl : imageUrls) {
+                if (!imageUrl.isEmpty()) {
+                    ProductImage productImage = new ProductImage();
+                    productImage.setImageUrl(imageUrl);
+                    productImage.setProduct(childProduct);
+                    childProductImages.add(productImage);
+                    childProduct.getImages().add(productImage);
+                }
+            }
+
+            if (childProductImages.isEmpty() && !parentProduct.getImages().isEmpty()) {
+                List<ProductImage> parentImages = parentProduct.getImages();
+                for (ProductImage parentImage : parentImages) {
+                    ProductImage childImage = new ProductImage();
+                    childImage.setImageUrl(parentImage.getImageUrl());
+                    childImage.setProduct(childProduct);
+                    childProductImages.add(childImage);
+                    childProduct.getImages().add(childImage);
+                }
+                System.out.println("⚠️ Không có ảnh riêng, sử dụng ảnh cha cho biến thể " + childProduct.getSku());
+            }
+
+            childProducts.add(childProduct);
+            attributeValuesList.addAll(mapAttributesToValues(childProduct, combination, request.getProductAttributeValues()));
+            variantIndex.incrementAndGet();
+        }
+
+        productRepository.saveAll(childProducts);
+        productAttributeValueRepository.saveAll(attributeValuesList);
+
+        for (Product child : childProducts) {
+            handleTags(request, child);
+        }
     }
 
-    private Product createParentProduct(ProductRequest productRequest) {
-        Product parentProduct = new Product();
-        parentProduct.setName(productRequest.getName());
-        parentProduct.setDescription(productRequest.getDescription());
-        parentProduct.setPrice(productRequest.getPrice());
-        parentProduct.setStockQuantity(productRequest.getStockQuantity());
-        parentProduct.setSportType(productRequest.getSportType());
-        parentProduct.setSku(productRequest.getSku());
 
-        Supplier supplier = supplierRepository.findById(productRequest.getSupplierId())
-                .orElseThrow(() -> new EntityNotFoundException("Nhà cung cấp không tồn tại"));
+
+    private Product createParentProduct(ProductRequest request) {
+        Product parentProduct = new Product();
+        parentProduct.setName(request.getName());
+        parentProduct.setDescription(request.getDescription());
+        parentProduct.setSportType(request.getSportType());
+        parentProduct.setPrice(0.0);
+        parentProduct.setStockQuantity(0);
+
+        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại"));
         parentProduct.setSupplier(supplier);
 
-        Category category = categoryRepository.findById(productRequest.getCategoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Danh mục không tồn tại"));
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
         parentProduct.setCategory(category);
 
+        parentProduct.setSku(generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId()));
         return productRepository.save(parentProduct);
     }
 
-    private void handleTags(ProductRequest request, Product productSaved) {
+    private void handleTags(ProductRequest request, Product product) {
         if (request.getTagId() == null || request.getTagId().isEmpty()) {
-            return; // Giữ nguyên tag cũ nếu không cung cấp tag mới
+            return;
         }
 
-        // Kiểm tra tất cả tag trước
         List<ProductTag> tags = request.getTagId().stream()
                 .map(tagId -> productTagRepository.findById(tagId)
-                        .orElseThrow(() -> new ErrorException("Tag not found with ID: " + tagId)))
-                .toList();
+                        .orElseThrow(() -> new IllegalArgumentException("Tag không tồn tại với ID: " + tagId)))
+                .collect(Collectors.toList());
 
-        // Xóa và thêm mới chỉ khi tất cả tag hợp lệ
-        productTagMappingRepository.deleteByProductId(productSaved.getId());
+        productTagMappingRepository.deleteByProductId(product.getId());
         List<ProductTagMapping> mappings = tags.stream()
                 .map(tag -> {
                     ProductTagMapping mapping = new ProductTagMapping();
-                    mapping.setProduct(productSaved);
+                    mapping.setProduct(product);
                     mapping.setTag(tag);
                     return mapping;
                 })
                 .collect(Collectors.toList());
         productTagMappingRepository.saveAll(mappings);
     }
-    private List<Product> createChildProducts(Product parentProduct, ProductRequest productRequest) {
-        Map<Long, List<String>> attributeValueMap = buildAttributeMap(productRequest.getProductAttributeValues());
-        List<List<String>> valueCombinations = generateCombinations(new ArrayList<>(attributeValueMap.values()));
 
-        List<Product> childProducts = new ArrayList<>();
-        for (List<String> combination : valueCombinations) {
-            String variantSuffix = String.join("-", combination);
-            String childSku = parentProduct.getSku() + "-" + variantSuffix;
+    private List<ProductAttributeValue> mapAttributesToValues(Product product, List<String> combination, List<ProductRequest.ProductAttributeValue> productAttributeValues) {
+        List<ProductAttributeValue> values = new ArrayList<>();
+        List<Long> attributeIds = productAttributeValues.stream()
+                .map(ProductRequest.ProductAttributeValue::getAttributeId)
+                .distinct()
+                .collect(Collectors.toList());
 
-            Product childProduct = new Product();
-            childProduct.setName(parentProduct.getName() + "-" + variantSuffix);
-            childProduct.setSku(childSku);
-            childProduct.setDescription(parentProduct.getDescription());
-            childProduct.setPrice(parentProduct.getPrice());
-            childProduct.setStockQuantity(parentProduct.getStockQuantity());
-            childProduct.setSportType(parentProduct.getSportType());
-            childProduct.setParentProductId(parentProduct.getId());
-            childProduct.setSupplier(parentProduct.getSupplier());
-            childProduct.setCategory(parentProduct.getCategory());
-            childProducts.add(childProduct);
+        for (int i = 0; i < combination.size(); i++) {
+            ProductAttribute attribute = productAttributeRepository.findById(attributeIds.get(i))
+                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại"));
+            ProductAttributeValue value = new ProductAttributeValue();
+            value.setProduct(product);
+            value.setAttribute(attribute);
+            value.setValue(combination.get(i));
+            values.add(value);
         }
-        return productRepository.saveAll(childProducts);
+        return values;
     }
 
-    private void handleProductAttributes(List<Product> childProducts, ProductRequest productRequest) {
-        Map<Long, List<String>> attributeValueMap = buildAttributeMap(productRequest.getProductAttributeValues());
-        List<ProductAttributeValue> attributeValueEntities = new ArrayList<>();
-
-        for (int i = 0; i < childProducts.size(); i++) {
-            Product childProduct = childProducts.get(i);
-            List<String> combination = generateCombinations(new ArrayList<>(attributeValueMap.values())).get(i);
-            int attributeIndex = 0;
-
-            for (Map.Entry<Long, List<String>> entry : attributeValueMap.entrySet()) {
-                Long attributeId = entry.getKey();
-                ProductAttribute attribute = productAttributeRepository.findById(attributeId)
-                        .orElseThrow(() -> new EntityNotFoundException("Thuộc tính không tồn tại"));
-
-                ProductAttributeValue attributeValue = new ProductAttributeValue();
-                attributeValue.setAttribute(attribute);
-                attributeValue.setProduct(childProduct);
-                attributeValue.setValue(combination.get(attributeIndex));
-                attributeValueEntities.add(attributeValue);
-                attributeIndex++;
+    private void associateImagesWithVariants(List<ProductRequest.ProductVariant> variants, MultipartFile[] images) {
+        int imageIndex = 0;
+        for (ProductRequest.ProductVariant variant : variants) {
+            if (variant.getImages() != null && !variant.getImages().isEmpty()) {
+                continue;
             }
+            List<MultipartFile> variantImages = new ArrayList<>();
+            if (imageIndex < images.length) {
+                variantImages.add(images[imageIndex]);
+                imageIndex++;
+            }
+            variant.setImages(variantImages);
         }
-        productAttributeValueRepository.saveAll(attributeValueEntities);
     }
 
-
-    private void handleProductImages(Product parentProduct, List<Product> childProducts, ProductRequest productRequest) {
-        // Xử lý ảnh cho sản phẩm cha
-        List<MultipartFile> parentImages = Optional.ofNullable(productRequest.getParentImages())
-                .orElse(Collections.emptyList());
-        if (!parentImages.isEmpty()) {
-            System.out.println("🟡 Ảnh sản phẩm cha nhận được: " + parentImages.size());
-            List<Long> parentImageIds = productImageService.saveProductImage(parentImages);
-            List<ProductImage> parentProductImages = productImageRepository.findAllById(parentImageIds);
-            parentProductImages.forEach(image -> image.setProduct(parentProduct));
-            productImageRepository.saveAll(parentProductImages);
-            System.out.println("✅ Đã gán " + parentProductImages.size() + " ảnh cho sản phẩm cha " + parentProduct.getSku());
-        }
-
-        // Tạo map ảnh theo tổ hợp thuộc tính đầy đủ (value-attributeId)
-        Map<String, List<MultipartFile>> variantImageMap = new HashMap<>();
-        for (ProductRequest.ProductAttributeValue attr : productRequest.getProductAttributeValues()) {
-            if (attr.getVariantImages() != null && !attr.getVariantImages().isEmpty()) {
-                String key = attr.getValue() + "-" + attr.getAttributeId(); // Định dạng key: value-attributeId
-                variantImageMap.put(key, attr.getVariantImages());
-            }
-        }
-        System.out.println("🟡 Mapping ảnh biến thể: " + variantImageMap);
-
-        // Gán ảnh cho từng sản phẩm con
-        for (Product childProduct : childProducts) {
-            String variantKey = extractVariantSuffix(childProduct, parentProduct.getSku());
-            System.out.println("🟢 Xử lý ảnh cho sản phẩm con: " + childProduct.getSku());
-            System.out.println("🔹 Variant Key: " + variantKey);
-
-            List<MultipartFile> variantImages = variantImageMap.getOrDefault(variantKey, Collections.emptyList());
-            if (!variantImages.isEmpty()) {
-                List<Long> childImageIds = productImageService.saveProductImage(variantImages);
-                List<ProductImage> childProductImages = productImageRepository.findAllById(childImageIds);
-                childProductImages.forEach(image -> image.setProduct(childProduct));
-                productImageRepository.saveAll(childProductImages);
-                System.out.println("✅ Đã lưu " + childProductImages.size() + " ảnh riêng cho sản phẩm con: " + childProduct.getSku());
-            } else {
-                List<ProductImage> existingChildImages = productImageRepository.findByProductId(childProduct.getId());
-                if (existingChildImages.isEmpty()) {
-                    // Chỉ sao chép ảnh từ sản phẩm cha nếu sản phẩm con chưa có ảnh
-                    List<ProductImage> parentSavedImages = productImageRepository.findByProductId(parentProduct.getId());
-                    List<ProductImage> childImages = parentSavedImages.stream()
-                            .map(parentImage -> {
-                                ProductImage childImage = new ProductImage();
-                                childImage.setProduct(childProduct);
-                                childImage.setImageUrl(parentImage.getImageUrl());
-                                return childImage;
-                            })
-                            .collect(Collectors.toList());
-                    productImageRepository.saveAll(childImages);
-                    System.out.println("⚠️ Không tìm thấy ảnh biến thể, sử dụng ảnh sản phẩm cha cho: " + childProduct.getSku());
-                } else {
-                    System.out.println("⚠️ Sản phẩm con đã có ảnh, không sao chép từ sản phẩm cha: " + childProduct.getSku());
+    private List<String> uploadImages(List<MultipartFile> images) {
+        List<String> imageUrls = new ArrayList<>();
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile image : images) {
+                if (!image.isEmpty()) {
+                    try {
+                        String imageUrl = cloudinaryService.uploadFile(image, "products");
+                        imageUrls.add(imageUrl);
+                    } catch (IOException e) {
+                        log.error("Lỗi khi upload ảnh: {}", e.getMessage());
+                        imageUrls.add("");
+                    }
                 }
             }
         }
+        return imageUrls;
     }
 
+    private List<String> uploadImages(ProductRequest.ProductVariant variant) {
+        List<String> imageUrls = new ArrayList<>();
+        if (variant.getImages() != null && !variant.getImages().isEmpty()) {
+            for (MultipartFile image : variant.getImages()) {
+                if (!image.isEmpty()) {
+                    try {
+                        String imageUrl = cloudinaryService.uploadFile(image, "products");
+                        imageUrls.add(imageUrl);
+                    } catch (IOException e) {
+                        log.error("Lỗi khi upload ảnh: {}", e.getMessage());
+                        imageUrls.add("");
+                    }
+                }
+            }
+        }
+        return imageUrls;
+    }
 
+    private String generateUniqueSku(String name, Long categoryId, Long supplierId) {
+        String baseSku = name.substring(0, Math.min(name.length(), 3)).toUpperCase() +
+                categoryId + supplierId + new Random().nextInt(1000);
+        String sku = baseSku;
+        int suffix = 1;
+        while (productRepository.existsBySku(sku)) {
+            sku = baseSku + "-" + suffix++;
+        }
+        return sku;
+    }
 
-    private List<List<String>> generateCombinations(List<List<String>> lists) {
+    private List<List<String>> generateCombinations(List<Set<String>> attributeValues) {
         List<List<String>> combinations = new ArrayList<>();
-        generateCombinationsHelper(lists, 0, new ArrayList<>(), combinations);
+        generateCombinationsHelper(attributeValues, 0, new ArrayList<>(), combinations);
         return combinations;
     }
 
-
-    private void generateCombinationsHelper(
-            List<List<String>> attributeValues,
-            int currentDepth,
-            List<String> currentCombination,
-            List<List<String>> result
-    ) {
-        if (currentDepth == attributeValues.size()) {
-            result.add(new ArrayList<>(currentCombination));
+    private void generateCombinationsHelper(List<Set<String>> attributeValues, int depth, List<String> current, List<List<String>> result) {
+        if (depth == attributeValues.size()) {
+            result.add(new ArrayList<>(current));
             return;
         }
-        for (String value : attributeValues.get(currentDepth)) {
-            currentCombination.add(value);
-            generateCombinationsHelper(attributeValues, currentDepth + 1, currentCombination, result);
-            currentCombination.remove(currentCombination.size() - 1);
+        for (String value : attributeValues.get(depth)) {
+            current.add(value);
+            generateCombinationsHelper(attributeValues, depth + 1, current, result);
+            current.remove(current.size() - 1);
         }
-    }
-
-    private String extractVariantSuffix(Product child, String parentSku) {
-        String currentChildSku = child.getSku();
-        if (currentChildSku.startsWith(parentSku + "-")) {
-            String suffix = currentChildSku.substring(parentSku.length() + 1);
-            // Giả sử SKU con có dạng: parentSku-value-attributeId (ví dụ: k-d-1)
-            // Tách phần value và attributeId
-            String[] parts = suffix.split("-");
-            if (parts.length >= 2) {
-                return parts[0] + "-" + parts[1]; // Trả về "d-1"
-            }
-            return suffix;
-        }
-        return currentChildSku;
-    }
-
-//    private String extractVariantSuffix(Product child, String parentSku) {
-//        String currentChildSku = child.getSku();
-//        if (currentChildSku.startsWith(parentSku + "-")) {
-//            return currentChildSku.substring(parentSku.length() + 1);
-//        }
-//        return currentChildSku;
-//    }
-
-    private Map<Long, List<String>> buildAttributeMap(List<ProductRequest.ProductAttributeValue> attributeValues) {
-        return attributeValues.stream()
-                .collect(Collectors.groupingBy(
-                        ProductRequest.ProductAttributeValue::getAttributeId,
-                        Collectors.mapping(ProductRequest.ProductAttributeValue::getValue, Collectors.toList())
-                ));
     }
 
     public ProductResponse mapToResponse(Product product) {
@@ -600,20 +435,28 @@ public class ProductServiceImpl implements ProductService {
                         .collect(Collectors.toList())
         );
 
-        response.setInventories(
-                inventoryRepository.findByProductId(product.getId()).stream()
-                        .map(inventory -> {
-                            ProductResponse.InventoryResponse inventoryResponse = new ProductResponse.InventoryResponse();
-                            inventoryResponse.setId(inventory.getId());
-                            inventoryResponse.setProductName(inventory.getProduct().getName());
-                            inventoryResponse.setStockQuantity(String.valueOf(inventory.getStockQuantity()));
-                            return inventoryResponse;
-                        })
-                        .collect(Collectors.toList())
-        );
+//        response.setInventories(
+//                inventoryRepository.findByProductId(product.getId()).stream()
+//                        .map(inventory -> {
+//                            ProductResponse.InventoryResponse inventoryResponse = new ProductResponse.InventoryResponse();
+//                            inventoryResponse.setId(inventory.getId());
+//                            inventoryResponse.setProductName(inventory.getProduct().getName());
+//                            inventoryResponse.setStockQuantity(String.valueOf(inventory.getStockQuantity()));
+//                            return inventoryResponse;
+//                        })
+//                        .collect(Collectors.toList())
+//        );
 
         return response;
     }
+
+    //    private String extractVariantSuffix(Product child, String parentSku) {
+//        String currentChildSku = child.getSku();
+//        if (currentChildSku.startsWith(parentSku + "-")) {
+//            return currentChildSku.substring(parentSku.length() + 1);
+//        }
+//        return currentChildSku;
+//    }
 
 //    private void handleImages(ProductRequest request, Product productSaved) {
 //        List<Long> existingImageIds = productImageRepository.findByProductId(productSaved.getId())

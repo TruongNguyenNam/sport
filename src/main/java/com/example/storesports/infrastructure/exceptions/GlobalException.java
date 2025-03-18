@@ -1,7 +1,7 @@
 package com.example.storesports.infrastructure.exceptions;
 
-import com.example.storesports.infrastructure.utils.PageUtils;
 import jakarta.validation.ConstraintViolationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,16 +15,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalException {
 
-//    @ExceptionHandler(PageUtils.PaginationException.class)
-//    public ResponseEntity<String> handlePaginationException(PageUtils.PaginationException ex) {
-//        return ResponseEntity.badRequest().body(ex.getMessage());
+//    @ExceptionHandler(IllegalArgumentException.class)
+//    public ResponseEntity<ResponseUtils.ApiResponse<String>> handleIllegalArgument(IllegalArgumentException e) {
+//        log.error("Validation error: {}", e.getMessage());
+//        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                .body(ResponseUtils.ApiResponse.error(e.getMessage()));
 //    }
 //
-//    @ExceptionHandler(ErrorException.class)
-//    public ResponseEntity<String> handleErrorException(ErrorException ex) {
-//        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ResponseUtils.ApiResponse<String>> handleException(Exception e) {
+//        log.error("Internal server error: {}", e.getMessage(), e);
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(ResponseUtils.ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
 //    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

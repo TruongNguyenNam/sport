@@ -36,7 +36,7 @@ public class ProductImageServiceImpl implements ProductImageService {
         for (MultipartFile image : images) {
             if (image.isEmpty()) continue;
             try {
-                Map<String, Object> uploadResult = cloudinaryService.uploadFile(image, "product_images");
+                Map<String, Object> uploadResult = cloudinaryService.uploadFileV1(image, "product_images");
                 String imageUrl = (String) uploadResult.get("url");
 
                 ProductImage productImage = new ProductImage();

@@ -13,20 +13,16 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpecificationExecutor<Product> {
 
-//    @EntityGraph(attributePaths = {
-//            "productSportTypeMappings.sportType",
-//            "productTagMappings.tag",
-//            "productImages",
-//            "productSpecificationOptions.specification",
-//            "inventories"
-//    })
-//    @Nullable
-//    Optional<Product> findById(Long id);
 
+    boolean existsBySku(String sku);
 
     List<Product> findByParentProductId(Long id);
 
     Optional<Product> findByParentProductIdAndSku(Long parentProductId, String sku);
     void deleteByParentProductId(Long parentProductId);
+
+    @Query("select p from Product p where p.parentProductId is null order by  p.id desc")
+    List<Product> findAllParentProducts();
+
 
 }

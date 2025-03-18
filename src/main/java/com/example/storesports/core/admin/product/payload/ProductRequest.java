@@ -14,28 +14,32 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ProductRequest {
-    private String name;
-    private String description;
-    private Double price;
-    private Integer stockQuantity;
-    private String sportType;
-    private String sku;
-    private Long supplierId;
-    private Long categoryId;
-    private Long childProductId;
-    private List<Long> tagId;
-    private List<ProductAttributeValue> productAttributeValues = new ArrayList<>();
-   private List<MultipartFile> parentImages; // Ảnh cho sản phẩm cha
-    private List<Long> inventoryIds;
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ProductAttributeValue {
-        private Long attributeId;
-        private Long productId;
-        private String value;
-        private List<MultipartFile> variantImages;
-    }
+        private String name;
+        private String description;
+        private String sportType;
+        private String sku;
+        private Long supplierId;
+        private Long categoryId;
+        private List<ProductAttributeValue> productAttributeValues = new ArrayList<>();
+        private List<ProductVariant> variants = new ArrayList<>();
+        private List<Long> tagId;
+        private List<MultipartFile> parentImages;
 
+        @Data
+        @AllArgsConstructor
+        @NoArgsConstructor
+        public static class ProductAttributeValue {
+            private Long attributeId;
+            private String value;
+        }
+
+        @Data
+        @AllArgsConstructor
+        @NoArgsConstructor
+        public static class ProductVariant {
+            private Double price;
+            private Integer stockQuantity;
+            private List<MultipartFile> images;
+        }
 }

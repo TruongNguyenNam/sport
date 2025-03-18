@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 @Entity
 @Table(name = "Product")
@@ -26,6 +27,8 @@ public class Product extends Auditable{
         private String sportType;
         private String sku;
 
+        private Boolean deleted;
+
         @Column(name = "parent_product_id")
         private Long parentProductId;
 
@@ -37,8 +40,8 @@ public class Product extends Auditable{
         @JoinColumn(name = "category_id")
         private Category category;
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY,orphanRemoval = true)
-        private List<ProductImage> productImages;
+        @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<ProductImage> images = new ArrayList<>();
 
         @OneToMany(mappedBy = "product", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY,orphanRemoval = true)
         private List<ProductAttributeValue> productAttributeValues;

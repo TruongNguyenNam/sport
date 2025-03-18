@@ -3,20 +3,23 @@ package com.example.storesports.core.admin.product.controller;
 import com.example.storesports.core.admin.product.payload.ProductRequest;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
-import com.example.storesports.entity.Product;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
+import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.product.ProductService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -24,7 +27,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -33,35 +39,80 @@ import java.util.Map;
 @Validated
 @RequiredArgsConstructor
 @Tag(name = "Product", description = "Endpoints for managing products")
+@Slf4j
 public class ProductController {
     private final ProductService productService;
+    private final ObjectMapper objectMapper;
 
-//    @PostMapping(consumes = "multipart/form-data")
-//    public ResponseEntity<ProductResponse> addProduct(@Valid @ModelAttribute ProductRequest productRequest) {
-//        ProductResponse response = productService.createProductWithVariants(productRequest);
-//        return new ResponseEntity<>(response, HttpStatus.CREATED);
-//    }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ProductResponse> addProduct(@Valid @ModelAttribute ProductRequest productRequest) {
+    @PostMapping(consumes = {"multipart/form-data"})
+    public ResponseData<Void> addProduct(
+            @RequestParam("products") String productsJson,
+            @RequestParam(value = "parentImages", required = false) MultipartFile[] parentImages,
+            @RequestParam(value = "images", required = false) MultipartFile[] images) {
+
+        log.info("Received JSON data: {}", productsJson);
+        log.info("Received {} parent images", (parentImages != null ? parentImages.length : 0));
+        log.info("Received {} images", (images != null ? images.length : 0));
+
         try {
-            ProductResponse response = productService.createProductWithVariants(productRequest);
-            return new ResponseEntity<>(response, HttpStatus.CREATED);
-        } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+            List<ProductRequest> requests = objectMapper.readValue(
+                    productsJson,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, ProductRequest.class)
+            );
+
+            if (requests.isEmpty()) {
+                throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
+            }
+
+            ProductRequest request = requests.get(0);
+            if (parentImages != null && parentImages.length > 0) {
+                request.setParentImages(new ArrayList<>(Arrays.asList(parentImages)));
+            } else {
+                request.setParentImages(new ArrayList<>());
+            }
+
+            if (images != null && images.length > 0) {
+                int index = 0;
+                for (ProductRequest.ProductVariant variant : request.getVariants()) {
+                    if (index < images.length) {
+                        variant.setImages(new ArrayList<>(List.of(images[index])));
+                        index++;
+                    } else {
+                        variant.setImages(new ArrayList<>());
+                    }
+                }
+            } else {
+                for (ProductRequest.ProductVariant variant : request.getVariants()) {
+                    variant.setImages(new ArrayList<>());
+                }
+            }
+
+            productService.createProductWithVariants(requests, images);
+
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Thêm sản phẩm thành công")
+                    .build();
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing product request", e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ");
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create product", e);
+            log.error("Unexpected error while creating product", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
-//    @PostMapping()
-//    public ResponseEntity<ProductResponse> addProduct(@RequestBody ProductRequest productRequest) {
-//        ProductResponse response = productService.createProductWithVariants(productRequest);
-//        return new ResponseEntity<>(response, HttpStatus.CREATED);
-//    }
 
 
+    @GetMapping("/parent")
+    public ResponseData<List<ProductResponse>> getAllParentProducts() {
+        List<ProductResponse> products = productService.getAllParentProduct();
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm cha thành công")
+                .data(products)
+                .build();
+    }
 
     @Operation(summary = "Get all products", description = "Retrieve a paginated list of products")
     @ApiResponses(value = {
@@ -76,14 +127,6 @@ public class ProductController {
         Page<ProductResponse> productResponses = productService.getAllProducts(page, size);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
         return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateAProduct(
-            @PathVariable Long id,
-            @RequestBody ProductRequest productRequest) {
-        ProductResponse response = productService.updateProduct(productRequest,id);
-        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
