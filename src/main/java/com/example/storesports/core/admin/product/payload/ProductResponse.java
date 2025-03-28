@@ -22,7 +22,7 @@ public class ProductResponse {
     private List<ProductAttributeValueResponse> productAttributeValueResponses;
     private List<String> tagName;
     private List<String> ImageUrl;
-    private List<InventoryResponse> inventories;
+    //private List<InventoryResponse> inventories;
 
     @Data
     @NoArgsConstructor
@@ -33,13 +33,13 @@ public class ProductResponse {
         private String value;
     }
 
-    @Data
-    @NoArgsConstructor
-    public static class InventoryResponse {
-        private Long id;
-        private String productName;
-        private String stockQuantity;
-    }
+//    @Data
+//    @NoArgsConstructor
+//    public static class InventoryResponse {
+//        private Long id;
+//        private String productName;
+//        private String stockQuantity;
+//    }
 
 
 }

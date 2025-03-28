@@ -1,7 +1,5 @@
 package com.example.storesports.service.admin.product.impl;
-import com.example.storesports.core.admin.product.payload.ProductRequest;
-import com.example.storesports.core.admin.product.payload.ProductResponse;
-import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
+import com.example.storesports.core.admin.product.payload.*;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
@@ -71,7 +69,260 @@ public class ProductServiceImpl implements ProductService {
         return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @Override
+    public List<ProductResponse> searchProduct(ProductSearchRequest productSearchRequest) {
+        Specification<Product> specification = Specification.where(null);
 
+        if (Optional.ofNullable(productSearchRequest.getName()).filter(name -> !name.isEmpty()).isPresent()) {
+            specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
+        }
+
+        if (Optional.ofNullable(productSearchRequest.getSportType()).filter(type -> !type.isEmpty()).isPresent()) {
+            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSportType()));
+        }
+
+        if (Optional.ofNullable(productSearchRequest.getSupplierName()).filter(name -> !name.isEmpty()).isPresent()) {
+            specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
+        }
+
+        if (Optional.ofNullable(productSearchRequest.getCategoryName()).filter(name -> !name.isEmpty()).isPresent()) {
+            specification = specification.and(ProductSpecification.findByCategoryName(productSearchRequest.getCategoryName()));
+        }
+
+        if (productSearchRequest.getMinPrice() != null || productSearchRequest.getMaxPrice() != null) {
+            specification = specification.and(ProductSpecification.hasPriceRange(
+                    Optional.ofNullable(productSearchRequest.getMinPrice()).orElse(0.0),
+                    Optional.ofNullable(productSearchRequest.getMaxPrice()).orElse(Double.MAX_VALUE)
+            ));
+        }
+
+        List<Product> products = productRepository.findAll(specification);
+
+        return products.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductResponse> getAllChildProduct() {
+        List<Product> productList = productRepository.findAllChildProduct();
+        if(productList.isEmpty()){
+            throw new IllegalArgumentException("Danh Sách Sản Phẩm không tồn tại"+productList);
+        }
+        return productList.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+    }
+
+    @Override
+    @Transactional
+    public void updateParentProduct(Long id, ProductUpdateParent request) {
+        Product parentProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm cha không tồn tại hoặc đã bị xóa với ID: " + id));
+
+        // Lưu tên cũ của sản phẩm cha để so sánh
+        String oldParentName = parentProduct.getName();
+
+        // Cập nhật thông tin cơ bản của sản phẩm cha
+        parentProduct.setName(request.getName());
+        parentProduct.setDescription(request.getDescription());
+        parentProduct.setSportType(request.getSportType());
+        parentProduct.setSku(request.getSku());
+
+        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại với ID: " + request.getSupplierId()));
+        parentProduct.setSupplier(supplier);
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại với ID: " + request.getCategoryId()));
+        parentProduct.setCategory(category);
+
+        // Xử lý tags cho sản phẩm cha
+        handleTags(request, parentProduct);
+
+        // Xử lý ảnh mới (nếu có)
+        if (request.getParentImages() != null && !request.getParentImages().isEmpty()) {
+            // Xóa ảnh cũ
+            productImageRepository.deleteByProductId(parentProduct.getId());
+            parentProduct.getImages().clear();
+
+            // Upload và lưu ảnh mới
+            List<String> parentImageUrls = uploadImages(request.getParentImages());
+            if (!parentImageUrls.isEmpty()) {
+                List<ProductImage> parentProductImages = parentImageUrls.stream()
+                        .map(url -> {
+                            ProductImage productImage = new ProductImage();
+                            productImage.setImageUrl(url);
+                            productImage.setProduct(parentProduct);
+                            return productImage;
+                        })
+                        .collect(Collectors.toList());
+                productImageRepository.saveAll(parentProductImages);
+                parentProduct.getImages().addAll(parentProductImages);
+                log.info("✅ Đã cập nhật {} ảnh cho sản phẩm cha {}: {}", parentProductImages.size(), parentProduct.getSku(), parentImageUrls);
+            }
+        }
+
+        // Lưu sản phẩm cha trước để đảm bảo ID tồn tại
+        productRepository.save(parentProduct);
+
+        // Cập nhật các sản phẩm con
+        List<Product> childProducts = productRepository.findByParentProductId(parentProduct.getId());
+        for (Product childProduct : childProducts) {
+            // Cập nhật các trường không phụ thuộc vào tên
+            childProduct.setCategory(parentProduct.getCategory());
+            childProduct.setSupplier(parentProduct.getSupplier());
+            childProduct.setSportType(parentProduct.getSportType());
+
+            // Xử lý tags cho sản phẩm con (đồng bộ với sản phẩm cha)
+            handleTags(request, childProduct);
+
+            // Cập nhật tên và SKU của sản phẩm con nếu tên sản phẩm cha thay đổi
+            if (!oldParentName.equals(request.getName())) {
+                // Lấy phần thông tin biến thể từ tên cũ (phần sau dấu " - ")
+                String childName = childProduct.getName();
+                String variantPart = childName.contains(" - ") ? childName.substring(childName.indexOf(" - ")) : "";
+
+                // Tạo tên mới cho sản phẩm con: {tên sản phẩm cha mới} + {phần thông tin biến thể}
+                String newChildName = request.getName() + variantPart;
+                childProduct.setName(newChildName);
+
+                // Tạo SKU mới cho sản phẩm con dựa trên tên mới
+                String newSku = generateUniqueSku(newChildName, request.getCategoryId(), request.getSupplierId());
+                childProduct.setSku(newSku);
+
+                log.info(" Đã cập nhật sản phẩm con: Tên từ '{}' thành '{}', SKU thành '{}'", childName, newChildName, newSku);
+            }
+
+            log.info(" Đã đồng bộ sản phẩm con {}: categoryId={}, supplierId={}, sportType={}",
+                    childProduct.getSku(), childProduct.getCategory().getId(), childProduct.getSupplier().getId(), childProduct.getSportType());
+        }
+
+        // Lưu tất cả sản phẩm con đã cập nhật
+        if (!childProducts.isEmpty()) {
+            productRepository.saveAll(childProducts);
+        }
+
+        log.info("✅ Đã cập nhật sản phẩm cha {}", parentProduct.getSku());
+    }
+    private void handleTags(ProductUpdateParent request, Product product) {
+        if (request.getTagId() == null || request.getTagId().isEmpty()) {
+            return;
+        }
+
+        productTagMappingRepository.deleteByProductId(product.getId());
+        List<ProductTagMapping> mappings = request.getTagId().stream()
+                .map(tagId -> {
+                    ProductTagMapping mapping = new ProductTagMapping();
+                    mapping.setProduct(product);
+                    mapping.setTag(productTagRepository.findById(tagId)
+                            .orElseThrow(() -> new IllegalArgumentException("Tag không tồn tại với ID: " + tagId)));
+                    return mapping;
+                })
+                .collect(Collectors.toList());
+        productTagMappingRepository.saveAll(mappings);
+    }
+
+    @Override
+    @Transactional
+    public void updateChildProduct(Long id, ProductUpdateChild request) {
+        Product childProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm con không tồn tại hoặc đã bị xóa với ID: " + id));
+
+     //   childProduct.setName(request.getName());
+        childProduct.setDescription(request.getDescription());
+//        childProduct.setSportType(request.getSportType());
+//        childProduct.setSku(request.getSku());
+        childProduct.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
+        childProduct.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+
+//        Supplier supplier = supplierRepository.findById(request.getSupplierId())
+//                .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại với ID: " + request.getSupplierId()));
+//        childProduct.setSupplier(supplier);
+
+//        Category category = categoryRepository.findById(request.getCategoryId())
+//                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại với ID: " + request.getCategoryId()));
+//        childProduct.setCategory(category);
+
+        // Xử lý productAttributeValues (nếu có)
+        if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
+            // Xóa các giá trị thuộc tính cũ
+            productAttributeValueRepository.deleteByProductId(childProduct.getId());
+            childProduct.getProductAttributeValues().clear();
+
+            // Thêm các giá trị thuộc tính mới
+            List<ProductAttributeValue> newAttributeValues = request.getProductAttributeValues().stream()
+                    .map(attr -> {
+                        ProductAttribute attribute = productAttributeRepository.findById(attr.getAttributeId())
+                                .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại với ID: " + attr.getAttributeId()));
+                        ProductAttributeValue value = new ProductAttributeValue();
+                        value.setProduct(childProduct);
+                        value.setAttribute(attribute);
+                        value.setValue(attr.getValue());
+                        return value;
+                    })
+                    .collect(Collectors.toList());
+            productAttributeValueRepository.saveAll(newAttributeValues);
+            childProduct.getProductAttributeValues().addAll(newAttributeValues);
+            log.info(" Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+        }
+
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            // Xóa ảnh cũ
+            productImageRepository.deleteByProductId(childProduct.getId());
+            childProduct.getImages().clear();
+
+            updateChildProductName(childProduct);
+
+            // Upload và lưu ảnh mới
+            List<String> imageUrls = uploadImages(request.getImages());
+            if (!imageUrls.isEmpty()) {
+                List<ProductImage> childProductImages = imageUrls.stream()
+                        .map(url -> {
+                            ProductImage productImage = new ProductImage();
+                            productImage.setImageUrl(url);
+                            productImage.setProduct(childProduct);
+                            return productImage;
+                        })
+                        .collect(Collectors.toList());
+                productImageRepository.saveAll(childProductImages);
+                childProduct.getImages().addAll(childProductImages);
+                log.info(" Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
+            }
+        }
+
+        productRepository.save(childProduct);
+        log.info(" Đã cập nhật biến thể {}", childProduct.getSku());
+    }
+
+    @Override
+    public void deleteSoft(Long id) {
+        Product product = productRepository.findById(id).orElseThrow(() ->
+                new ErrorException("product is not found"));
+        product.setDeleted(true);
+        productRepository.save(product);
+
+    }
+
+
+    private void updateChildProductName(Product childProduct) {
+        // Lấy sản phẩm cha
+        Product parentProduct = productRepository.findById(childProduct.getParentProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm cha không tồn tại với ID: " + childProduct.getParentProductId()));
+
+        // Lấy danh sách thuộc tính còn lại của sản phẩm con
+        List<ProductAttributeValue> remainingAttributes = childProduct.getProductAttributeValues();
+
+        // Xây dựng tên mới: {tên sản phẩm cha}-{thuộc tính 1}-{thuộc tính 2}-...
+        StringBuilder newNameBuilder = new StringBuilder(parentProduct.getName());
+        for (ProductAttributeValue attr : remainingAttributes) {
+            newNameBuilder.append("-").append(attr.getValue());
+        }
+        String newChildName = newNameBuilder.toString();
+        log.info(" Đã cập nhật tên sản phẩm con từ '{}' thành '{}'", childProduct.getName(), newChildName);
+        childProduct.setName(newChildName);
+    }
 
 
     @Override
@@ -164,7 +415,7 @@ public class ProductServiceImpl implements ProductService {
             productImageRepository.saveAll(parentProductImages);
             parentProduct.getImages().addAll(parentProductImages);
             productRepository.save(parentProduct);
-            System.out.println("✅ Đã gán " + parentProductImages.size() + " ảnh cho sản phẩm cha " + parentProduct.getSku() + ": " + parentImageUrls);
+            System.out.println(" Đã gán " + parentProductImages.size() + " ảnh cho sản phẩm cha " + parentProduct.getSku() + ": " + parentImageUrls);
         }
 
         List<Set<String>> attributeValues = request.getProductAttributeValues().stream()
@@ -207,8 +458,8 @@ public class ProductServiceImpl implements ProductService {
             childProduct.setParentProductId(parentProduct.getId());
             childProduct.setSupplier(parentProduct.getSupplier());
             childProduct.setCategory(parentProduct.getCategory());
-
-            String sku = generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+            childProduct.setDeleted(false);
+            String sku = request.getSku() != null && !request.getSku().isEmpty() ? request.getSku() : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
             childProduct.setSku(sku);
 
             // Tải ảnh và thêm vào danh sách images của childProduct
@@ -233,7 +484,7 @@ public class ProductServiceImpl implements ProductService {
                     childProductImages.add(childImage);
                     childProduct.getImages().add(childImage);
                 }
-                System.out.println("⚠️ Không có ảnh riêng, sử dụng ảnh cha cho biến thể " + childProduct.getSku());
+                System.out.println(" Không có ảnh riêng, sử dụng ảnh cha cho biến thể " + childProduct.getSku());
             }
 
             childProducts.add(childProduct);
@@ -258,7 +509,7 @@ public class ProductServiceImpl implements ProductService {
         parentProduct.setSportType(request.getSportType());
         parentProduct.setPrice(0.0);
         parentProduct.setStockQuantity(0);
-
+        parentProduct.setDeleted(false);
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại"));
         parentProduct.setSupplier(supplier);
@@ -267,7 +518,8 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
         parentProduct.setCategory(category);
 
-        parentProduct.setSku(generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId()));
+        String sku = request.getSku() != null && !request.getSku().isEmpty() ? request.getSku() : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+        parentProduct.setSku(sku);
         return productRepository.save(parentProduct);
     }
 
@@ -493,25 +745,7 @@ public class ProductServiceImpl implements ProductService {
 //    }
 
 
-//    private void handleProductImages(List<Product> childProducts, ProductRequest productRequest) {
-//        List<Long> productImageIds = Optional.ofNullable(productRequest.getProductImageIds()).orElse(Collections.emptyList());
-//
-//        if (!productImageIds.isEmpty()) {
-//            List<ProductImage> productImages = productImageRepository.findAllById(productImageIds);
-//
-//            for (Product childProduct : childProducts) {
-//                List<ProductImage> newProductImages = new ArrayList<>();
-//
-//                for (ProductImage img : productImages) {
-//                    ProductImage newImg = new ProductImage();
-//                    newImg.setProduct(childProduct);
-//                    newImg.setImageUrl(img.getImageUrl()); // Sửa lỗi typo
-//                    newProductImages.add(newImg);
-//                }
-//                productImageRepository.saveAll(newProductImages);
-//            }
-//        }
-//    }
+
 
 
 }

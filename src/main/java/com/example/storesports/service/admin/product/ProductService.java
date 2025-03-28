@@ -1,8 +1,6 @@
 package com.example.storesports.service.admin.product;
 
-import com.example.storesports.core.admin.product.payload.ProductRequest;
-import com.example.storesports.core.admin.product.payload.ProductResponse;
-import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
+import com.example.storesports.core.admin.product.payload.*;
 import com.example.storesports.entity.Product;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,7 +14,6 @@ public interface ProductService {
 
     void delete(List<Long> id);
 
-   // ProductResponse updateProduct(ProductRequest request,Long id);
 
     ProductResponse findById(Long id);
 
@@ -24,6 +21,17 @@ public interface ProductService {
    void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] images);
 
    List<ProductResponse> getAllParentProduct();
+
+   List<ProductResponse> searchProduct(ProductSearchRequest productSearchRequest);
+
+    List<ProductResponse> getAllChildProduct();
+    void updateParentProduct(Long id, ProductUpdateParent request);
+
+    void updateChildProduct(Long id, ProductUpdateChild request);
+
+    void deleteSoft(Long id);
+
+
 
 
 

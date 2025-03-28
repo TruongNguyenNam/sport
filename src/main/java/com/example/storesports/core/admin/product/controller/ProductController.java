@@ -1,8 +1,7 @@
 package com.example.storesports.core.admin.product.controller;
 
-import com.example.storesports.core.admin.product.payload.ProductRequest;
-import com.example.storesports.core.admin.product.payload.ProductResponse;
-import com.example.storesports.core.admin.product.payload.ProductSearchRequest;
+import com.example.storesports.core.admin.product.payload.*;
+import com.example.storesports.entity.Product;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
@@ -43,7 +42,6 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
     private final ObjectMapper objectMapper;
-
 
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseData<Void> addProduct(
@@ -87,9 +85,7 @@ public class ProductController {
                     variant.setImages(new ArrayList<>());
                 }
             }
-
             productService.createProductWithVariants(requests, images);
-
             return ResponseData.<Void>builder()
                     .status(HttpStatus.OK.value())
                     .message("Thêm sản phẩm thành công")
@@ -114,30 +110,136 @@ public class ProductController {
                 .build();
     }
 
-    @Operation(summary = "Get all products", description = "Retrieve a paginated list of products")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successful retrieval of products"),
-            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
-            @ApiResponse(responseCode = "500", description = "Server error")
-    })
-    @GetMapping
-    public ResponseEntity<Map<String, Object>> getAllProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "2") int size) {
-        Page<ProductResponse> productResponses = productService.getAllProducts(page, size);
-        Map<String, Object> response = PageUtils.createPageResponse(productResponses);
-        return ResponseEntity.ok(response);
+
+    @GetMapping("/child")
+    public ResponseData<List<ProductResponse>> getAllChildProducts(){
+        List<ProductResponse> products = productService.getAllChildProduct();
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("lấy danh sách sản phẩm con thành công")
+                .data(products)
+                .build();
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+    @PutMapping("/parent/{id}")
+    public ResponseData<Void> updateParentProduct(
+            @PathVariable Long id,
+            @RequestParam("product") String productJson,
+            @RequestParam(value = "parentImages", required = false) MultipartFile[] parentImages) {
         try {
-            ProductResponse productResponse = productService.findById(id);
-            return new ResponseEntity<>(productResponse, HttpStatus.OK);
-        } catch (ErrorException e) {
-            return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductUpdateParent request = objectMapper.readValue(productJson, ProductUpdateParent.class);
+            if (parentImages != null) {
+                request.setParentImages(List.of(parentImages));
+            }
+            productService.updateParentProduct(id, request);
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Cập nhật sản phẩm cha thành công")
+                    .build();
+        } catch (Exception e) {
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message(e.getMessage())
+                    .build();
         }
     }
+
+    @PutMapping("/child/{id}")
+    public ResponseData<Void> updateChildProduct(
+            @PathVariable Long id,
+            @RequestParam("product") String productJson,
+            @RequestParam(value = "images", required = false) MultipartFile[] images) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductUpdateChild request = objectMapper.readValue(productJson, ProductUpdateChild.class);
+            if (images != null) {
+                request.setImages(List.of(images));
+            }
+            productService.updateChildProduct(id, request);
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Cập nhật biến thể thành công")
+                    .build();
+        } catch (Exception e) {
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
+
+
+    @GetMapping("/searchg")
+    public ResponseData<List<ProductResponse>> productSearchByAttribute(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String sportType,
+            @RequestParam(required = false) String supplierName,
+            @RequestParam(required = false) String categoryName) {
+
+        ProductSearchRequest searchRequest = new ProductSearchRequest(
+                name, minPrice, maxPrice, sportType, supplierName, categoryName
+        );
+
+        List<ProductResponse> products = productService.searchProduct(searchRequest);
+
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm thành công")
+                .data(products)
+                .build();
+    }
+
+
+
+    @GetMapping("/{id}")
+    public ResponseData<ProductResponse> getProductById(@PathVariable Long id) {
+        try {
+            ProductResponse productResponse = productService.findById(id);
+            return ResponseData.<ProductResponse>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("Lấy sản phẩm thành công")
+                    .data(productResponse)
+                    .build();
+        } catch (ErrorException e) {
+            return ResponseData.<ProductResponse>builder()
+                    .status(HttpStatus.NOT_FOUND.value())
+                    .message("Sản phẩm không tồn tại")
+                    .build();
+        }
+    }
+
+
+    @GetMapping("/parent/{parentId}")
+    public ResponseData<List<ProductResponse>> getProductsByParentId(@PathVariable Long parentId) {
+        List<ProductResponse> products = productService.findByParentId(parentId);
+
+        if (products.isEmpty()) {
+            return ResponseData.<List<ProductResponse>>builder()
+                    .status(HttpStatus.NOT_FOUND.value())
+                    .message("Không tìm thấy sản phẩm con")
+                    .data(products)
+                    .build();
+        }
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm thành công")
+                .data(products)
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseData<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteSoft(id);
+        return ResponseData.<Void>builder()
+                .status(HttpStatus.OK.value())
+                .message("Xoá mềm sản phẩm thành công")
+                .build();
+    }
+
 
     @GetMapping("/search")
     public ResponseEntity<Map<String, Object>> searchProductsByAttribute(
@@ -161,12 +263,24 @@ public class ProductController {
 
         Page<ProductResponse> productResponses = productService.searchProductsByAttribute(page, size, searchRequest);
         Map<String, Object> response = PageUtils.createPageResponse(productResponses);
-
-//        System.out.println("Page: " + page + " | Size: " + size);
-//        System.out.println("Total elements: " + productResponses.getTotalElements());
-//        System.out.println("conyent" + productResponses.getContent());
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "Get all products", description = "Retrieve a paginated list of products")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successful retrieval of products"),
+            @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+            @ApiResponse(responseCode = "500", description = "Server error")
+    })
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "2") int size) {
+        Page<ProductResponse> productResponses = productService.getAllProducts(page, size);
+        Map<String, Object> response = PageUtils.createPageResponse(productResponses);
+        return ResponseEntity.ok(response);
+    }
+
 
     @DeleteMapping
     public ResponseEntity<Void> deleteProducts(@RequestBody List<Long> ids) {
@@ -176,13 +290,6 @@ public class ProductController {
         productService.delete(ids);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
-    @GetMapping("/parent/{parentId}")
-    public ResponseEntity<List<ProductResponse>> getProductsByParentId(@PathVariable Long parentId) {
-        List<ProductResponse> products = productService.findByParentId(parentId);
-        return ResponseEntity.ok(products);
-    }
-
 
 
 

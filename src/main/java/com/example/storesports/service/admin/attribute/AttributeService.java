@@ -6,13 +6,14 @@ import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import org.springframework.data.domain.Page;
 
+import javax.management.Attribute;
 import java.util.List;
 
 public interface AttributeService {
 
-    Page<ProductAttributeResponse> getAllProductAttribute(int size, int page);
+   // Page<ProductAttributeResponse> getAllProductAttribute(int size, int page);
 
-
+    List<ProductAttributeResponse> findAllProductAttribute();
     ProductAttributeResponse saveOrUpdateAttribute(ProductAttributeRequest productAttributeRequest, Long id);
 
     //List<SupplierResponse> findByName(String name);

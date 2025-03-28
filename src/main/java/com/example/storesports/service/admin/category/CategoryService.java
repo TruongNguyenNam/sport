@@ -8,7 +8,10 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface CategoryService {
-    Page<CategoryResponse> getAllCategories(int page, int size);
+    //Page<CategoryResponse> getAllCategories(int page, int size);
+
+
+    List<CategoryResponse> findAllCategories();
 
    // CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id);
 

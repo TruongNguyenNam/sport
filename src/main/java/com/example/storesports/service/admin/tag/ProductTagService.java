@@ -6,6 +6,7 @@ import com.example.storesports.core.admin.tag.payload.ProductTagRequest;
 import com.example.storesports.core.admin.tag.payload.ProductTagResponse;
 import org.springframework.data.domain.Page;
 
+import javax.swing.text.html.HTML;
 import java.util.List;
 
 public interface ProductTagService {
@@ -15,6 +16,8 @@ public interface ProductTagService {
     ProductTagResponse saveOrUpdateTag(ProductTagRequest productTagRequest, Long id);
 
 //    List<SupplierResponse> findByName(String name);
+
+    List<ProductTagResponse> findAllTags();
 
     void deleteTag(List<Long> id);
 

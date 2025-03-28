@@ -26,19 +26,31 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
 
+//    @Override
+//    public Page<CategoryResponse> getAllCategories(int page, int size) {
+//        int validatedPage = PageUtils.validatePageNumber(page);
+//        int validatedSize = PageUtils.validatePageSize(size, 2);
+//        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+//        Page<Category> categoryPage = categoryRepository.findAll(pageable);
+//        if(categoryPage.isEmpty()){
+//            return new PageImpl<>(Collections.emptyList(),pageable,0);
+//        }
+//        List<CategoryResponse> categoryResponses = categoryPage.getContent().stream()
+//                .map(category -> modelMapper.map(category,CategoryResponse.class)).
+//               collect(Collectors.toList());
+//        return new PageImpl<>(categoryResponses,pageable,categoryPage.getTotalElements());
+//    }
+
     @Override
-    public Page<CategoryResponse> getAllCategories(int page, int size) {
-        int validatedPage = PageUtils.validatePageNumber(page);
-        int validatedSize = PageUtils.validatePageSize(size, 2);
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-        Page<Category> categoryPage = categoryRepository.findAll(pageable);
-        if(categoryPage.isEmpty()){
-            return new PageImpl<>(Collections.emptyList(),pageable,0);
+    public List<CategoryResponse> findAllCategories() {
+        List<Category> categories = categoryRepository.findAllCategory();
+        if(categories.isEmpty()){
+            throw new IllegalArgumentException("danh mục bị trống"+categories);
         }
-        List<CategoryResponse> categoryResponses = categoryPage.getContent().stream()
-                .map(category -> modelMapper.map(category,CategoryResponse.class)).
-               collect(Collectors.toList());
-        return new PageImpl<>(categoryResponses,pageable,categoryPage.getTotalElements());
+
+        return categories.stream()
+                .map(category -> modelMapper.map(category,CategoryResponse.class))
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -2,12 +2,15 @@ package com.example.storesports.core.admin.attribute.controller;
 
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeRequest;
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
+import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.infrastructure.utils.PageUtils;
+import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,20 +23,35 @@ public class ProductAttributeController {
 
         private final AttributeService attributeService;
 
-        @GetMapping("/{id}")
-        public ResponseEntity<ProductAttributeResponse> getProductAttributeById(@PathVariable Long id) {
-            ProductAttributeResponse response = attributeService.findById(id);
-            return ResponseEntity.ok(response);
-        }
+    @GetMapping("/{id}")
+    public ResponseData<ProductAttributeResponse> getProductAttributeById(@PathVariable Long id) {
+        ProductAttributeResponse response = attributeService.findById(id);
+        return ResponseData.<ProductAttributeResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy thông tin thuộc tính sản phẩm thành công")
+                .data(response)
+                .build();
+    }
 
         @GetMapping
-        public ResponseEntity<Map<String, Object>> getAllProductAttribute(
-                @RequestParam(defaultValue = "0") int page,
-                @RequestParam(defaultValue = "2") int size) {
-            Page<ProductAttributeResponse> productSpecificationResponses = attributeService.getAllProductAttribute(page, size);
-            Map<String, Object> response = PageUtils.createPageResponse(productSpecificationResponses);
-            return ResponseEntity.ok(response);
+        public ResponseData<List<ProductAttributeResponse>> getAllProductAttribute(){
+            List<ProductAttributeResponse> productAttributeResponses = attributeService.findAllProductAttribute();
+            return ResponseData.<List<ProductAttributeResponse>>builder()
+                    .status(HttpStatus.OK.value())
+                    .message("lấy danh sách thuộc tính thành công")
+                    .data(productAttributeResponses)
+                    .build();
         }
+
+
+//        @GetMapping
+//        public ResponseEntity<Map<String, Object>> getAllProductAttribute(
+//                @RequestParam(defaultValue = "0") int page,
+//                @RequestParam(defaultValue = "2") int size) {
+//            Page<ProductAttributeResponse> productSpecificationResponses = attributeService.getAllProductAttribute(page, size);
+//            Map<String, Object> response = PageUtils.createPageResponse(productSpecificationResponses);
+//            return ResponseEntity.ok(response);
+//        }
 
     @PostMapping("/{id}")
     public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {

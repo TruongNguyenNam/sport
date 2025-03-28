@@ -10,11 +10,9 @@ import java.util.List;
 
 public interface SupplierService {
 
-    Page<SupplierResponse> getAllSupplier(int size,int page);
+  //  Page<SupplierResponse> getAllSupplier(int size,int page);
 
-
-
-
+    List<SupplierResponse> findAllSupplier();
     SupplierResponse saveSupplier(SupplierRequest supplierRequest);
 
     SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id);

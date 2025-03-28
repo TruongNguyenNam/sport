@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,19 +26,30 @@ public class ProductAttributeServiceImpl implements AttributeService {
 
     private final ProductAttributeRepository productAttributeRepository;
     private final ModelMapper modelMapper;
+//    @Override
+//    public Page<ProductAttributeResponse> getAllProductAttribute(int page, int size) {
+//    int validatedPage = PageUtils.validatePageNumber(page);
+//    int validatedSize = PageUtils.validatePageSize(size, 2);
+//    Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+//            Page<ProductAttribute> productSpecificationPage = productAttributeRepository.findAll(pageable);
+//        if(productSpecificationPage.isEmpty()){
+//        return new PageImpl<>(Collections.emptyList(),pageable,0);
+//    }
+//        List<ProductAttributeResponse> productSpecificationResponses = productSpecificationPage.getContent()
+//                .stream().map(productSpecification -> modelMapper.map(productSpecification, ProductAttributeResponse.class))
+//                .toList();
+//        return new PageImpl<>(productSpecificationResponses,pageable,productSpecificationPage.getTotalElements());
+//    }
+
     @Override
-    public Page<ProductAttributeResponse> getAllProductAttribute(int page, int size) {
-    int validatedPage = PageUtils.validatePageNumber(page);
-    int validatedSize = PageUtils.validatePageSize(size, 2);
-    Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-            Page<ProductAttribute> productSpecificationPage = productAttributeRepository.findAll(pageable);
-        if(productSpecificationPage.isEmpty()){
-        return new PageImpl<>(Collections.emptyList(),pageable,0);
-    }
-        List<ProductAttributeResponse> productSpecificationResponses = productSpecificationPage.getContent()
-                .stream().map(productSpecification -> modelMapper.map(productSpecification, ProductAttributeResponse.class))
-                .toList();
-        return new PageImpl<>(productSpecificationResponses,pageable,productSpecificationPage.getTotalElements());
+    public List<ProductAttributeResponse> findAllProductAttribute() {
+        List<ProductAttribute> productAttributes = productAttributeRepository.findAllProductAttribute();
+        if(productAttributes.isEmpty()){
+            throw new IllegalArgumentException("thuộc tính bị trống"+productAttributes);
+        }
+        return productAttributes.stream()
+                .map(productAttribute -> modelMapper.map(productAttribute,ProductAttributeResponse.class))
+                .collect(Collectors.toList());
     }
 
     @Override

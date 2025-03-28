@@ -8,6 +8,7 @@ import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.ProductTagRepository;
 import com.example.storesports.service.admin.tag.ProductTagService;
+import jakarta.persistence.Table;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -59,6 +60,18 @@ public class ProductTagServiceImpl implements ProductTagService {
         ProductTag tagSaved = productTagRepository.save(productTag);
 
         return modelMapper.map(tagSaved,ProductTagResponse.class);
+    }
+
+    @Override
+    public List<ProductTagResponse> findAllTags() {
+        List<ProductTag> productTagResponses = productTagRepository.findAllTags();
+        if(productTagResponses.isEmpty()){
+            throw new IllegalArgumentException("tag bị trống"+ productTagResponses);
+        }
+
+        return productTagResponses.stream()
+                .map(productTag -> modelMapper.map(productTag,ProductTagResponse.class))
+                .collect(Collectors.toList());
     }
 
     @Override

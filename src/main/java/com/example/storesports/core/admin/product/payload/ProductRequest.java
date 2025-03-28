@@ -25,7 +25,7 @@ public class ProductRequest {
         private List<ProductVariant> variants = new ArrayList<>();
         private List<Long> tagId;
         private List<MultipartFile> parentImages;
-
+        private Boolean deleted;
         @Data
         @AllArgsConstructor
         @NoArgsConstructor

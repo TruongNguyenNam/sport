@@ -27,19 +27,30 @@ public class SupplierServiceImpl implements SupplierService {
     private final SupplierRepository supplierRepository;
     private final ModelMapper modelMapper;
 
+//    @Override
+//    public Page<SupplierResponse> getAllSupplier(int page, int size) {
+//        int validatedPage = PageUtils.validatePageNumber(page);
+//        int validatedSize = PageUtils.validatePageSize(size, 2);
+//        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+//        Page<Supplier> supplierPage = supplierRepository.findAll(pageable);
+//        if (supplierPage.isEmpty()) {
+//            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+//        }
+//        List<SupplierResponse> supplierResponses = supplierPage.getContent().stream()
+//                .map(supplier -> modelMapper.map(supplier, SupplierResponse.class))
+//                .collect(Collectors.toList());
+//        return new PageImpl<>(supplierResponses, pageable, supplierPage.getTotalElements());
+//    }
+
     @Override
-    public Page<SupplierResponse> getAllSupplier(int page, int size) {
-        int validatedPage = PageUtils.validatePageNumber(page);
-        int validatedSize = PageUtils.validatePageSize(size, 2);
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-        Page<Supplier> supplierPage = supplierRepository.findAll(pageable);
-        if (supplierPage.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+    public List<SupplierResponse> findAllSupplier() {
+        List<Supplier> suppliers = supplierRepository.findAllSupplier();
+        if(suppliers.isEmpty()){
+            throw new IllegalArgumentException("Nhà sản xuất bị trống"+suppliers);
         }
-        List<SupplierResponse> supplierResponses = supplierPage.getContent().stream()
-                .map(supplier -> modelMapper.map(supplier, SupplierResponse.class))
+        return suppliers.stream()
+                .map(supplier -> modelMapper.map(supplier,SupplierResponse.class))
                 .collect(Collectors.toList());
-        return new PageImpl<>(supplierResponses, pageable, supplierPage.getTotalElements());
     }
 
     @Override
