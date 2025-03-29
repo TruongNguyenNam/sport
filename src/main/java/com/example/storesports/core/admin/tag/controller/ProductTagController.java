@@ -25,14 +25,6 @@ public class ProductTagController {
 
     private final ProductTagService productTagService;
 
-//    @GetMapping
-//    public ResponseEntity<Map<String, Object>> getAllTags(
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "2") int size) {
-//        Page<ProductTagResponse> productTagResponses = productTagService.getAllTags(page, size);
-//        Map<String, Object> response = PageUtils.createPageResponse(productTagResponses);
-//        return ResponseEntity.ok(response);
-//    }
 
     @GetMapping
     public ResponseData<List<ProductTagResponse>> getAllTags(){
@@ -72,6 +64,14 @@ public class ProductTagController {
     }
 
 
+//    @GetMapping
+//    public ResponseEntity<Map<String, Object>> getAllTags(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "2") int size) {
+//        Page<ProductTagResponse> productTagResponses = productTagService.getAllTags(page, size);
+//        Map<String, Object> response = PageUtils.createPageResponse(productTagResponses);
+//        return ResponseEntity.ok(response);
+//    }
 
 
 

@@ -44,14 +44,6 @@ public class ProductAttributeController {
         }
 
 
-//        @GetMapping
-//        public ResponseEntity<Map<String, Object>> getAllProductAttribute(
-//                @RequestParam(defaultValue = "0") int page,
-//                @RequestParam(defaultValue = "2") int size) {
-//            Page<ProductAttributeResponse> productSpecificationResponses = attributeService.getAllProductAttribute(page, size);
-//            Map<String, Object> response = PageUtils.createPageResponse(productSpecificationResponses);
-//            return ResponseEntity.ok(response);
-//        }
 
     @PostMapping("/{id}")
     public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {

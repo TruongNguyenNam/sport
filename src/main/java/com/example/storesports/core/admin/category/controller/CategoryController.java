@@ -19,14 +19,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CategoryController {
     private final CategoryService categoryService;
-//    @GetMapping
-//    public ResponseEntity<Map<String, Object>> getAllCategories(
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "2") int size) {
-//        Page<CategoryResponse> categoryResponses = categoryService.getAllCategories(page, size);
-//        Map<String, Object> response = PageUtils.createPageResponse(categoryResponses);
-//        return ResponseEntity.ok(response);
-//    }
+
 
     @GetMapping
     public ResponseData<List<CategoryResponse>> getAllCategories(){
@@ -92,6 +85,17 @@ public class CategoryController {
                 .message("Xóa danh mục thành công")
                 .build();
     }
+
+
+
+    //    @GetMapping
+//    public ResponseEntity<Map<String, Object>> getAllCategories(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "2") int size) {
+//        Page<CategoryResponse> categoryResponses = categoryService.getAllCategories(page, size);
+//        Map<String, Object> response = PageUtils.createPageResponse(categoryResponses);
+//        return ResponseEntity.ok(response);
+//    }
 
 
 }
