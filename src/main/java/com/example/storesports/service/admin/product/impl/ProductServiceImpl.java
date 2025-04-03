@@ -230,28 +230,26 @@ public class ProductServiceImpl implements ProductService {
         Product childProduct = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm con không tồn tại hoặc đã bị xóa với ID: " + id));
 
-     //   childProduct.setName(request.getName());
-        childProduct.setDescription(request.getDescription());
-//        childProduct.setSportType(request.getSportType());
-//        childProduct.setSku(request.getSku());
-        childProduct.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
-        childProduct.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        // Cập nhật mô tả nếu có
+        if (request.getDescription() != null) {
+            childProduct.setDescription(request.getDescription());
+        }
 
-//        Supplier supplier = supplierRepository.findById(request.getSupplierId())
-//                .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại với ID: " + request.getSupplierId()));
-//        childProduct.setSupplier(supplier);
+        // Cập nhật giá và số lượng tồn kho
+        if (request.getPrice() != null) {
+            childProduct.setPrice(request.getPrice());
+        }
+        if (request.getStockQuantity() != null) {
+            childProduct.setStockQuantity(request.getStockQuantity());
+        }
 
-//        Category category = categoryRepository.findById(request.getCategoryId())
-//                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại với ID: " + request.getCategoryId()));
-//        childProduct.setCategory(category);
-
-        // Xử lý productAttributeValues (nếu có)
+        // Cập nhật giá trị thuộc tính sản phẩm
         if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
-            // Xóa các giá trị thuộc tính cũ
+            // Xóa thuộc tính cũ
             productAttributeValueRepository.deleteByProductId(childProduct.getId());
             childProduct.getProductAttributeValues().clear();
 
-            // Thêm các giá trị thuộc tính mới
+            // Thêm thuộc tính mới
             List<ProductAttributeValue> newAttributeValues = request.getProductAttributeValues().stream()
                     .map(attr -> {
                         ProductAttribute attribute = productAttributeRepository.findById(attr.getAttributeId())
@@ -263,19 +261,22 @@ public class ProductServiceImpl implements ProductService {
                         return value;
                     })
                     .collect(Collectors.toList());
+
             productAttributeValueRepository.saveAll(newAttributeValues);
             childProduct.getProductAttributeValues().addAll(newAttributeValues);
-            log.info(" Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+            log.info("✅ Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
         }
 
+        // Cập nhật lại tên sản phẩm con sau khi cập nhật thuộc tính
+        updateChildProductName(childProduct);
+
+        // Cập nhật ảnh sản phẩm nếu có
         if (request.getImages() != null && !request.getImages().isEmpty()) {
             // Xóa ảnh cũ
             productImageRepository.deleteByProductId(childProduct.getId());
             childProduct.getImages().clear();
 
-            updateChildProductName(childProduct);
-
-            // Upload và lưu ảnh mới
+            // Upload ảnh mới
             List<String> imageUrls = uploadImages(request.getImages());
             if (!imageUrls.isEmpty()) {
                 List<ProductImage> childProductImages = imageUrls.stream()
@@ -286,14 +287,16 @@ public class ProductServiceImpl implements ProductService {
                             return productImage;
                         })
                         .collect(Collectors.toList());
+
                 productImageRepository.saveAll(childProductImages);
                 childProduct.getImages().addAll(childProductImages);
-                log.info(" Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
+                log.info("✅ Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
             }
         }
 
+        // Lưu lại sản phẩm đã cập nhật
         productRepository.save(childProduct);
-        log.info(" Đã cập nhật biến thể {}", childProduct.getSku());
+        log.info("✅ Đã cập nhật biến thể {}", childProduct.getSku());
     }
 
     @Override

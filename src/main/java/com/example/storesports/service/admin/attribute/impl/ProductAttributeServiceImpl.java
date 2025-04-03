@@ -43,7 +43,7 @@ public class ProductAttributeServiceImpl implements AttributeService {
 
     @Override
     public List<ProductAttributeResponse> findAllProductAttribute() {
-        List<ProductAttribute> productAttributes = productAttributeRepository.findAllProductAttribute();
+        List<ProductAttribute> productAttributes = productAttributeRepository.findAll();
         if(productAttributes.isEmpty()){
             throw new IllegalArgumentException("thuộc tính bị trống"+productAttributes);
         }

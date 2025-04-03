@@ -46,8 +46,6 @@ public class AuthExceptionHandler implements AuthenticationEntryPoint, AccessDen
                 code,moreInformation,exception);
 
         addErrorResponseToBodyRespon(errorResponse,response,HttpServletResponse.SC_FORBIDDEN);
-
-
     }
 
     private void addErrorResponseToBodyRespon (
