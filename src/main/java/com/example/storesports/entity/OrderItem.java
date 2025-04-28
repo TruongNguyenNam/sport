@@ -29,7 +29,6 @@ public class OrderItem extends Auditable {
         private Integer quantity;
         private Double unitPrice;
 
-        // Getters and Setters
 
 
 }

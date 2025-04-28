@@ -25,8 +25,15 @@ public class Order extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
+        private String orderCode;
+
         private Double orderTotal;
+
         private Date orderDate;
+
+        private Boolean isPos;
+
+        private Boolean deleted;
 
         @Enumerated(EnumType.STRING)
         private OrderStatus orderStatus;

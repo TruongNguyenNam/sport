@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
+
 @Entity
 @Table(name = "Payment")
 @Getter
@@ -24,7 +26,12 @@ public class Payment extends Auditable{
         private Order order;
 
         private Double amount;
-        private java.util.Date paymentDate;
+        private Date paymentDate;
+
+        @ManyToOne
+        @JoinColumn(name = "payment_method_id", nullable = false)
+        private PaymentMethod paymentMethod;
+
         @Enumerated(EnumType.STRING)
         private PaymentStatus paymentStatus;
 

@@ -21,6 +21,9 @@ public class PaymentMethod extends Auditable{
     private String name;
     private String description;
 
-    @OneToMany(mappedBy = "paymentMethod",cascade = CascadeType.REMOVE)
-    private List<PaymentMethodMapping> paymentMethodMappings;
+    @OneToMany(mappedBy = "paymentMethod", cascade = CascadeType.REMOVE)
+    private List<Payment> payments;
+
+//    @OneToMany(mappedBy = "paymentMethod",cascade = CascadeType.REMOVE)
+//    private List<PaymentMethodMapping> paymentMethodMappings;
 }

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
+
 @Entity
 @Table(name = "ReturnRequest")
 @Getter
@@ -23,7 +25,7 @@ public class ReturnRequest extends Auditable{
         private Order order;
 
         private Integer reasonId;
-        private java.util.Date requestDate;
+        private Date requestDate;
 
 
 

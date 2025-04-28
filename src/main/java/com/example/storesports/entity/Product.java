@@ -60,7 +60,7 @@ public class Product extends Auditable{
         private List<ProductDiscountMapping> productDiscountMappings;
 
 
-        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
-        private List<Inventory> inventories;
+//        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+//        private List<Inventory> inventories;
 
 }

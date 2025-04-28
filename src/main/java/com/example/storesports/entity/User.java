@@ -30,12 +30,6 @@ public class User extends Auditable {
     @Column(length = 20)
     private Role role;
 
-
-//    @Enumerated(EnumType.STRING)
-//    @Column(length = 20)
-//    private Gender gender;
-
-
     @OneToMany(mappedBy = "user",cascade = CascadeType.REMOVE)
     private List<UserAddressMapping> userAddressMappings;
 
