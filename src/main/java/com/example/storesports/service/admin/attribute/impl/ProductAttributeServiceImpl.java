@@ -47,6 +47,7 @@ public class ProductAttributeServiceImpl implements AttributeService {
         if(productAttributes.isEmpty()){
             throw new IllegalArgumentException("thuộc tính bị trống"+productAttributes);
         }
+
         return productAttributes.stream()
                 .map(productAttribute -> modelMapper.map(productAttribute,ProductAttributeResponse.class))
                 .collect(Collectors.toList());
@@ -69,8 +70,10 @@ public class ProductAttributeServiceImpl implements AttributeService {
 
         return modelMapper.map(attributeSaved,ProductAttributeResponse.class);
 
-
     }
+
+
+
 
     @Override
     public void deleteAttribute(List<Long> id) {
@@ -81,6 +84,24 @@ public class ProductAttributeServiceImpl implements AttributeService {
         }
 
 
+    }
+
+    @Override
+    public ProductAttributeResponse save(ProductAttributeRequest productAttributeRequest) {
+       ProductAttribute productAttribute = new ProductAttribute();
+       productAttribute.setName(productAttributeRequest.getName());
+       productAttribute.setDescription(productAttributeRequest.getDescription());
+       ProductAttribute attributeSaved = productAttributeRepository.save(productAttribute);
+       return modelMapper.map(attributeSaved,ProductAttributeResponse.class);
+    }
+
+    @Override
+    public ProductAttributeResponse update(Long id, ProductAttributeRequest productAttributeRequest) {
+        ProductAttribute productAttribute =productAttributeRepository.findById(id).orElseThrow(()->new RuntimeException("ko có id productAtribute này"));
+        productAttribute.setName(productAttributeRequest.getName());
+        productAttribute.setDescription(productAttributeRequest.getDescription());
+        ProductAttribute attributeSaved = productAttributeRepository.save(productAttribute);
+        return modelMapper.map(attributeSaved,ProductAttributeResponse.class);
     }
 
     @Override

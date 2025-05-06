@@ -5,6 +5,7 @@ import com.example.storesports.core.admin.attribute.payload.ProductAttributeResp
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
+import com.example.storesports.entity.ProductAttribute;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
@@ -44,8 +45,23 @@ public class ProductAttributeController {
         }
 
 
+        @PostMapping("/save")
+        public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
+        ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().status(200)
+                .message("tạo thành công")
+                .data(productAttributeResponse)
+                .build();
+        }
 
-    @PostMapping("/{id}")
+        @PutMapping("/update/{id}")
+        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
+        ProductAttributeResponse productAttributeResponse=attributeService.update(id, productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
+                .message("update thành công")
+                .status(200).build();
+    }
+            @PostMapping("/{id}")
     public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {
         ProductAttributeResponse savedAttribute = attributeService.saveOrUpdateAttribute(productAttributeRequest, id);
         return ResponseEntity.ok(savedAttribute);
