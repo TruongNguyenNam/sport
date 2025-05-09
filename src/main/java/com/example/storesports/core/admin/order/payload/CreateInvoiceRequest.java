@@ -1,10 +1,13 @@
-//package com.example.storesports.core.admin.order.payload;
-//
-//import lombok.Data;
-//
-//@Data
-//public class CreateOrderRequest {
+package com.example.storesports.core.admin.order.payload;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class CreateInvoiceRequest {
 //    private Long userId;
-//
-//
-//}
+
+    private Boolean isPos;
+
+}

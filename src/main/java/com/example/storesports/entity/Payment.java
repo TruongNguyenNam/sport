@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -26,7 +27,7 @@ public class Payment extends Auditable{
         private Order order;
 
         private Double amount;
-        private Date paymentDate;
+        private LocalDateTime paymentDate;
 
         @ManyToOne
         @JoinColumn(name = "payment_method_id", nullable = false)
