@@ -30,14 +30,25 @@ public class OrderController {
         }
     }
 
-    @PostMapping("/{orderCode}/details")
-    public ResponseEntity<OrderResponse> addOrderDetails(
+    @PostMapping("/{orderCode}/products")
+    public ResponseEntity<OrderResponse> addProductToOrder(
             @PathVariable String orderCode,
-            @RequestBody @Valid OrderRequest request
-    ) {
-        OrderResponse response = orderService.addOrderDetails(orderCode, request);
-        return ResponseEntity.ok(response);
+            @RequestBody OrderRequest request) {
+        request.setOrderCode(orderCode); // Đảm bảo orderCode từ path khớp với request
+        OrderResponse response = orderService.addProductToOrder(request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+
+
+//    @PostMapping("/{orderCode}/details")
+//    public ResponseEntity<OrderResponse> addOrderDetails(
+//            @PathVariable String orderCode,
+//            @RequestBody @Valid OrderRequest request
+//    ) {
+//        OrderResponse response = orderService.addOrderDetails(orderCode, request);
+//        return ResponseEntity.ok(response);
+//    }
 
 
 }

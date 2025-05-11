@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 @Entity
 @Table(name = "Coupon")
@@ -21,7 +22,7 @@ public class Coupon extends Auditable{
 
         private String code;
         private Double discountAmount;
-        private java.util.Date expirationDate;
+        private LocalDateTime expirationDate;
 
         @OneToMany(mappedBy = "coupon", cascade = CascadeType.REMOVE)
         private List<CouponUsage> couponUsages;

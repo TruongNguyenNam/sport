@@ -26,12 +26,20 @@ public class Payment extends Auditable{
         @JoinColumn(name = "order_id")
         private Order order;
 
+        // đây là khách lúc đưa tiền
+        // lúc này trên phía clinent sẽ hiểu được là đưa bao nhiêu
         private Double amount;
+
+        // tiền thừa khi đưa khách hàng đưa thừa
+        private Double changeAmount;
+
         private LocalDateTime paymentDate;
+
+
 
         @ManyToOne
         @JoinColumn(name = "payment_method_id", nullable = false)
-        private PaymentMethod paymentMethod;
+        private PaymentMethod paymentMethod;  //chọn kiểu thanh toán
 
         @Enumerated(EnumType.STRING)
         private PaymentStatus paymentStatus;

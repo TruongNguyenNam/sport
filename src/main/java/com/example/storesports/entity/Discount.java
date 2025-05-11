@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Date;
+
 @Entity
 @Table(name = "Discount")
 @Getter
@@ -22,9 +24,9 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
-        private java.util.Date startDate;
+        private Date startDate;
 
-        private java.util.Date endDate;
+        private Date endDate;
 
 //        @ManyToOne
 //        @JoinColumn(name = "sport_type_id")

@@ -5,19 +5,20 @@ import com.example.storesports.core.admin.payment.payload.PaymentRequest;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @NoArgsConstructor
 public class OrderRequest {
    // @NotBlank(message = "Order code is required")
-    private String orderCode;
+    private String orderCode; // ok
 
     //@Positive(message = "User ID must be positive if provided")
-    private Long userId;
+    private Long userId;  // ok
 
     //@NotEmpty(message = "Items are required")
-    private List<OrderItemRequest> items;
+    private List<OrderItemRequest> items;  //ok
 
     //@NotNull(message = "Payment is required")
     private PaymentRequest payment;
@@ -38,17 +39,13 @@ public class OrderRequest {
     @NoArgsConstructor
     public static class OrderItemRequest {
         private Long productId;
-
         private Integer quantity;
-
-        private Double unitPrice;
     }
 
     @Data
     @NoArgsConstructor
     public static class PaymentRequest {
         private Long paymentMethodId;
-
         private Double amount;
     }
 
@@ -57,13 +54,9 @@ public class OrderRequest {
     public static class ShipmentRequest {
         private String carrier;
 
-        private String estimatedDeliveryDate;
+        private LocalDateTime estimatedDeliveryDate;
 
         private List<Long> orderItemIds;
     }
-
-
-
-
 
 }

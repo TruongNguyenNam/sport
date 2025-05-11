@@ -16,7 +16,7 @@ import java.util.List;
 public class OrderResponse {
     private Long id;
     private String orderCode;
-//    private Long user;
+//    private String userName;
     private String orderStatus;
     private Double orderTotal;
     private Boolean isPos; // Đơn hàng tại quầy (true)
