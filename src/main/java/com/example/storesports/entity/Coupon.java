@@ -24,6 +24,8 @@ public class Coupon extends Auditable{
         private Double discountAmount;
         private LocalDateTime expirationDate;
 
+        private Boolean deleted;
+
         @OneToMany(mappedBy = "coupon", cascade = CascadeType.REMOVE)
         private List<CouponUsage> couponUsages;
 

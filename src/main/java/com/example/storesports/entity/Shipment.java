@@ -39,11 +39,4 @@ public class Shipment extends Auditable{
         @OneToMany(mappedBy = "shipment",cascade = CascadeType.REMOVE)
         private List<ShipmentItem> shipmentItems;
 
-
-
-
-
-
-
-
 }
