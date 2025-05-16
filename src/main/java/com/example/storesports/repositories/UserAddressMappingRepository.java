@@ -16,4 +16,6 @@ public interface UserAddressMappingRepository extends JpaRepository<UserAddressM
     Optional<UserAddressMapping> findByUserId(@Param("id") Long id);
 //    List<UserAddressMapping> findByUserId(Long userId);
     Optional<UserAddressMapping> findByUserIdAndAddressId(Long userId, Long addressId);
+
+    boolean existsByUserIdAndAddressId(Long userId, Long addressId);
 }

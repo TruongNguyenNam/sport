@@ -24,13 +24,13 @@ public class OrderRequest {
     private PaymentRequest payment;
 
    // @Positive(message = "Coupon ID must be positive if provided")
-    private Long couponId; // Optional, single coupon
+    private Long couponId; // Optional, single coupon  // nên chỉnh sửa lại
 
     //@NotNull(message = "Order type (isPos) is required")
-    private Boolean isPos; // True for POS, false for shipping
+    //private Boolean isPos; // True for POS, false for shipping
 
    // @Positive(message = "Address ID must be positive if provided for shipping")
-    private Long addressId; // Required for shipping
+   // private Long addressId; // Required for shipping // khả năng cái này sẽ không cần vì khách hàng
 
    // @NotEmpty(message = "Shipments are required for shipping orders if isPos is false")
     private List<ShipmentRequest> shipments; // List of shipments for N-N relationship
@@ -47,6 +47,7 @@ public class OrderRequest {
     public static class PaymentRequest {
         private Long paymentMethodId;
         private Double amount;
+
     }
 
     @Data

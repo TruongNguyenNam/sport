@@ -1,4 +1,4 @@
-package com.example.storesports.core.admin.user.payload;
+package com.example.storesports.core.admin.customer.payload;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

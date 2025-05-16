@@ -51,8 +51,6 @@ public class SecurityConfig  {
                 .authenticationEntryPoint(authExceptionHandler)
                 .accessDeniedHandler(authExceptionHandler);
 
-
-
         return http.build();
     }
 

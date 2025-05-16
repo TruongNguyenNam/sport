@@ -1,4 +1,4 @@
-package com.example.storesports.service.admin.user;
+package com.example.storesports.service.client.user;
 
 public class test {
 }

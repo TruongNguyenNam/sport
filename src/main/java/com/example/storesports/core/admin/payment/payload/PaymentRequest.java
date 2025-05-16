@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class PaymentRequest {
     private Long orderId;
-    private Long paymentMethodId; // Phương thức thanh toán (CASH, CARD, MOBILE)
+    private Long paymentMethodId;
     private double amount;
 
 }

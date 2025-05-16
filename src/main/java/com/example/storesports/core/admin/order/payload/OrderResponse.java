@@ -16,7 +16,7 @@ import java.util.List;
 public class OrderResponse {
     private Long id;
     private String orderCode;
-//    private String userName;
+    private AddressResponse address; // Thông tin địa chỉ giao hàng (nếu không phải đơn hàng tại quầy)
     private String orderStatus;
     private Double orderTotal;
     private Boolean isPos; // Đơn hàng tại quầy (true)
@@ -25,7 +25,6 @@ public class OrderResponse {
     private List<OrderItemResponse> items; // Danh sách sản phẩm trong đơn hàng
     private PaymentResponse payment; // Thông tin thanh toán
     private List<CouponResponse> couponUsages; // Danh sách thông tin sử dụng coupon
-    private AddressResponse address; // Thông tin địa chỉ giao hàng (nếu không phải đơn hàng tại quầy)
     private ShipmentResponse shipment; // Thông tin vận chuyển (nếu có)
     private Integer createdBy; // Người tạo đơn hàng
     private LocalDateTime createdDate; // Thời gian tạo
@@ -53,11 +52,19 @@ public class OrderResponse {
     @AllArgsConstructor
     public static class AddressResponse {
         private Long id;
-        private String streetAddress;
-        private String city;
-        private String state;
-        private String country;
-        private String zipCode;
+        private String email;
+        private String username;
+        private String phoneNumber;
+        private String role;
+        private String addressStreet; // ok
+        private String addressWard; // Phường (Phường Phúc Đồng)
+        private String addressCity;  // ok
+        private String addressState; // ok
+        private String addressCountry;
+        private String AddressZipcode;
+        private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
+        private String addressProvince; // Tỉnh (Quận Long Biên)
+        private boolean isActive;
     }
 
     @Data

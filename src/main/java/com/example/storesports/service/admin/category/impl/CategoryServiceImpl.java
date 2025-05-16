@@ -7,9 +7,11 @@ import com.example.storesports.entity.Product;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.CategoryRepository;
+import com.example.storesports.repositories.ProductRepository;
 import com.example.storesports.service.admin.category.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -26,7 +28,8 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
 
-//    @Override
+
+    //    @Override
 //    public Page<CategoryResponse> getAllCategories(int page, int size) {
 //        int validatedPage = PageUtils.validatePageNumber(page);
 //        int validatedSize = PageUtils.validatePageSize(size, 2);
@@ -53,6 +56,9 @@ public class CategoryServiceImpl implements CategoryService {
                 .collect(Collectors.toList());
     }
 
+
+
+
     @Override
     public CategoryResponse updateCategory(CategoryRequest categoryRequest, Long id) {
         Category category = categoryRepository.findById(id)
@@ -75,22 +81,6 @@ public class CategoryServiceImpl implements CategoryService {
         return modelMapper.map(savedCategory, CategoryResponse.class);
     }
 
-//    @Override
-//    public CategoryResponse saveOrUpdateCategory(CategoryRequest categoryRequest, Long id) {
-//        Category category;
-//        if (id != null) {
-//            category = categoryRepository.findById(id)
-//                    .orElseThrow(() -> new IllegalArgumentException("Category with id " + id + " not found"));
-//        } else {
-//            category = new Category();
-//        }
-//        category.setName(categoryRequest.getName());
-//        category.setDescription(categoryRequest.getDescription());
-//
-//        Category savedCategory = categoryRepository.save(category);
-//
-//        return modelMapper.map(savedCategory, CategoryResponse.class);
-//    }
 
     @Override
     public List<CategoryResponse> findByName(String name) {
@@ -118,5 +108,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         return modelMapper.map(category,CategoryResponse.class);
     }
+
+
 
 }
