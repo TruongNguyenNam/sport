@@ -25,12 +25,11 @@ public class CategoryController {
     public ResponseData<List<CategoryResponse>> getAllCategories(){
         List<CategoryResponse> categories = categoryService.findAllCategories();
         return ResponseData.<List<CategoryResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("lấy danh sách danh mục thành công")
+                .status(HttpStatus.OK.value()) // log
+                .message("lấy danh sách danh mục thành công") //
                 .data(categories)
                 .build();
     }
-
 
     @PostMapping("/add")
     public ResponseData<CategoryResponse> addCategory(@RequestBody CategoryRequest categoryRequest) {

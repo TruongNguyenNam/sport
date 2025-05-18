@@ -27,13 +27,13 @@ public class Order extends Auditable {
 
         private String orderCode;
 
-        private Double orderTotal;
+        private Double orderTotal; // tổng số tiền
 
         private Date orderDate;
 
-        private Boolean isPos;
+        private Boolean isPos;  // true là bán thường // false là bán ship
 
-        private Boolean deleted;
+        private Boolean deleted;  // xoá mềm
 
         @Enumerated(EnumType.STRING)
         private OrderStatus orderStatus;

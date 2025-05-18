@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 @Entity
 @Table(name = "Shipment")
@@ -30,10 +32,11 @@ public class Shipment extends Auditable{
         @Enumerated(EnumType.STRING)
         private ShipmentStatus shipmentStatus;
 
+        private String carrier;
+
+        private LocalDateTime estimatedDeliveryDate;
+
         @OneToMany(mappedBy = "shipment",cascade = CascadeType.REMOVE)
         private List<ShipmentItem> shipmentItems;
-
-
-
 
 }

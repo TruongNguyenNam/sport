@@ -1,5 +1,6 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.Gender;
 import com.example.storesports.infrastructure.constant.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,11 @@ public class User extends Auditable {
     private String password;
     private String email;
     private String phoneNumber;
+
     private Boolean isActive = true;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)

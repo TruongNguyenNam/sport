@@ -8,8 +8,8 @@ import java.io.Serializable;
 @Getter
 @Builder
 public class ResponseData<T> implements Serializable {
-    private final Integer status;
-    private final String message;
+    private final Integer status; // log 200
+    private final String message; //
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private T data;
 
