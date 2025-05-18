@@ -33,7 +33,8 @@ public class SupplierController {
                 .data(response)
                 .build();
     }
-    @GetMapping("/getAll")
+
+    @GetMapping
     public ResponseData<List<SupplierResponse>> getAllSupplier() {
         List<SupplierResponse> categories = supplierService.findAllSupplier();
         return ResponseData.<List<SupplierResponse>>builder()
