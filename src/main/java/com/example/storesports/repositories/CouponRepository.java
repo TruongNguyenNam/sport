@@ -14,4 +14,8 @@ public interface CouponRepository extends JpaRepository<Coupon, Long>, JpaSpecif
 
     Optional<Coupon> findByCode(String code);
 
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0

@@ -4,6 +4,7 @@ import com.example.storesports.core.admin.attribute.payload.ProductAttributeResp
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.ProductAttribute;
 import com.example.storesports.entity.Supplier;
+import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.ProductAttributeRepository;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -43,7 +45,7 @@ public class ProductAttributeServiceImpl implements AttributeService {
 
     @Override
     public List<ProductAttributeResponse> findAllProductAttribute() {
-        List<ProductAttribute> productAttributes = productAttributeRepository.findAll();
+        List<ProductAttribute> productAttributes = productAttributeRepository.findAllProductAttribute();
         if(productAttributes.isEmpty()){
             throw new IllegalArgumentException("thuộc tính bị trống"+productAttributes);
         }
@@ -89,14 +91,32 @@ public class ProductAttributeServiceImpl implements AttributeService {
     @Override
     public ProductAttributeResponse save(ProductAttributeRequest productAttributeRequest) {
        ProductAttribute productAttribute = new ProductAttribute();
+<<<<<<< HEAD
        productAttribute.setName(productAttributeRequest.getName());
        productAttribute.setDescription(productAttributeRequest.getDescription());
+=======
+       if(productAttributeRepository.countProductAttribute(productAttributeRequest.getName())>0){
+        throw new DuplicateEntityException("name tồn tại");
+       }else{
+           productAttribute.setName(productAttributeRequest.getName());
+           productAttribute.setDescription(productAttributeRequest.getDescription());
+
+       }
+>>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
        ProductAttribute attributeSaved = productAttributeRepository.save(productAttribute);
        return modelMapper.map(attributeSaved,ProductAttributeResponse.class);
     }
 
     @Override
     public ProductAttributeResponse update(Long id, ProductAttributeRequest productAttributeRequest) {
+<<<<<<< HEAD
+=======
+       if(productAttributeRepository.countProductAttributeByNameAndIdNot(productAttributeRequest.getName(), id)>0){
+           System.out.println(productAttributeRepository.countProductAttributeByNameAndIdNot(productAttributeRequest.getName(), id));
+           throw new DuplicateEntityException("name đã tồn tại");
+
+       }
+>>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
         ProductAttribute productAttribute =productAttributeRepository.findById(id).orElseThrow(()->new RuntimeException("ko có id productAtribute này"));
         productAttribute.setName(productAttributeRequest.getName());
         productAttribute.setDescription(productAttributeRequest.getDescription());
@@ -112,6 +132,15 @@ public class ProductAttributeServiceImpl implements AttributeService {
             return modelMapper.map(productAttribute,ProductAttributeResponse.class);
 
 
+    }
+
+    @Override
+    public List<ProductAttributeResponse> searchName(String name) {
+        Specification<ProductAttribute> spec = Specification.where(null);
+        spec = spec.and(AttributeSpecification.search(name));
+        System.out.println(spec);
+        List<ProductAttribute> attribute=productAttributeRepository.findAll(spec);
+    return attribute.stream().map(n->modelMapper.map(n,ProductAttributeResponse.class)).collect(Collectors.toList());
     }
 
 

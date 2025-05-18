@@ -25,5 +25,5 @@ public interface AttributeService {
     ProductAttributeResponse update(Long id,ProductAttributeRequest productAttributeRequest);
 
     ProductAttributeResponse findById(Long id);
-
+    List<ProductAttributeResponse> searchName(String name);
 }

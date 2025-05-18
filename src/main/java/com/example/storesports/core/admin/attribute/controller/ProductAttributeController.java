@@ -6,11 +6,17 @@ import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.ProductAttribute;
+<<<<<<< HEAD
+=======
+import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
+>>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +27,6 @@ import java.util.Map;
 @RequestMapping("/api/v1/admin/attribute")
 @RequiredArgsConstructor
 public class ProductAttributeController {
-
         private final AttributeService attributeService;
 
     @GetMapping("/{id}")
@@ -45,6 +50,7 @@ public class ProductAttributeController {
         }
 
 
+<<<<<<< HEAD
         @PostMapping("/save")
         public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
         ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
@@ -60,6 +66,56 @@ public class ProductAttributeController {
         return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
                 .message("update thành công")
                 .status(200).build();
+=======
+    @PostMapping("/save")
+    public ResponseData<ProductAttributeResponse> save(@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
+        try {
+            ProductAttributeResponse productAttributeResponse = attributeService.save(productAttributeRequest);
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(200)
+                    .message("Tạo thành công")
+                    .data(productAttributeResponse)
+                    .build();
+        } catch (DuplicateEntityException ex) {
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(400)
+                    .message("Lỗi: " + ex.getMessage())
+                    .data(null)
+                    .build();
+        } catch (Exception ex) {
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(500)
+                    .message("Lỗi hệ thống: " + ex.getMessage())
+                    .data(null)
+                    .build();
+        }
+    }
+
+
+    @PutMapping("/update/{id}")
+        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id,@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
+
+        try {
+            ProductAttributeResponse productAttributeResponse = attributeService.update(id,productAttributeRequest);
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(200)
+                    .message("update thành công")
+                    .data(productAttributeResponse)
+                    .build();
+        } catch (DuplicateEntityException ex) {
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(400)
+                    .message("Lỗi: " + ex.getMessage())
+                    .data(null)
+                    .build();
+        } catch (Exception ex) {
+            return ResponseData.<ProductAttributeResponse>builder()
+                    .status(500)
+                    .message("Lỗi hệ thống: " + ex.getMessage())
+                    .data(null)
+                    .build();
+        }
+>>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
     }
             @PostMapping("/{id}")
     public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {
@@ -72,6 +128,11 @@ public class ProductAttributeController {
         attributeService.deleteAttribute(id);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("/search/name/{name}")
+    public List<ProductAttributeResponse> searchName(@PathVariable("name") String name){
+        return attributeService.searchName(name);
+    }
+
 
 
 }
