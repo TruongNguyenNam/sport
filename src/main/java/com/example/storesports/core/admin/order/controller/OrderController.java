@@ -1,8 +1,10 @@
 package com.example.storesports.core.admin.order.controller;
 
+import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.order.payload.CreateInvoiceRequest;
 import com.example.storesports.core.admin.order.payload.OrderRequest;
 import com.example.storesports.core.admin.order.payload.OrderResponse;
+import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.order.OrderService;
 import jakarta.validation.Valid;
@@ -19,6 +21,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderController {
     private final OrderService orderService;
+
+    @GetMapping("/{id}")
+    public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
+        OrderResponse response = orderService.findById(id);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("thông tin của đơn hàng")
+                .data(response)
+                .build();
+    }
+//    @GetMapping("/{id}")
+//    public ResponseData<CategoryResponse> getCategoryById(@PathVariable Long id) {
+//        CategoryResponse categoryResponse = categoryService.findById(id);
+//        return ResponseData.<CategoryResponse>builder()
+//                .status(HttpStatus.OK.value())
+//                .message("Lấy thông tin danh mục thành công")
+//                .data(categoryResponse)
+//                .build();
+//    }
+
 
     @GetMapping("/pos")
     public ResponseData<List<OrderResponse>> getAllPosOrders() {

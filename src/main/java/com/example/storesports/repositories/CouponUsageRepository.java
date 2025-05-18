@@ -13,7 +13,7 @@ public interface CouponUsageRepository extends JpaRepository<CouponUsage,Long> {
 
         List<CouponUsage> findByUserId(Long id);
 
-       // Optional<CouponUsage> findByUserId(Long id);
+        //Optional<CouponUsage> findByUserId(Long id);
 
 
 }

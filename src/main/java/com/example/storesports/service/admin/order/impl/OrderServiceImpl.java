@@ -63,6 +63,16 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    public OrderResponse findById(Long id){
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ko tìm thây"));
+        return mapToOrderResponse(order);
+    }
+
+
+
+    @Override
+    @Transactional
     public OrderResponse createInvoice(CreateInvoiceRequest request) {
         Order order = new Order();
         order.setOrderCode(generateOrderCode());
@@ -397,23 +407,23 @@ public class OrderServiceImpl implements OrderService {
         response.setPayment(paymentResponse);
     }
 
-//    if (order.getUser() != null) {
-//        List<CouponUsage> couponUsages = couponUsageRepository.findByUserId(order.getUser().getId());
-//        response.setCouponUsages(couponUsages.stream()
-//                .map(couponUsage -> new OrderResponse.CouponResponse(
-//                        couponUsage.getId(),
-//                        couponUsage.getCoupon().getCode(),
-//                        couponUsage.getCoupon().getDiscountAmount(),
-//                        couponUsage.getUsedDate(),
-//                        couponUsage.getCreatedBy(),
-//                        couponUsage.getCreatedDate(),
-//                        couponUsage.getLastModifiedBy(),
-//                        couponUsage.getLastModifiedDate()
-//                ))
-//                .toList());
-//    } else {
-//        response.setCouponUsages(new ArrayList<>());
-//    }
+    if (order.getUser() != null) {
+        List<CouponUsage> couponUsages = couponUsageRepository.findByUserId(order.getUser().getId());
+        response.setCouponUsages(couponUsages.stream()
+                .map(couponUsage -> new OrderResponse.CouponResponse(
+                        couponUsage.getId(),
+                        couponUsage.getCoupon().getCode(),
+                        couponUsage.getCoupon().getDiscountAmount(),
+                        couponUsage.getUsedDate(),
+                        couponUsage.getCreatedBy(),
+                        couponUsage.getCreatedDate(),
+                        couponUsage.getLastModifiedBy(),
+                        couponUsage.getLastModifiedDate()
+                ))
+                .toList());
+    } else {
+        response.setCouponUsages(new ArrayList<>());
+    }
 
     // Map address (nếu không phải đơn hàng tại quầy)
     if (order.getIsPos() != null && !order.getIsPos()
