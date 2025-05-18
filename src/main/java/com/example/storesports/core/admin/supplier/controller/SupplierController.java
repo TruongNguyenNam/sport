@@ -1,21 +1,21 @@
 package com.example.storesports.core.admin.supplier.controller;
 
-import com.example.storesports.core.admin.category.payload.CategoryRequest;
-import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
-import com.example.storesports.entity.Supplier;
-import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.supplier.SupplierService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/supplier")
@@ -33,13 +33,11 @@ public class SupplierController {
                 .data(response)
                 .build();
     }
-
-    @GetMapping
-    public ResponseData<List<SupplierResponse>> getAllSupplier(){
+    @GetMapping("/getAll")
+    public ResponseData<List<SupplierResponse>> getAllSupplier() {
         List<SupplierResponse> categories = supplierService.findAllSupplier();
         return ResponseData.<List<SupplierResponse>>builder()
                 .status(HttpStatus.OK.value())
-                .message("lấy danh sách nhà cung cấp thành công")
                 .data(categories)
                 .build();
     }
@@ -63,8 +61,7 @@ public class SupplierController {
                 .data(updatedSupplier)
                 .build();
     }
-
-    @PostMapping
+    @PutMapping("/add")
     public ResponseData<SupplierResponse> saveSupplier(@RequestBody SupplierRequest supplierRequest) {
         SupplierResponse response = supplierService.saveSupplier(supplierRequest);
         return ResponseData.<SupplierResponse>builder()
@@ -82,5 +79,5 @@ public class SupplierController {
                 .message("Xóa nhà cung cấp thành công")
                 .build();
     }
-    
+
 }
