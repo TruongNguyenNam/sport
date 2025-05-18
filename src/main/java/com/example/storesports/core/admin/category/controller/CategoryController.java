@@ -21,7 +21,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
 
-    @GetMapping
+    @GetMapping("/getAll")
     public ResponseData<List<CategoryResponse>> getAllCategories(){
         List<CategoryResponse> categories = categoryService.findAllCategories();
         return ResponseData.<List<CategoryResponse>>builder()
@@ -31,7 +31,8 @@ public class CategoryController {
                 .build();
     }
 
-    @PostMapping
+
+    @PostMapping("/add")
     public ResponseData<CategoryResponse> addCategory(@RequestBody CategoryRequest categoryRequest) {
         CategoryResponse savedCategory = categoryService.saveCategory(categoryRequest);
         return ResponseData.<CategoryResponse>builder()
@@ -42,7 +43,7 @@ public class CategoryController {
     }
 
 
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseData<CategoryResponse> updateCategory(
             @RequestBody CategoryRequest categoryRequest,
             @PathVariable Long id) {
@@ -77,7 +78,7 @@ public class CategoryController {
                 .build();
     }
 
-    @DeleteMapping
+    @DeleteMapping("/delete")
     public ResponseData<Void> deleteCategory(@RequestParam List<Long> ids) {
         categoryService.deleteCategory(ids);
         return ResponseData.<Void>builder()
