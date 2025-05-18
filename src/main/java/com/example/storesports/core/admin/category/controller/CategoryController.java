@@ -21,7 +21,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
 
-    @GetMapping("/getAll")
+    @GetMapping()
     public ResponseData<List<CategoryResponse>> getAllCategories(){
         List<CategoryResponse> categories = categoryService.findAllCategories();
         return ResponseData.<List<CategoryResponse>>builder()
