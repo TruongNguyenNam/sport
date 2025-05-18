@@ -1,11 +1,15 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.DiscountStatus;
 import jakarta.persistence.*;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Discount")
@@ -22,14 +26,19 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
-        private java.util.Date startDate;
+        Double priceThreshold;
 
-        private java.util.Date endDate;
+        private LocalDateTime startDate;
+
+        private LocalDateTime endDate;
+
+        @Enumerated(EnumType.STRING)
+        private DiscountStatus status;
+
 
 //        @ManyToOne
 //        @JoinColumn(name = "sport_type_id")
 //        private SportType sportType;
         // Getters and Setters
-
 
 }
