@@ -2,6 +2,7 @@ package com.example.storesports.infrastructure.exceptions;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -73,6 +74,14 @@ public class GlobalException {
         System.out.println(exception.getMessage());
         return new ResponseEntity<>(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 
+    }
+
+    // checktrung
+    @ExceptionHandler(DuplicateEntityException.class)
+    public ResponseEntity<Map<String,String>> handleDuplicateEntityException(DuplicateEntityException ex) {
+      Map<String, String> errors = new HashMap<>();
+      errors.put("error", ex.getMessage());
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
 }

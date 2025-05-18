@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 public enum DiscountStatus {
-    ACTIVE,
-    INACTIVE
+    PENDING,    // Chờ duyệt hoặc kích hoạt
+    ACTIVE,     // Đang áp dụng
+    INACTIVE,   // Tạm ngưng
+    EXPIRED,    // Hết hạn
+    DELETED     // Đã xóa
 }

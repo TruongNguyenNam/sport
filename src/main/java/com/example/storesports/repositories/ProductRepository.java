@@ -28,6 +28,8 @@ public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpeci
     @Query("select p from Product p where p.parentProductId is not null and p.deleted = false order by p.id desc")
     List<Product> findAllChildProduct();
 
+    @Query("SELECT p FROM Product p JOIN ProductDiscountMapping pdm ON p.id = pdm.product.id WHERE pdm.discount.id = :discountId")
+    List<Product> findProductsByDiscountId(@Param("discountId") Long discountId);
 
 
 

@@ -1,5 +1,6 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.DiscountStatus;
 import jakarta.persistence.*;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Date;
+
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Discount")
@@ -24,9 +28,14 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
-        private Date startDate;
+        private Double priceThreshold;
 
-        private Date endDate;
+        private LocalDateTime startDate;
+
+        private LocalDateTime endDate;
+
+        @Enumerated(EnumType.STRING)
+        private DiscountStatus status;
 
 
 
