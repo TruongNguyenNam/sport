@@ -75,8 +75,6 @@ public class ProductAttributeServiceImpl implements AttributeService {
     }
 
 
-
-
     @Override
     public void deleteAttribute(List<Long> id) {
 
@@ -91,7 +89,6 @@ public class ProductAttributeServiceImpl implements AttributeService {
     @Override
     public ProductAttributeResponse save(ProductAttributeRequest productAttributeRequest) {
        ProductAttribute productAttribute = new ProductAttribute();
-<<<<<<< HEAD
        if(productAttributeRepository.countProductAttribute(productAttributeRequest.getName())>0){
         throw new DuplicateEntityException("name tồn tại");
        }else{
@@ -99,24 +96,19 @@ public class ProductAttributeServiceImpl implements AttributeService {
            productAttribute.setDescription(productAttributeRequest.getDescription());
 
        }
-=======
        productAttribute.setName(productAttributeRequest.getName());
        productAttribute.setDescription(productAttributeRequest.getDescription());
->>>>>>> origin/hiepppp
        ProductAttribute attributeSaved = productAttributeRepository.save(productAttribute);
        return modelMapper.map(attributeSaved,ProductAttributeResponse.class);
     }
 
     @Override
     public ProductAttributeResponse update(Long id, ProductAttributeRequest productAttributeRequest) {
-<<<<<<< HEAD
        if(productAttributeRepository.countProductAttributeByNameAndIdNot(productAttributeRequest.getName(), id)>0){
            System.out.println(productAttributeRepository.countProductAttributeByNameAndIdNot(productAttributeRequest.getName(), id));
            throw new DuplicateEntityException("name đã tồn tại");
 
        }
-=======
->>>>>>> origin/hiepppp
         ProductAttribute productAttribute =productAttributeRepository.findById(id).orElseThrow(()->new RuntimeException("ko có id productAtribute này"));
         productAttribute.setName(productAttributeRequest.getName());
         productAttribute.setDescription(productAttributeRequest.getDescription());
