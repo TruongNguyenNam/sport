@@ -12,6 +12,7 @@ public class StoreSportsApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(StoreSportsApplication.class, args);
+        System.out.println("Đang chạy...");
     }
 
 }
