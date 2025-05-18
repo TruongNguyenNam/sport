@@ -6,7 +6,10 @@ import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.ProductAttribute;
+<<<<<<< HEAD
 import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
+=======
+>>>>>>> origin/hiepppp
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
@@ -47,6 +50,7 @@ public class ProductAttributeController {
         }
 
 
+<<<<<<< HEAD
     @PostMapping("/save")
     public ResponseData<ProductAttributeResponse> save(@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
         try {
@@ -95,6 +99,23 @@ public class ProductAttributeController {
                     .data(null)
                     .build();
         }
+=======
+        @PostMapping("/save")
+        public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
+        ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().status(200)
+                .message("tạo thành công")
+                .data(productAttributeResponse)
+                .build();
+        }
+
+        @PutMapping("/update/{id}")
+        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
+        ProductAttributeResponse productAttributeResponse=attributeService.update(id, productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
+                .message("update thành công")
+                .status(200).build();
+>>>>>>> origin/hiepppp
     }
             @PostMapping("/{id}")
     public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {
