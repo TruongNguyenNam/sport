@@ -86,16 +86,10 @@ public class CategoryController {
                 .build();
     }
 
+//    Esc
+//:q!
+//    Enter
 
-
-    //    @GetMapping
-//    public ResponseEntity<Map<String, Object>> getAllCategories(
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "2") int size) {
-//        Page<CategoryResponse> categoryResponses = categoryService.getAllCategories(page, size);
-//        Map<String, Object> response = PageUtils.createPageResponse(categoryResponses);
-//        return ResponseEntity.ok(response);
-//    }
 
 
 }

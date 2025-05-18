@@ -10,5 +10,6 @@ import java.util.List;
 @Service
 public interface DiscountService {
 public DiscountResponse create(List<Long> productIds, List<Long> categoryIds,DiscountRequest discountRequest);
+                                // 123                 /123               //
 List<DiscountResponse>getAll();
 }
