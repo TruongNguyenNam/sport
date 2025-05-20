@@ -29,6 +29,8 @@ public class Address extends Auditable {
     private String district; // Quận/Huyện (Huyện Vĩnh Tuy)
     private String province; // Tỉnh (Quận Long Biên)
 
+    private Boolean deleted;
+
     @OneToMany(mappedBy = "address",cascade = CascadeType.REMOVE)
     private List<UserAddressMapping> userAddressMappings;
 
