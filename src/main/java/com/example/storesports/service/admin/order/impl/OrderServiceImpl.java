@@ -197,27 +197,29 @@ public class OrderServiceImpl implements OrderService {
         if (!order.getIsPos()) {
             // Process shipments
             OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
-            Shipment shipment = new Shipment();
+            Shipment shipment = shipmentRepository.findById(shipmentReq.getShipmentId()).orElseThrow(() ->
+                    new IllegalArgumentException("chưa tìm thấy shipmentIds"));
             shipment.setOrder(order);
-            shipment.setCarrier(shipmentReq.getCarrier());
+//            shipment.setCarrier(shipmentReq.getCarrier());
             shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
             shipment.setShipmentStatus(ShipmentStatus.PENDING);
             shipment.setTrackingNumber(generateTrackingNumber());
-            shipmentRepository.save(shipment);
+            Shipment shipment1 =  shipmentRepository.save(shipment);
 
             // Link shipment with order items
             for (OrderItem item : savedOrderItems) {
                 ShipmentItem shipmentItem = new ShipmentItem();
-                shipmentItem.setShipment(shipment);
+                shipmentItem.setShipment(shipment1);
                 shipmentItem.setOrderItem(item);
                 shipmentItemRepository.save(shipmentItem);
             }
         }
-        orderRepository.save(order);
-      //  orderItemRepository.saveAll(orderItemList);
 
-        // 11. Return response
+        order.setDeleted(true); // đã thanh toán thành 0
+        orderRepository.save(order);
+
         return mapToOrderResponse(order);
+
     }
 
 

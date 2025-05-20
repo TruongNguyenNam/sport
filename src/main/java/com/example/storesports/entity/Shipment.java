@@ -32,7 +32,7 @@ public class Shipment extends Auditable{
         @Enumerated(EnumType.STRING)
         private ShipmentStatus shipmentStatus;
 
-        private String carrier;
+        private String carrier; // tên đơn vị ship
 
         private LocalDateTime estimatedDeliveryDate;
 

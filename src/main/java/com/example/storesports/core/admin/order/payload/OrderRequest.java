@@ -35,6 +35,8 @@ public class OrderRequest {
    // @NotEmpty(message = "Shipments are required for shipping orders if isPos is false")
     private List<ShipmentRequest> shipments; // List of shipments for N-N relationship
 
+
+
     @Data
     @NoArgsConstructor
     public static class OrderItemRequest {
@@ -53,10 +55,9 @@ public class OrderRequest {
     @Data
     @NoArgsConstructor
     public static class ShipmentRequest {
+        private Long shipmentId;
         private String carrier;
-
         private LocalDateTime estimatedDeliveryDate;
-
         private List<Long> orderItemIds;
     }
 

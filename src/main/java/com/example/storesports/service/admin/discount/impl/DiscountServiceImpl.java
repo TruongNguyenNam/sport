@@ -14,6 +14,7 @@ import com.example.storesports.repositories.ProductRepository;
 import com.example.storesports.service.admin.discount.DiscountService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DiscountServiceImpl implements DiscountService {
     private final DiscountRepository discountRepository;
     private final ProductDiscountMappingRepository productDiscountMappingRepository;
@@ -52,13 +54,12 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setStatus(DiscountStatus.ACTIVE);
         }
         discountRepository.save(discount);
-
+        log.info("discount" + discount);
         Set<Product> applicableProducts = new HashSet<>();
-
-
 
         if (Boolean.TRUE.equals(discountRequest.getApplyToAll())) {
             applicableProducts.addAll(productRepository.findAll());
+            log.info("test"+ applicableProducts.addAll(productRepository.findAll()));
 
         }
 
@@ -82,7 +83,6 @@ public class DiscountServiceImpl implements DiscountService {
 
         if (discount.getStatus() == DiscountStatus.ACTIVE) {
             for (Product p : applicableProducts) {
-
                 if (p.getParentProductId() != null && p.getPrice() >= priceThreshold) {
                     if (p.getOriginalPrice() == null) {
                         p.setOriginalPrice(p.getPrice());
@@ -182,8 +182,8 @@ public class DiscountServiceImpl implements DiscountService {
         discountResponse.setId(discount.getId());
         discountResponse.setName(discount.getName());
         discountResponse.setDiscountPercentage(discount.getDiscountPercentage()+" %");
-//        discountResponse.setStartDate(discount.getStartDate());
-//        discountResponse.setEndDate(discount.getEndDate());
+        discountResponse.setStartDate(discount.getStartDate());
+       discountResponse.setEndDate(discount.getEndDate());
         discountResponse.setCountProduct(countProduct);
 
         LocalDateTime now = LocalDateTime.now();
