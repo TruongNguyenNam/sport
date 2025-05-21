@@ -39,6 +39,8 @@ public class Discount extends Auditable {
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
 
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
+
 
 
 

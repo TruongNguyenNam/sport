@@ -21,10 +21,16 @@ public class Coupon extends Auditable{
         private Long id;
 
         private String code;
-        private Double discountAmount;
-        private LocalDateTime expirationDate;
 
-        private Boolean deleted;
+        private Double discountAmount;
+
+        private Boolean status; // trạng thái
+
+        private Integer quantity; //số lượng > 0
+
+        private LocalDateTime expirationDate;
+        private LocalDateTime startDate;
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
 
         @OneToMany(mappedBy = "coupon", cascade = CascadeType.REMOVE)
         private List<CouponUsage> couponUsages;
