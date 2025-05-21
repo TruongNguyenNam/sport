@@ -9,4 +9,6 @@ public class ProductTagResponse {
     private Long id;
 
     private String name;
+
+
 }
