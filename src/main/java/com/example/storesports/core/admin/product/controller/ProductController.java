@@ -43,6 +43,52 @@ public class ProductController {
     private final ProductService productService;
     private final ObjectMapper objectMapper;
 
+
+    @PostMapping(value = "/{parentProductId}/variants", consumes = {"multipart/form-data"})
+    public ResponseData<Void> addVariantsToProduct(
+            @PathVariable Long parentProductId,
+            @RequestParam("request") String requestJson,
+            @RequestParam(value = "variantImages", required = false) MultipartFile[] variantImages) {
+        log.info("Received JSON data: {}", requestJson);
+        log.info("Received {} variant images", (variantImages != null ? variantImages.length : 0));
+
+        try {
+            AddProductChild request = objectMapper.readValue(
+                    requestJson,
+                    AddProductChild.class
+            );
+            request.setParentProductId(parentProductId);
+
+            if (variantImages != null && variantImages.length > 0) {
+                int index = 0;
+                for (AddProductChild.ProductVariant variant : request.getVariants()) {
+                    if (index < variantImages.length) {
+                        variant.setImages(new ArrayList<>(List.of(variantImages[index])));
+                        index++;
+                    } else {
+                        variant.setImages(new ArrayList<>());
+                    }
+                }
+            } else {
+                for (AddProductChild.ProductVariant variant : request.getVariants()) {
+                    variant.setImages(new ArrayList<>());
+                }
+            }
+
+            productService.addVariantsToExistingProduct(request);
+            return ResponseData.<Void>builder()
+                    .status(HttpStatus.CREATED.value())
+                    .message("Thêm biến thể sản phẩm thành công")
+                    .build();
+        } catch (JsonProcessingException e) {
+            log.error("Error parsing AddProductChild request", e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu JSON không hợp lệ");
+        } catch (Exception e) {
+            log.error("Unexpected error while adding variants", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
+        }
+    }
+
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseData<Void> addProduct(
             @RequestParam("products") String productsJson,
