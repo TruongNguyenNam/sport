@@ -8,10 +8,7 @@ import com.example.storesports.core.admin.orderItem.payload.OrderItemResponse;
 import com.example.storesports.core.admin.payment.payload.PaymentResponse;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.entity.*;
-import com.example.storesports.infrastructure.constant.OrderStatus;
-import com.example.storesports.infrastructure.constant.PaymentStatus;
-import com.example.storesports.infrastructure.constant.Role;
-import com.example.storesports.infrastructure.constant.ShipmentStatus;
+import com.example.storesports.infrastructure.constant.*;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.admin.order.OrderService;
 import jakarta.transaction.Transactional;
@@ -159,25 +156,47 @@ public class OrderServiceImpl implements OrderService {
         // Gán danh sách và tổng tiền của đơn hàng đó
         order.setOrderTotal(totalAmount);
 
+
         // 7. Apply coupon if provided
-        if (request.getCouponId() != null) {
-            Coupon coupon = couponRepository.findById(request.getCouponId())
-                    .orElseThrow(() -> new IllegalArgumentException("Mã giảm giá không hợp lệ hoặc đã hết hạn"));
-            order.setOrderTotal(order.getOrderTotal() - coupon.getDiscountAmount());
-                                // tổng số tiền đơn hàng đó sau khi trừ đi phiếu giảm giá còn lại
-                                // đơn hàng lúc đầu 300 thì sẽ còn lại là 100
-            orderRepository.save(order);
-            if (order.getUser() != null) {
-                CouponUsage usage = new CouponUsage();
-                usage.setCoupon(coupon);
-                usage.setUser(order.getUser());
+        if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
+            List<CouponUsage> couponUsages = couponUsageRepository.findAllById(request.getCouponUsageIds());
+            if (couponUsages.size() != request.getCouponUsageIds().size()) {
+                throw new IllegalArgumentException("Một hoặc nhiều CouponUsage không tồn tại");
+            }
+
+            double totalDiscount = 0.0;
+            for (CouponUsage usage : couponUsages) {
+                // Kiểm tra xem CouponUsage có thuộc về khách hàng không
+                if (user == null || !usage.getUser().getId().equals(user.getId())) {
+                    throw new IllegalArgumentException("CouponUsage không thuộc về khách hàng này");
+                }
+
+                Coupon coupon = usage.getCoupon();
+                // Kiểm tra tính hợp lệ của coupon
+                if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
+                        coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
+                        coupon.getDeleted()) {
+                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCode() + " không hợp lệ hoặc đã hết hạn");
+                }
+
+                // Áp dụng giảm giá
+                totalDiscount += coupon.getDiscountAmount();
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCode(), coupon.getDiscountAmount());
+                usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
+
+            // Cập nhật tổng tiền sau khi áp dụng tất cả mã giảm giá
+            order.setOrderTotal(order.getOrderTotal() - totalDiscount);
+            if (order.getOrderTotal() < 0) {
+                order.setOrderTotal(0.0); // Đảm bảo tổng tiền không âm
+            }
+            orderRepository.save(order);
         }
 
-        log.info("tổng số tiền khi áp coupun vào là bao nhieu" + order.getOrderTotal());
+        log.info("Tổng số tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
 
-        // 8. Handle payment
+
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
         Payment payment = paymentOptional.orElseGet(() -> {
             Payment newPayment = new Payment();
@@ -187,11 +206,14 @@ public class OrderServiceImpl implements OrderService {
         PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
                 .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
         payment.setPaymentMethod(paymentMethod);
-        payment.setAmount(request.getPayment().getAmount());  // tiền khách đưa 1500
-        payment.setChangeAmount(payment.getAmount() - order.getOrderTotal() ); // số tiền còn lại : 1400
-        boolean isCod = paymentMethod.getName().equalsIgnoreCase("COD");
+        double paidAmount = request.getPayment().getAmount();
+        log.info("Số tiền khách đưa: {}", paidAmount);
+        payment.setAmount(paidAmount);
+        payment.setChangeAmount(paidAmount - order.getOrderTotal()); // Tính tiền thừa
+        log.info("Tổng tiền cần trả: {}, Tiền thừa: {}", order.getOrderTotal(), payment.getChangeAmount()); // số tiền còn lại : 1400
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
+        order.setOrderStatus(OrderStatus.COMPLETED);
 
         // 9. Lựa chọn đơn vị giao hàng
         if (!order.getIsPos()) {
@@ -213,6 +235,8 @@ public class OrderServiceImpl implements OrderService {
                 shipmentItem.setOrderItem(item);
                 shipmentItemRepository.save(shipmentItem);
             }
+            order.setOrderStatus(OrderStatus.SHIPPED);
+
         }
 
         order.setDeleted(true); // đã thanh toán thành 0
@@ -295,22 +319,22 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderTotal(totalAmount);
 
         // 7. Apply coupon if provided
-        if (request.getCouponId() != null) {
-            Coupon coupon = couponRepository.findById(request.getCouponId())
-                    .orElseThrow(() -> new IllegalArgumentException("Mã giảm giá không hợp lệ hoặc đã hết hạn"));
-            order.setOrderTotal(order.getOrderTotal() - coupon.getDiscountAmount());
-            // tổng số tiền đơn hàng đó sau khi trừ đi phiếu giảm giá còn lại
-            // đơn hàng lúc đầu 300 thì sẽ còn lại là 100
-            orderRepository.save(order);
-            if (order.getUser() != null) {
-                CouponUsage usage = new CouponUsage();
-                usage.setCoupon(coupon);
-                usage.setUser(order.getUser());
-                couponUsageRepository.save(usage);
-            }
-        }
-
-        log.info("tổng số tiền khi áp coupun vào là bao nhieu" + order.getOrderTotal());
+//        if (request.getCouponId() != null) {
+//            Coupon coupon = couponRepository.findById(request.getCouponId())
+//                    .orElseThrow(() -> new IllegalArgumentException("Mã giảm giá không hợp lệ hoặc đã hết hạn"));
+//            order.setOrderTotal(order.getOrderTotal() - coupon.getDiscountAmount());
+//            // tổng số tiền đơn hàng đó sau khi trừ đi phiếu giảm giá còn lại
+//            // đơn hàng lúc đầu 300 thì sẽ còn lại là 100
+//            orderRepository.save(order);
+//            if (order.getUser() != null) {
+//                CouponUsage usage = new CouponUsage();
+//                usage.setCoupon(coupon);
+//                usage.setUser(order.getUser());
+//                couponUsageRepository.save(usage);
+//            }
+//        }
+//
+//        log.info("tổng số tiền khi áp coupun vào là bao nhieu" + order.getOrderTotal());
 
         // 8. Handle payment
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class CategoryRequest {
+    //private Long id;
 
     private String name;
 
