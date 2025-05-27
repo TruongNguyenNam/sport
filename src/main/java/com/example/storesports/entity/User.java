@@ -28,6 +28,8 @@ public class User extends Auditable {
 
     private Boolean isActive = true;
 
+    private Boolean deleted;
+
     @Enumerated(EnumType.STRING)
     private Gender gender;
 

@@ -34,6 +34,7 @@ public class UserSupportTicket extends Auditable {
         @OneToMany(mappedBy = "ticket",cascade = CascadeType.REMOVE)
         private List<UserSupportResponse> responses;
 
+        private Boolean deleted;
         // Getters and Setters
 
 

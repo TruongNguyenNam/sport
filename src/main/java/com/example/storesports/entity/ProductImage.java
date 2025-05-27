@@ -23,4 +23,5 @@ public class ProductImage extends Auditable {
 
     private String imageUrl;
 
+    private Boolean deleted;
 }
