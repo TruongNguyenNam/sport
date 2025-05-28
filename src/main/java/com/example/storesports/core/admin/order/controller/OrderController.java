@@ -22,6 +22,36 @@ import java.util.List;
 public class OrderController {
     private final OrderService orderService;
 
+    // Thống Ke doanh thu theo tháng với trạng thái đã hoàn thành và đã thanh toán
+    @GetMapping("/monthly-revenue")
+    public ResponseData<List<Object[]>> getMonthlyRevenue() {
+        List<Object[]> revenue = orderService.getMonthlyRevenue();
+        return ResponseData.<List<Object[]>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê doanh thu theo tháng")
+                .data(revenue)
+                .build();
+    }
+    @GetMapping("/day-revenue")
+    public ResponseData<List<Object[]>> getDaylyRevenue() {
+        List<Object[]> revenue = orderService.getDaylyRevenue();
+        return ResponseData.<List<Object[]>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê doanh thu theo ngày")
+                .data(revenue)
+                .build();
+    }
+    @GetMapping("/year-revenue")
+    public ResponseData<List<Object[]>> getYearlyRevenue() {
+        List<Object[]> revenue = orderService.getYearlyRevenue();
+        return ResponseData.<List<Object[]>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê doanh thu theo năm")
+                .data(revenue)
+                .build();
+    }
+
+
     @GetMapping("/{id}")
     public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
         OrderResponse response = orderService.findById(id);
@@ -100,6 +130,8 @@ public class OrderController {
         OrderResponse response = orderService.addOrderDetails(orderCode, request);
         return ResponseEntity.ok(response);
     }
+
+
 
 
 

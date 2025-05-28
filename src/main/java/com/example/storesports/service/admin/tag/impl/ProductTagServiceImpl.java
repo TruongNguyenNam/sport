@@ -8,7 +8,6 @@ import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.ProductTagRepository;
 import com.example.storesports.service.admin.tag.ProductTagService;
-import jakarta.persistence.Table;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -54,13 +53,30 @@ public class ProductTagServiceImpl implements ProductTagService {
         }else{
             productTag = new ProductTag();
         }
-
         productTag.setName(productTagRequest.getName());
-
         ProductTag tagSaved = productTagRepository.save(productTag);
-
         return modelMapper.map(tagSaved,ProductTagResponse.class);
     }
+
+    @Override
+    public ProductTagResponse updateTag(ProductTagRequest productTagRequest, Long id) {
+        ProductTag productTag =  productTagRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tag with id " + id + " not found"));
+        productTag.setName(productTagRequest.getName());
+        productTag.setDescription(productTagRequest.getDescription());
+        ProductTag  updatedTag = productTagRepository.save(productTag);
+        return modelMapper.map(updatedTag,ProductTagResponse.class);
+    }
+
+    @Override
+    public ProductTagResponse saveTag(ProductTagRequest productTagRequest) {
+        ProductTag productTag = new ProductTag();
+        productTag.setName(productTagRequest.getName());
+        productTag.setDescription(productTagRequest.getDescription());
+        ProductTag savedTag = productTagRepository.save(productTag);
+        return modelMapper.map(savedTag,ProductTagResponse.class);
+    }
+
 
     @Override
     public List<ProductTagResponse> findAllTags() {

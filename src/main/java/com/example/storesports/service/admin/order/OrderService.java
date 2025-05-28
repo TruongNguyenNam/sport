@@ -14,4 +14,10 @@ public interface OrderService {
 
      List<OrderResponse> getAll();
 
+     //Doanh Thu
+    List<Object[]> getMonthlyRevenue();
+    List<Object[]> getDaylyRevenue();
+    List<Object[]> getYearlyRevenue();
+
+
 }

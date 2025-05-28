@@ -1,5 +1,6 @@
 package com.example.storesports.core.admin.tag.controller;
 
+import com.example.storesports.core.admin.category.payload.CategoryRequest;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.core.admin.tag.payload.ProductTagRequest;
@@ -46,14 +47,34 @@ public class ProductTagController {
                 .data(response)
                 .build();
     }
-
     // Thêm mới hoặc cập nhật ProductTag
-    @PostMapping
-    public ResponseEntity<ProductTagResponse> saveOrUpdateTag(
+//    @PostMapping
+//    public ResponseEntity<ProductTagResponse> saveOrUpdateTag(
+//            @RequestBody ProductTagRequest productTagRequest,
+//            @RequestParam(required = false) Long id) {
+//        ProductTagResponse response = productTagService.saveOrUpdateTag(productTagRequest, id);
+//        return ResponseEntity.ok(response);
+//    }
+    @PostMapping("/add")
+    public ResponseData<ProductTagResponse> addProductTag(@RequestBody ProductTagRequest tagRequest) {
+        ProductTagResponse savedTag = productTagService.saveTag(tagRequest);
+        return ResponseData.<ProductTagResponse>builder()
+                .status(HttpStatus.CREATED.value())
+                .message("Thêm thẻ sản phẩm thành công")
+                .data(savedTag)
+                .build();
+    }
+    // Cập nhật ProductTag
+    @PutMapping("/update/{id}")
+    public ResponseData<ProductTagResponse> updateProductTag(
             @RequestBody ProductTagRequest productTagRequest,
-            @RequestParam(required = false) Long id) {
-        ProductTagResponse response = productTagService.saveOrUpdateTag(productTagRequest, id);
-        return ResponseEntity.ok(response);
+            @PathVariable Long id) {
+        ProductTagResponse updatedTag = productTagService.updateTag(productTagRequest, id);
+        return ResponseData.<ProductTagResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Cập nhật thẻ sản phẩm thành công")
+                .data(updatedTag)
+                .build();
     }
 
     // Xóa nhiều ProductTag theo danh sách ID
@@ -62,8 +83,6 @@ public class ProductTagController {
         productTagService.deleteTag(ids);
         return ResponseEntity.noContent().build();
     }
-
-
 //    @GetMapping
 //    public ResponseEntity<Map<String, Object>> getAllTags(
 //            @RequestParam(defaultValue = "0") int page,

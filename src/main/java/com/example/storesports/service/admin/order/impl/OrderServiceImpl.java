@@ -60,6 +60,20 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentMethodRepository paymentMethodRepository;
 
     private final ShipmentItemRepository shipmentItemRepository;
+    //Doanh Thu
+    @Override
+    public List<Object[]> getMonthlyRevenue() {
+        return orderRepository.getMonthlyRevenue();
+    }
+    @Override
+    public List<Object[]> getDaylyRevenue() {
+        return orderRepository.getDailyRevenue();
+    }
+    @Override
+    public List<Object[]> getYearlyRevenue() {
+        return orderRepository.getYearlyRevenue();
+    }
+
 
     @Override
     @Transactional
@@ -68,8 +82,6 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("ko tìm thây"));
         return mapToOrderResponse(order);
     }
-
-
 
     @Override
     @Transactional

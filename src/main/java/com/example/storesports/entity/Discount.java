@@ -8,14 +8,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
-<<<<<<< HEAD
-=======
 
-import java.time.LocalDateTime;
-
->>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
 @Entity
 @Table(name = "Discount")
 @Getter
@@ -31,11 +27,6 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
-<<<<<<< HEAD
-        private Date startDate;
-
-        private Date endDate;
-=======
         private Double priceThreshold;
 
         private LocalDateTime startDate;
@@ -44,8 +35,6 @@ public class Discount extends Auditable {
 
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
->>>>>>> e7231ef37979ba6d569c27bd5ff42f00fcbd66c0
-
 
 
 }

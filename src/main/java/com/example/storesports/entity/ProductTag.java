@@ -19,6 +19,7 @@ public class ProductTag extends Auditable {
     private Long id;
 
     private String name;
+    private String description;
 
     @OneToMany(mappedBy = "tag",cascade = CascadeType.REMOVE)
     private List<ProductTagMapping> productTagMappings;
