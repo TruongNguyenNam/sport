@@ -35,7 +35,7 @@ public class Payment extends Auditable{
 
         private LocalDateTime paymentDate;
 
-
+        private Boolean deleted;
 
         @ManyToOne
         @JoinColumn(name = "payment_method_id", nullable = false)

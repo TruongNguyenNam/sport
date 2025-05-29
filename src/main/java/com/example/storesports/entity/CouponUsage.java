@@ -32,5 +32,7 @@ public class CouponUsage extends Auditable {
 
         private Date usedDate;
 
+        private Boolean deleted;
+
 
 }

@@ -1,5 +1,7 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.CouponStatus;
+import com.example.storesports.infrastructure.constant.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,11 +22,20 @@ public class Coupon extends Auditable{
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
-        private String code;
+        private String code; //UUID
+
         private Double discountAmount;
+
+        @Enumerated(EnumType.STRING)
+        private CouponStatus couponStatus;
+
+        private Integer quantity; //số lượng > 0
+
+        private LocalDateTime startDate;
+
         private LocalDateTime expirationDate;
 
-        private Boolean deleted;
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
 
         @OneToMany(mappedBy = "coupon", cascade = CascadeType.REMOVE)
         private List<CouponUsage> couponUsages;

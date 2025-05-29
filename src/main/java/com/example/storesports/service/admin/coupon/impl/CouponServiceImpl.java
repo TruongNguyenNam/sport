@@ -23,7 +23,7 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     public List<CouponResponse> getAll() {
-        List<Coupon> coupons = couponRepository.findAll();
+        List<Coupon> coupons = couponRepository.getAllCoupon();
         if(coupons.isEmpty()){
             throw new IllegalArgumentException("danh sách phiếu giam bị trống"+coupons);
         }

@@ -26,4 +26,6 @@ public class ShipmentItem extends Auditable {
         private OrderItem orderItem;
 
 
+        private Boolean deleted;
+
 }

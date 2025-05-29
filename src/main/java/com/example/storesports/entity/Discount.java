@@ -11,6 +11,7 @@ import lombok.Setter;
 import java.util.Date;
 
 
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -28,6 +29,7 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
+
         private Double priceThreshold;
 
         private LocalDateTime startDate;
@@ -36,6 +38,11 @@ public class Discount extends Auditable {
 
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
+
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
+
+
+
 
 
 

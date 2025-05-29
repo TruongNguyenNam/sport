@@ -72,12 +72,10 @@ public class OrderResponse {
     @AllArgsConstructor
     public static class ShipmentResponse {
         private Long id;
-//        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
         private Date shipmentDate;
         private String shipmentStatus;
         private String trackingNumber;
         private String carrier;
-//        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
         private Date estimatedDeliveryDate;
 
         public ShipmentResponse(Long id, Date shipmentDate, ShipmentStatus shipmentStatus, String trackingNumber, String carrier, LocalDateTime estimatedDeliveryDate) {

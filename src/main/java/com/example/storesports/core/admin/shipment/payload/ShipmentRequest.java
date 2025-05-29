@@ -12,9 +12,5 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 public class ShipmentRequest {
-    private String trackingNumber;
-    private Date shipmentDate;
-    private String shipmentStatus;
     private String carrier;
-    private LocalDateTime estimatedDeliveryDate;
 }

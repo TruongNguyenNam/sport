@@ -24,6 +24,7 @@ public class PaymentMethod extends Auditable{
     @OneToMany(mappedBy = "paymentMethod", cascade = CascadeType.REMOVE)
     private List<Payment> payments;
 
+    private Boolean deleted;
 //    @OneToMany(mappedBy = "paymentMethod",cascade = CascadeType.REMOVE)
 //    private List<PaymentMethodMapping> paymentMethodMappings;
 }

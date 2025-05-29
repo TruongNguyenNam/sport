@@ -22,6 +22,8 @@ public class Supplier extends Auditable{
         private String name;
         private String description;
 
+        private Boolean deleted;
+
         @OneToMany(mappedBy = "supplier",cascade = CascadeType.REMOVE)
         private List<Product> products;
 

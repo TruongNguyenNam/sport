@@ -19,6 +19,8 @@ public class Category extends Auditable {
         private String name;
         private String description;
 
+        private Boolean deleted;
+
         @OneToMany(mappedBy = "category",cascade = CascadeType.REMOVE)
         private List<Product> products;
 
