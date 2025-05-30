@@ -11,5 +11,4 @@ public class ProductTagRequest {
     private String description;
 
 
-
 }

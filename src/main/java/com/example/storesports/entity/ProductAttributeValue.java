@@ -28,6 +28,6 @@ public class ProductAttributeValue extends Auditable {
 
         private String value;
 
-
+        private Boolean deleted;
 
 }

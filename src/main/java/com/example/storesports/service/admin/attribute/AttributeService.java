@@ -16,7 +16,6 @@ public interface AttributeService {
     List<ProductAttributeResponse> findAllProductAttribute();
     ProductAttributeResponse saveOrUpdateAttribute(ProductAttributeRequest productAttributeRequest, Long id);
 
-    //List<SupplierResponse> findByName(String name);
 
     void deleteAttribute(List<Long> id);
 

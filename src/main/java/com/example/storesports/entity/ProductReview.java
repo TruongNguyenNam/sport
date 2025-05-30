@@ -29,6 +29,6 @@ public class ProductReview extends Auditable {
         private Integer rating;
         private String reviewText;
 
-
+        private Boolean deleted;
 
 }

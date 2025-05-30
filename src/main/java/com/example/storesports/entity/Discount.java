@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 import java.util.Date;
 
 
+
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "Discount")
 @Getter
@@ -35,6 +38,11 @@ public class Discount extends Auditable {
 
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
+
+
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
+
+
 
 
 }

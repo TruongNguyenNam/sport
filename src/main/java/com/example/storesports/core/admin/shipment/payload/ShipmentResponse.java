@@ -14,7 +14,6 @@ import java.util.Date;
 public class ShipmentResponse {
     private Long id;
 
-
     private String trackingNumber;
     private Date shipmentDate;
 

@@ -25,4 +25,6 @@ public class ProductTagMapping extends Auditable {
     @JoinColumn(name = "tag_id")
     private ProductTag tag;
 
+    private Boolean deleted;
+
 }

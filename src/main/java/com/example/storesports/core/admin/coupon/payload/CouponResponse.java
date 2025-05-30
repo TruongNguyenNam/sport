@@ -8,6 +8,7 @@ import java.util.Date;
 public class CouponResponse {
     private Long id;
     private String code;
+    private String couponStatus;
     private Double discountAmount;
     private Date expirationDate;
 

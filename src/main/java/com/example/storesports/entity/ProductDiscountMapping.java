@@ -27,6 +27,6 @@ public class ProductDiscountMapping extends Auditable {
         @JoinColumn(name = "discount_id")
         private Discount discount;
 
-
+        private Boolean deleted;
 
 }
