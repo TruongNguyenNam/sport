@@ -32,9 +32,9 @@ public class Discount extends Auditable {
         private Double discountPercentage;
 
 
-        private Date startDate;
+        private LocalDateTime startDate;
 
-        private Date endDate;
+        private LocalDateTime endDate;
 
         private Double priceThreshold;
 
