@@ -89,6 +89,8 @@ public class ProductAttributeServiceImpl implements AttributeService {
     @Override
     public ProductAttributeResponse save(ProductAttributeRequest productAttributeRequest) {
        ProductAttribute productAttribute = new ProductAttribute();
+       productAttribute.setName(productAttributeRequest.getName());
+       productAttribute.setDescription(productAttributeRequest.getDescription());
        if(productAttributeRepository.countProductAttribute(productAttributeRequest.getName())>0){
         throw new DuplicateEntityException("name tồn tại");
        }else{

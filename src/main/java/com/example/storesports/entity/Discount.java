@@ -12,7 +12,9 @@ import java.util.Date;
 
 
 
+
 import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "Discount")
@@ -30,14 +32,16 @@ public class Discount extends Auditable {
         private Double discountPercentage;
 
 
+        private Date startDate;
+
+        private Date endDate;
+
         private Double priceThreshold;
 
-        private LocalDateTime startDate;
-
-        private LocalDateTime endDate;
 
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
+
 
         private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
 
