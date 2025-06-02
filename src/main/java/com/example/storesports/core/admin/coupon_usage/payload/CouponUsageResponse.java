@@ -15,7 +15,7 @@ public class CouponUsageResponse {
 
     private String userRole;
 
-    private String couponCode; //UUID
+    private String couponCode;
 
     private Double couponDiscountAmount;
 
