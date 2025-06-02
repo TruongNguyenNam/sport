@@ -59,6 +59,8 @@ public class ProductController {
             );
             request.setParentProductId(parentProductId);
 
+            productService.validateAttributesAndValues(parentProductId, request.getProductAttributeValues());
+
             if (variantImages != null && variantImages.length > 0) {
                 int index = 0;
                 for (AddProductChild.ProductVariant variant : request.getVariants()) {
