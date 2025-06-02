@@ -30,9 +30,10 @@ public class CouponUsage extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
+        private Boolean used;// Đã sử dụng hay chưa
+
         private Date usedDate;
 
         private Boolean deleted;
-
 
 }

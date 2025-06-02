@@ -8,15 +8,15 @@ import java.util.List;
 
 public interface CouponService {
 
-    List<CouponResponse> findAllCoupon();
+    List<CouponResponse> getAll();
+
+    List<CouponResponse> getAllActiveCoupons();
+
+    List<CouponResponse> findByCodeCoupon(String codeCoupon);
 
     CouponResponse saveCoupon(CouponRequest couponRequest);
 
     CouponResponse updateCoupon(CouponRequest couponRequest, Long id);
-
-    CouponResponse softDeleteCoupon(Long id);
-
-    List<CouponResponse> findByCriteria(String code, Double discountAmount);
 
     CouponResponse findById(Long id);
 
