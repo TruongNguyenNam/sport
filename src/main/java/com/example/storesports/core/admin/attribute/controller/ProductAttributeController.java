@@ -4,6 +4,12 @@ import com.example.storesports.core.admin.attribute.payload.ProductAttributeRequ
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
+import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
+import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
+import com.example.storesports.entity.ProductAttribute;
+
+import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
+import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
 import jakarta.validation.*;
@@ -42,97 +48,23 @@ public class ProductAttributeController {
         }
 
 
-    @PostMapping("/save")
-    public ResponseData<ProductAttributeResponse> save(@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
-        try {
-            ProductAttributeResponse productAttributeResponse = attributeService.save(productAttributeRequest);
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(200)
-                    .message("Tạo thành công")
-                    .data(productAttributeResponse)
-                    .build();
-        } catch (DuplicateEntityException ex) {
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(400)
-                    .message("Lỗi: " + ex.getMessage())
-                    .data(null)
-                    .build();
-        } catch (Exception ex) {
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(500)
-                    .message("Lỗi hệ thống: " + ex.getMessage())
-                    .data(null)
-                    .build();
-        }
-    }
 
-
-    @PutMapping("/update/{id}")
-        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id,@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
-
-        try {
-            ProductAttributeResponse productAttributeResponse = attributeService.update(id, productAttributeRequest);
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(200)
-                    .message("update thành công")
-                    .data(productAttributeResponse)
-                    .build();
-        } catch (DuplicateEntityException ex) {
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(400)
-                    .message("Lỗi: " + ex.getMessage())
-                    .data(null)
-                    .build();
-        } catch (Exception ex) {
-            return ResponseData.<ProductAttributeResponse>builder()
-                    .status(500)
-                    .message("Lỗi hệ thống: " + ex.getMessage())
-                    .data(null)
-                    .build();
-        }
-    }
-
-    @GetMapping("/search/name/{name}")
-    public ResponseData<List<ProductAttributeResponse>> searchName(@PathVariable("name") String name){
-
-        List<ProductAttributeResponse> attributeResponses = attributeService.searchName(name);
-        return ResponseData.<List<ProductAttributeResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Tìm kiếm thuộc tính thành công")
-                .data(attributeResponses)
+        @PostMapping("/save")
+        public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
+        ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().status(200)
+                .message("tạo thành công")
+                .data(productAttributeResponse)
                 .build();
-    }
+        }
 
+        @PutMapping("/update/{id}")
+        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
+            ProductAttributeResponse productAttributeResponse = attributeService.update(id, productAttributeRequest);
+            return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
+                    .message("update thành công")
+                    .status(200).build();
 
-//        @PostMapping("/save")
-//        public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
-//        ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
-//        return ResponseData.<ProductAttributeResponse>builder().status(200)
-//                .message("tạo thành công")
-//                .data(productAttributeResponse)
-//                .build();
-//        }
-//
-//        @PutMapping("/update/{id}")
-//        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
-//        ProductAttributeResponse productAttributeResponse=attributeService.update(id, productAttributeRequest);
-//        return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
-//                .message("update thành công")
-//                .status(200).build();
-//
-//    }
-//            @PostMapping("/{id}")
-//    public ResponseEntity<ProductAttributeResponse> saveOrUpdateAttribute(@RequestBody ProductAttributeRequest productAttributeRequest, @PathVariable Long id) {
-//        ProductAttributeResponse savedAttribute = attributeService.saveOrUpdateAttribute(productAttributeRequest, id);
-//        return ResponseEntity.ok(savedAttribute);
-//    }
-//
-//    @DeleteMapping
-//    public ResponseEntity<Void> deleteAttribute(@RequestParam List<Long> id) {
-//        attributeService.deleteAttribute(id);
-//        return ResponseEntity.noContent().build();
-//    }
-
-
+        }
 
 }

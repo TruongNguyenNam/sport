@@ -26,5 +26,5 @@ public class UserSupportResponse extends Auditable {
         private java.util.Date respondedAt;
 
 
-
+        private Boolean deleted;
 }

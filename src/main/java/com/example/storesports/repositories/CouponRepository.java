@@ -16,6 +16,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long>, JpaSpecif
 
     Optional<Coupon> findByCode(String code);
 
+
     @Query("SELECT c \n" +
             "FROM Coupon c \n" +
             "WHERE c.deleted = false \n" +
@@ -23,3 +24,4 @@ public interface CouponRepository extends JpaRepository<Coupon, Long>, JpaSpecif
     List<Coupon> getAllCoupon();
 
 }
+

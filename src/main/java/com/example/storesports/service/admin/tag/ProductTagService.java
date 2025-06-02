@@ -13,7 +13,10 @@ public interface ProductTagService {
 
     Page<ProductTagResponse> getAllTags(int page, int size);
 
-    ProductTagResponse saveOrUpdateTag(ProductTagRequest productTagRequest, Long id);
+
+    public ProductTagResponse updateTag(ProductTagRequest productTagRequest, Long id);
+
+    public ProductTagResponse saveTag(ProductTagRequest productTagRequest);
 
 //    List<SupplierResponse> findByName(String name);
 

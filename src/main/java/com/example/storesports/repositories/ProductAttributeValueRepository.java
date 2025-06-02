@@ -15,6 +15,9 @@ public interface ProductAttributeValueRepository extends JpaRepository<ProductAt
     @Query("from ProductAttributeValue a where a.product.id = :id")
     List<ProductAttributeValue> findByProductId(@Param("id") Long id);
 
+    @Query("from ProductAttributeValue a where a.product.parentProductId = :id")
+    List<ProductAttributeValue> findByProductParentProductId(@Param("id") Long parentId);
+
     @Modifying
     @Query("delete from ProductAttributeValue a where a.product.id = :id")
     void deleteByProductId(@Param("id") Long id);

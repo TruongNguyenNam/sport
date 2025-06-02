@@ -34,6 +34,8 @@ public class Shipment extends Auditable{
 
         private String carrier; // tên đơn vị ship
 
+        private Boolean deleted;
+
         private LocalDateTime estimatedDeliveryDate;
 
         @OneToMany(mappedBy = "shipment",cascade = CascadeType.REMOVE)

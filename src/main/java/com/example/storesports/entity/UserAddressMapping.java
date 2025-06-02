@@ -28,6 +28,8 @@ public class UserAddressMapping extends Auditable{
         @JoinColumn(name = "address_id")
         private Address address;
 
+
+        private Boolean deleted;
         // Getters and Setters
 
 }

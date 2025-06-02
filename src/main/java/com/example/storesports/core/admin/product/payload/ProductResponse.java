@@ -27,6 +27,7 @@ public class ProductResponse {
     @NoArgsConstructor
     public static class ProductAttributeValueResponse {
         private Long id;
+        private Long attributeId;
         private String attributeName;
         private Long productId;
         private String value;

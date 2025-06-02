@@ -31,5 +31,7 @@ public class Wishlist extends Auditable {
         private Date addedDate;
 
 
+        private Boolean deleted;
+
 
 }

@@ -143,7 +143,7 @@ public class DiscountServiceImpl implements DiscountService {
     @Transactional
     @Scheduled(cron = "0 */1 * * * ?")
     public void applyPendingDiscounts() {
-        System.out.println("chay pending");
+       // System.out.println("chay pending");
         LocalDateTime now = LocalDateTime.now();
         List<Discount> pendingDiscounts = discountRepository.findPendingDiscountsToActivate(now);
         System.out.println(pendingDiscounts.size());
@@ -155,7 +155,7 @@ public class DiscountServiceImpl implements DiscountService {
                 Double percent = discount.getDiscountPercentage();
 
 
-                System.out.println("đến đây r");
+           //     System.out.println("đến đây r");
                 List<Product> applicableProducts = productRepository.findProductsByDiscountId(discount.getId());
                 System.out.println(applicableProducts.size());
                 for (Product p : applicableProducts) {

@@ -30,6 +30,8 @@ public class OrderItem extends Auditable {
 
         private Double unitPrice;
 
+        private Boolean deleted;
+
 
 
 }

@@ -24,7 +24,9 @@ public class OrderRequest {
     private PaymentRequest payment;
 
    // @Positive(message = "Coupon ID must be positive if provided")
-    private Long couponId; // Optional, single coupon  // nên chỉnh sửa lại
+    //private Long couponId; // Optional, single coupon  // nên chỉnh sửa lại
+
+    private List<Long> couponUsageIds;
 
     //@NotNull(message = "Order type (isPos) is required")
     //private Boolean isPos; // True for POS, false for shipping

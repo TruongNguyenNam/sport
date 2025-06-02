@@ -14,7 +14,6 @@ public interface ProductService {
 
     void delete(List<Long> id);
 
-
     ProductResponse findById(Long id);
 
    List<ProductResponse> findByParentId(Long parentId);
@@ -32,7 +31,9 @@ public interface ProductService {
     void deleteSoft(Long id);
 
 
+     void addVariantsToExistingProduct(AddProductChild child);
 
 
+    void validateAttributesAndValues(Long productId, List<AddProductChild.ProductAttributeValue> newAttributes);
 
 }
