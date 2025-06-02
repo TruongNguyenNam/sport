@@ -176,12 +176,12 @@ public class OrderServiceImpl implements OrderService {
                 if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
                         coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
                         coupon.getDeleted()) {
-                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCode() + " không hợp lệ hoặc đã hết hạn");
+                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCodeCoupon() + " không hợp lệ hoặc đã hết hạn");
                 }
 
                 // Áp dụng giảm giá
-                totalDiscount += coupon.getDiscountAmount();
-                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCode(), coupon.getDiscountAmount());
+                totalDiscount += coupon.getCouponAmount();
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getCouponAmount());
                 usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
@@ -438,8 +438,8 @@ public class OrderServiceImpl implements OrderService {
         response.setCouponUsages(couponUsages.stream()
                 .map(couponUsage -> new OrderResponse.CouponResponse(
                         couponUsage.getId(),
-                        couponUsage.getCoupon().getCode(),
-                        couponUsage.getCoupon().getDiscountAmount(),
+                        couponUsage.getCoupon().getCodeCoupon().toString(),
+                        couponUsage.getCoupon().getCouponAmount(),
                         couponUsage.getUsedDate(),
                         couponUsage.getCreatedBy(),
                         couponUsage.getCreatedDate(),

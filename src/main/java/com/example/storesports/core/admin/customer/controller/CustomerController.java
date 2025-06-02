@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +22,7 @@ public class CustomerController {
     private final CustomerService customerService;
 
     @GetMapping
-    public ResponseData<List<CustomerResponse>> getAllCustomers() {
+    public ResponseData<List<CustomerResponse>> getAllUsers() {
         List<CustomerResponse> customers = customerService.getAll();
         return ResponseData.<List<CustomerResponse>>builder()
                 .status(HttpStatus.OK.value())
@@ -29,6 +30,13 @@ public class CustomerController {
                 .data(customers)
                 .build();
     }
-
-
+    @GetMapping("/not-received-coupon/{couponId}")
+    public ResponseData<List<CustomerResponse>> getCustomersNotReceivedCoupon(@PathVariable Long couponId) {
+        List<CustomerResponse> customers = customerService.getCustomersNotReceivedCoupon(couponId);
+        return ResponseData.<List<CustomerResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách khách hàng chưa nhận coupon thành công")
+                .data(customers)
+                .build();
+    }
 }
