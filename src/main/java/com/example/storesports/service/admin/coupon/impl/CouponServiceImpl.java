@@ -88,7 +88,7 @@ public class CouponServiceImpl implements CouponService {
     public CouponResponse saveCoupon(CouponRequest couponRequest) {
         Coupon coupon = new Coupon();
         coupon.setCouponName(couponRequest.getCouponName());
-        coupon.setCouponAmount(couponRequest.getCouponAmount());
+        coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.ACTIVE);
         coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());
@@ -122,7 +122,7 @@ public class CouponServiceImpl implements CouponService {
         }
 
         coupon.setCouponName(couponRequest.getCouponName());
-        coupon.setCouponAmount(couponRequest.getCouponAmount());
+        coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.valueOf(couponRequest.getCouponStatus()));
         coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());

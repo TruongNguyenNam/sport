@@ -180,8 +180,8 @@ public class OrderServiceImpl implements OrderService {
                 }
 
                 // Áp dụng giảm giá
-                totalDiscount += coupon.getCouponAmount();
-                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getCouponAmount());
+                totalDiscount += coupon.getDiscountAmount();
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
                 usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
@@ -211,6 +211,7 @@ public class OrderServiceImpl implements OrderService {
         payment.setAmount(paidAmount);
         payment.setChangeAmount(paidAmount - order.getOrderTotal()); // Tính tiền thừa
         log.info("Tổng tiền cần trả: {}, Tiền thừa: {}", order.getOrderTotal(), payment.getChangeAmount()); // số tiền còn lại : 1400
+        payment.setPaymentDate(LocalDateTime.now());
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
         order.setOrderStatus(OrderStatus.COMPLETED);
@@ -429,6 +430,7 @@ public class OrderServiceImpl implements OrderService {
         paymentResponse.setAmount(payment.getAmount());
         paymentResponse.setPaymentStatus(payment.getPaymentStatus() != null ? payment.getPaymentStatus().name() : null);
         paymentResponse.setPaymentDate(payment.getPaymentDate());
+        paymentResponse.setChangeAmount(payment.getChangeAmount());
         paymentResponse.setPaymentMethodName(payment.getPaymentMethod().getName());
         response.setPayment(paymentResponse);
     }
@@ -439,7 +441,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(couponUsage -> new OrderResponse.CouponResponse(
                         couponUsage.getId(),
                         couponUsage.getCoupon().getCodeCoupon().toString(),
-                        couponUsage.getCoupon().getCouponAmount(),
+                        couponUsage.getCoupon().getDiscountAmount(),
                         couponUsage.getUsedDate(),
                         couponUsage.getCreatedBy(),
                         couponUsage.getCreatedDate(),

@@ -8,7 +8,7 @@ public class CouponResponse {
     private Long id;
     private String couponName;
     private String codeCoupon;
-    private Double couponAmount;
+    private Double discountAmount;
     private String couponStatus;
     private Integer quantity;
     private LocalDateTime startDate;

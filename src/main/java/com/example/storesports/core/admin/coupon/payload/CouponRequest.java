@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public class CouponRequest {
 
     private String couponName;
-    private Double couponAmount;
+    private Double discountAmount;
     private Integer quantity;
     private String couponStatus; // Enum dạng String ("ACTIVE", "INACTIVE"...)
     private LocalDateTime startDate;
