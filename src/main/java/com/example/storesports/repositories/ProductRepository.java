@@ -31,7 +31,11 @@ public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpeci
     @Query("SELECT p FROM Product p JOIN ProductDiscountMapping pdm ON p.id = pdm.product.id WHERE pdm.discount.id = :discountId")
     List<Product> findProductsByDiscountId(@Param("discountId") Long discountId);
 
+    @Query("select p from Product p where p.name LIKE %:nameChild%")
+    List<Product> finByNameProductChild(@Param("nameChild") String nameChild);
 
+    @Query("SELECT p FROM Product p WHERE p.category.id = :id AND p.parentProductId IS NOT NULL AND p.deleted = false")
+    List<Product> findChildProductsByCategoryId(@Param("id") Long id);
 
 
 

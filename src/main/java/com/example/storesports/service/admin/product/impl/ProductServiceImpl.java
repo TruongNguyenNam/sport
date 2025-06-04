@@ -293,6 +293,26 @@ public class ProductServiceImpl implements ProductService {
 
     }
 
+
+    @Override
+    public List<ProductResponse> finByNameProductChild(String name) {
+        List<Product> productList=productRepository.finByNameProductChild(name);
+        List<Product> products=new ArrayList<>();
+        for (Product product:productList) {
+            if(product.getParentProductId()!=null){
+                products.add(product);
+            }
+        }
+        return products.stream().map(product -> mapToResponse(product)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductResponse> finChildProByCateId(Long id) {
+        List<Product> productList=productRepository.findChildProductsByCategoryId(id);
+        return productList.stream().map(product -> mapToResponse(product)).collect(Collectors.toList());
+    }
+
+
     public List<ProductAttributeValue> getProductAttributeValuesByProductId(Long productId) {
         return productAttributeValueRepository.findByProductParentProductId(productId);
     }
@@ -467,6 +487,7 @@ public class ProductServiceImpl implements ProductService {
         productAttributeValueRepository.saveAll(attributeValuesList);
 
     }
+
 
 
 

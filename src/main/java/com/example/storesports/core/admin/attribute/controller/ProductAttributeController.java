@@ -2,21 +2,10 @@ package com.example.storesports.core.admin.attribute.controller;
 
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeRequest;
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
-import com.example.storesports.core.admin.category.payload.CategoryResponse;
-import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
-import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
-import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
-import com.example.storesports.entity.ProductAttribute;
-
-import com.example.storesports.infrastructure.exceptions.DuplicateEntityException;
-import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
-import jakarta.validation.*;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -66,5 +55,6 @@ public class ProductAttributeController {
                     .status(200).build();
 
         }
+
 
 }
