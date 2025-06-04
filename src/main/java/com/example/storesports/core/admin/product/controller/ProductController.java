@@ -291,6 +291,14 @@ public class ProductController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @GetMapping("/finByNameProductChild/{name}")
+    public List<ProductResponse> finByNameProductChild(@PathVariable("name") String name){
+        return productService.finByNameProductChild(name);
+    }
 
+    @GetMapping("/findChildProductsByCate/{id}")
+    public List<ProductResponse> finChildProByCateId(@PathVariable("id") Long id){
+        return productService.finChildProByCateId(id);
+    }
 
 }

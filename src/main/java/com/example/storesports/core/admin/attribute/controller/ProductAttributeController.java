@@ -3,6 +3,7 @@ package com.example.storesports.core.admin.attribute.controller;
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeRequest;
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
+import com.example.storesports.core.admin.discount.payload.DiscountResponse;
 import com.example.storesports.core.admin.supplier.payload.SupplierRequest;
 import com.example.storesports.core.admin.supplier.payload.SupplierResponse;
 import com.example.storesports.entity.ProductAttribute;
@@ -111,6 +112,7 @@ public class ProductAttributeController {
     public List<ProductAttributeResponse> searchName(@PathVariable("name") String name){
         return attributeService.searchName(name);
     }
+
 
 
 

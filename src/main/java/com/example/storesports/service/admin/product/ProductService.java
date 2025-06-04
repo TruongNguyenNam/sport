@@ -31,8 +31,9 @@ public interface ProductService {
 
     void deleteSoft(Long id);
 
+    List<ProductResponse> finByNameProductChild(String name);
 
-
+    List<ProductResponse> finChildProByCateId(Long id);
 
 
 }

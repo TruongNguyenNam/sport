@@ -23,7 +23,6 @@ public class Product extends Auditable{
         private String name;
         private String description;
         private Double price;
-
        //gia goc
         private Double originalPrice;
 
