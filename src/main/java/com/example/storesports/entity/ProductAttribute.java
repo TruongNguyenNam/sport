@@ -19,7 +19,7 @@ public class ProductAttribute extends Auditable {
 
         private String name;
         private String description;
-
+        private Boolean deleted;
         @OneToMany(mappedBy = "attribute",cascade = CascadeType.REMOVE)
         private List<ProductAttributeValue> productAttributeValues;
 

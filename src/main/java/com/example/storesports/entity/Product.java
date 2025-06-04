@@ -23,9 +23,8 @@ public class Product extends Auditable{
         private String name;
         private String description;
         private Double price;
-       //gia goc
-        private Double originalPrice;
 
+        private Double originalPrice;
         private Integer stockQuantity;
         private String sportType;
         private String sku;
@@ -62,7 +61,5 @@ public class Product extends Auditable{
         private List<ProductDiscountMapping> productDiscountMappings;
 
 
-//        @OneToMany(mappedBy = "product",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
-//        private List<Inventory> inventories;
 
 }

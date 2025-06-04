@@ -36,7 +36,6 @@ public class ProductTagController {
                 .build();
     }
 
-
     @GetMapping("/{id}")
     public ResponseData<ProductTagResponse> getTagById(@PathVariable Long id) {
         ProductTagResponse response = productTagService.findById(id);
@@ -48,12 +47,26 @@ public class ProductTagController {
     }
 
     // Thêm mới hoặc cập nhật ProductTag
-    @PostMapping
-    public ResponseEntity<ProductTagResponse> saveOrUpdateTag(
+    @PostMapping("/add")
+    public ResponseData<ProductTagResponse> addProductTag(@RequestBody ProductTagRequest tagRequest) {
+        ProductTagResponse savedTag = productTagService.saveTag(tagRequest);
+        return ResponseData.<ProductTagResponse>builder()
+                .status(HttpStatus.CREATED.value())
+                .message("Thêm thẻ sản phẩm thành công")
+                .data(savedTag)
+                .build();
+    }
+    // Cập nhật ProductTag
+    @PutMapping("/update/{id}")
+    public ResponseData<ProductTagResponse> updateProductTag(
             @RequestBody ProductTagRequest productTagRequest,
-            @RequestParam(required = false) Long id) {
-        ProductTagResponse response = productTagService.saveOrUpdateTag(productTagRequest, id);
-        return ResponseEntity.ok(response);
+            @PathVariable Long id) {
+        ProductTagResponse updatedTag = productTagService.updateTag(productTagRequest, id);
+        return ResponseData.<ProductTagResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Cập nhật thẻ sản phẩm thành công")
+                .data(updatedTag)
+                .build();
     }
 
     // Xóa nhiều ProductTag theo danh sách ID

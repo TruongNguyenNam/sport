@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpecificationExecutor<Product> {
 
     boolean existsBySku(String sku);
-    @Query("SELECT p FROM Product p WHERE p.parentProductId= :id")
+    @Query("SELECT p FROM Product p WHERE p.parentProductId= :id and p.deleted = false order by p.id desc ")  // fix product
     List<Product> findByParentProductId(@Param("id") Long id);
 
     Optional<Product> findByParentProductIdAndSku(Long parentProductId, String sku);
@@ -36,5 +36,8 @@ public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpeci
 
     @Query("SELECT p FROM Product p WHERE p.category.id = :id AND p.parentProductId IS NOT NULL AND p.deleted = false")
     List<Product> findChildProductsByCategoryId(@Param("id") Long id);
+
+
+
 
 }

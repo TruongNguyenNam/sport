@@ -8,8 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.util.Date;
+
+
+
+
 import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "Discount")
@@ -26,19 +31,24 @@ public class Discount extends Auditable {
 
         private Double discountPercentage;
 
+
        private Double priceThreshold;
 
         private LocalDateTime startDate;
 
         private LocalDateTime endDate;
 
+
+
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
 
 
-//        @ManyToOne
-//        @JoinColumn(name = "sport_type_id")
-//        private SportType sportType;
-        // Getters and Setters
+        private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
+
+
+
+
+
 
 }

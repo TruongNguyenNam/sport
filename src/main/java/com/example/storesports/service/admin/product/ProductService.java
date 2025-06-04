@@ -14,7 +14,6 @@ public interface ProductService {
 
     void delete(List<Long> id);
 
-
     ProductResponse findById(Long id);
 
    List<ProductResponse> findByParentId(Long parentId);
@@ -33,7 +32,13 @@ public interface ProductService {
 
     List<ProductResponse> finByNameProductChild(String name);
 
+
     List<ProductResponse> finChildProByCateId(Long id);
 
+     void addVariantsToExistingProduct(AddProductChild child);
+
+
+
+    void validateAttributesAndValues(Long productId, List<AddProductChild.ProductAttributeValue> newAttributes);
 
 }

@@ -30,37 +30,24 @@ public class ProductTagServiceImpl implements ProductTagService {
 
     private final ModelMapper modelMapper;
 
-    @Override
-    public Page<ProductTagResponse> getAllTags(int page, int size) {
-        int validatedPage = PageUtils.validatePageNumber(page);
-        int validatedSize = PageUtils.validatePageSize(size, 2);
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-        Page<ProductTag> productTagPage = productTagRepository.findAll(pageable);
-        if(productTagPage.isEmpty()){
-            return new PageImpl<>(Collections.emptyList(),pageable,0);
-        }
-        List<ProductTagResponse> productTagResponses = productTagPage.getContent().stream()
-                        .map(productTag -> modelMapper.map(productTag,ProductTagResponse.class)).
-                toList();
-        return new PageImpl<>(productTagResponses,pageable,productTagPage.getTotalElements());
-    }
 
-    @Override
-    public ProductTagResponse saveOrUpdateTag(ProductTagRequest productTagRequest, Long id) {
-        ProductTag productTag;
-        if(id != null){
-            productTag = productTagRepository.findById(id)
-                    .orElseThrow(() -> new ErrorException("tag is not found" + id));
-        }else{
-            productTag = new ProductTag();
-        }
-
+    public ProductTagResponse updateTag(ProductTagRequest productTagRequest, Long id) {
+        ProductTag productTag =  productTagRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tag with id " + id + " not found"));
         productTag.setName(productTagRequest.getName());
-
-        ProductTag tagSaved = productTagRepository.save(productTag);
-
-        return modelMapper.map(tagSaved,ProductTagResponse.class);
+        productTag.setDescription(productTagRequest.getDescription());
+        ProductTag  updatedTag = productTagRepository.save(productTag);
+        return modelMapper.map(updatedTag,ProductTagResponse.class);
     }
+
+    public ProductTagResponse saveTag(ProductTagRequest productTagRequest) {
+        ProductTag productTag = new ProductTag();
+        productTag.setName(productTagRequest.getName());
+        productTag.setDescription(productTagRequest.getDescription());
+        ProductTag savedTag = productTagRepository.save(productTag);
+        return modelMapper.map(savedTag,ProductTagResponse.class);
+    }
+
 
     @Override
     public List<ProductTagResponse> findAllTags() {
@@ -88,6 +75,22 @@ public class ProductTagServiceImpl implements ProductTagService {
                     findById(id).orElseThrow(() -> new ErrorException("TagId is not found"));
             return modelMapper.map(productTag,ProductTagResponse.class);
 
+    }
+
+
+    @Override
+    public Page<ProductTagResponse> getAllTags(int page, int size) {
+        int validatedPage = PageUtils.validatePageNumber(page);
+        int validatedSize = PageUtils.validatePageSize(size, 2);
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+        Page<ProductTag> productTagPage = productTagRepository.findAll(pageable);
+        if(productTagPage.isEmpty()){
+            return new PageImpl<>(Collections.emptyList(),pageable,0);
+        }
+        List<ProductTagResponse> productTagResponses = productTagPage.getContent().stream()
+                .map(productTag -> modelMapper.map(productTag,ProductTagResponse.class)).
+                toList();
+        return new PageImpl<>(productTagResponses,pageable,productTagPage.getTotalElements());
     }
 
 

@@ -1,5 +1,6 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.Gender;
 import com.example.storesports.infrastructure.constant.Role;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,10 +22,19 @@ public class User extends Auditable {
     private Long id;
 
     private String username;
+
     private String password;
+
     private String email;
+
     private String phoneNumber;
+
     private Boolean isActive = true;
+
+    private Boolean deleted;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
@@ -54,4 +64,7 @@ public class User extends Auditable {
     @OneToMany(mappedBy = "user",cascade = CascadeType.REMOVE)
     private List<Token> tokens;
 
+    public User(Long id) {
+        this.id = id;
+    }
 }

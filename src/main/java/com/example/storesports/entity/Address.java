@@ -20,12 +20,16 @@ public class Address extends Auditable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String streetAddress;
+    private String street;
+    private String ward; // Phường (Phường Phúc Đồng)
     private String city;
     private String state;
     private String country;
-    private String zipCode;
+    private String zipcode;
+    private String district; // Quận/Huyện (Huyện Vĩnh Tuy)
+    private String province; // Tỉnh (Quận Long Biên)
 
+    private Boolean deleted;
 
     @OneToMany(mappedBy = "address",cascade = CascadeType.REMOVE)
     private List<UserAddressMapping> userAddressMappings;

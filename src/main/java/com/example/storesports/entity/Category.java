@@ -1,10 +1,7 @@
 package com.example.storesports.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 @Entity
@@ -21,6 +18,8 @@ public class Category extends Auditable {
 
         private String name;
         private String description;
+
+        private Boolean deleted;
 
         @OneToMany(mappedBy = "category",cascade = CascadeType.REMOVE)
         private List<Product> products;

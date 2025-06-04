@@ -10,4 +10,5 @@ import java.util.List;
 public interface CategoryRepository extends JpaRepository<Category, Long>, JpaSpecificationExecutor<Category> {
     @Query("select c from Category c order by c.id desc")
     List<Category> findAllCategory();
+
 }

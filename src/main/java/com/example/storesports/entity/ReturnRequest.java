@@ -27,7 +27,7 @@ public class ReturnRequest extends Auditable{
         private Integer reasonId;
         private Date requestDate;
 
-
+        private Boolean deleted;
 
 
 }

@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+import java.util.Date;
+
 @Entity
 @Table(name = "CouponUsage")
 @Getter
@@ -27,7 +30,10 @@ public class CouponUsage extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
-        private java.util.Date usedDate;
+        private Boolean used;// Đã sử dụng hay chưa
 
+        private Date usedDate;
+
+        private Boolean deleted;
 
 }

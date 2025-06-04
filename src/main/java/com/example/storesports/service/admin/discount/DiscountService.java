@@ -10,8 +10,10 @@ import java.util.List;
 
 @Service
 public interface DiscountService {
+
  DiscountResponse create(DiscountRequest discountRequest);
      DiscountResponse update(Long id,DiscountRequest discountRequest);
+
 List<DiscountResponse>getAll();
 DiscountResponse finByDiscountId(Long id);
 List<DiscountResponse> finByName(String name);
