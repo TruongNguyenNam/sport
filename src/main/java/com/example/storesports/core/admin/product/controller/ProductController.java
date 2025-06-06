@@ -85,6 +85,9 @@ public class ProductController {
         } catch (JsonProcessingException e) {
             log.error("Error parsing AddProductChild request", e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu JSON không hợp lệ");
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error while adding variants", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");

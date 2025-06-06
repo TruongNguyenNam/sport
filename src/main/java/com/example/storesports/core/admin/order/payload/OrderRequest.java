@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -57,8 +58,8 @@ public class OrderRequest {
     @Data
     @NoArgsConstructor
     public static class ShipmentRequest {
-        private Long shipmentId;
-        private String carrier;
+//        private Long shipmentId;
+        private Long carrierId;
         private LocalDateTime estimatedDeliveryDate;
         private List<Long> orderItemIds;
     }

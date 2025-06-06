@@ -32,7 +32,9 @@ public class Shipment extends Auditable{
         @Enumerated(EnumType.STRING)
         private ShipmentStatus shipmentStatus;
 
-        private String carrier; // tên đơn vị ship
+        @ManyToOne
+        @JoinColumn(name = "carrier_id")
+        private Carrier carrier;
 
         private Boolean deleted;
 

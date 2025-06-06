@@ -293,7 +293,6 @@ public class ProductServiceImpl implements ProductService {
 
     }
 
-
     @Override
     public List<ProductResponse> finByNameProductChild(String name) {
         List<Product> productList=productRepository.finByNameProductChild(name);
@@ -323,7 +322,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    // Lấy danh sách attribute_id của sản phẩm con đầu tiên
 
     @Override
     @Transactional
@@ -872,6 +870,7 @@ public class ProductServiceImpl implements ProductService {
                         .map(productAttributeValue -> {
                             ProductResponse.ProductAttributeValueResponse optionResponse = new ProductResponse.ProductAttributeValueResponse();
                             optionResponse.setId(productAttributeValue.getId());
+                            optionResponse.setAttributeId(productAttributeValue.getAttribute().getId());
                             optionResponse.setAttributeName(productAttributeValue.getAttribute().getName());
                             optionResponse.setProductId(productAttributeValue.getProduct().getId());
                             optionResponse.setValue(productAttributeValue.getValue());
