@@ -75,9 +75,8 @@ public class OrderResponse {
         private Date shipmentDate;
         private String shipmentStatus;
         private String trackingNumber;
-        private String carrier;
-        private Date estimatedDeliveryDate;
-
+        private String carrierName;
+        private LocalDateTime estimatedDeliveryDate;
         public ShipmentResponse(Long id, Date shipmentDate, ShipmentStatus shipmentStatus, String trackingNumber, String carrier, LocalDateTime estimatedDeliveryDate) {
         }
         //    private List<Long> orderItemIds; // Link to order_item.id

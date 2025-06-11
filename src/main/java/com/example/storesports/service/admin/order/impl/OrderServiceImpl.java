@@ -19,14 +19,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,6 +53,8 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentMethodRepository paymentMethodRepository;
 
     private final ShipmentItemRepository shipmentItemRepository;
+
+    private final CarrierRepository carrierRepository;
 
     @Override
     @Transactional
@@ -180,8 +178,8 @@ public class OrderServiceImpl implements OrderService {
                 }
 
                 // Áp dụng giảm giá
-                totalDiscount += coupon.getCouponAmount();
-                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getCouponAmount());
+                totalDiscount += coupon.getDiscountAmount();
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
                 usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
@@ -211,34 +209,47 @@ public class OrderServiceImpl implements OrderService {
         payment.setAmount(paidAmount);
         payment.setChangeAmount(paidAmount - order.getOrderTotal()); // Tính tiền thừa
         log.info("Tổng tiền cần trả: {}, Tiền thừa: {}", order.getOrderTotal(), payment.getChangeAmount()); // số tiền còn lại : 1400
+        payment.setPaymentDate(LocalDateTime.now());
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
         order.setOrderStatus(OrderStatus.COMPLETED);
 
         // 9. Lựa chọn đơn vị giao hàng
         if (!order.getIsPos()) {
-            // Process shipments
-            OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
-            Shipment shipment = shipmentRepository.findById(shipmentReq.getShipmentId()).orElseThrow(() ->
-                    new IllegalArgumentException("chưa tìm thấy shipmentIds"));
-            shipment.setOrder(order);
-//            shipment.setCarrier(shipmentReq.getCarrier());
-            shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-            shipment.setShipmentStatus(ShipmentStatus.PENDING);
-            shipment.setTrackingNumber(generateTrackingNumber());
-            Shipment shipment1 =  shipmentRepository.save(shipment);
-
-            // Link shipment with order items
-            for (OrderItem item : savedOrderItems) {
-                ShipmentItem shipmentItem = new ShipmentItem();
-                shipmentItem.setShipment(shipment1);
-                shipmentItem.setOrderItem(item);
-                shipmentItemRepository.save(shipmentItem);
+            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
+                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
             }
-            order.setOrderStatus(OrderStatus.SHIPPED);
 
+            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+                // Tạo mới đối tượng Shipment
+                Shipment shipment = new Shipment();
+                shipment.setOrder(order);
+
+                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
+                shipment.setCarrier(carrier);
+
+                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
+                shipment.setShipmentStatus(ShipmentStatus.PENDING);
+                shipment.setTrackingNumber(generateTrackingNumber());
+
+                // Lưu shipment vào DB
+                Shipment savedShipment = shipmentRepository.save(shipment);
+
+                // Liên kết shipment với các order item
+                for (OrderItem item : savedOrderItems) {
+                    ShipmentItem shipmentItem = new ShipmentItem();
+                    shipmentItem.setShipment(savedShipment);
+                    shipmentItem.setOrderItem(item);
+                    shipmentItemRepository.save(shipmentItem);
+                }
+            }
+
+            order.setOrderStatus(OrderStatus.SHIPPED); // Nếu cần thiết thì set SHIPPED
         }
 
+        order.setOrderDate(new Date());
         order.setDeleted(true); // đã thanh toán thành 0
         orderRepository.save(order);
 
@@ -360,7 +371,7 @@ public class OrderServiceImpl implements OrderService {
             OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
             Shipment shipment = new Shipment();
             shipment.setOrder(order);
-            shipment.setCarrier(shipmentReq.getCarrier());
+//            shipment.setCarrier(shipmentReq.getCarrier());
             shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
             shipment.setShipmentStatus(ShipmentStatus.PENDING);
             shipment.setTrackingNumber(generateTrackingNumber());
@@ -429,6 +440,7 @@ public class OrderServiceImpl implements OrderService {
         paymentResponse.setAmount(payment.getAmount());
         paymentResponse.setPaymentStatus(payment.getPaymentStatus() != null ? payment.getPaymentStatus().name() : null);
         paymentResponse.setPaymentDate(payment.getPaymentDate());
+        paymentResponse.setChangeAmount(payment.getChangeAmount());
         paymentResponse.setPaymentMethodName(payment.getPaymentMethod().getName());
         response.setPayment(paymentResponse);
     }
@@ -439,7 +451,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(couponUsage -> new OrderResponse.CouponResponse(
                         couponUsage.getId(),
                         couponUsage.getCoupon().getCodeCoupon().toString(),
-                        couponUsage.getCoupon().getCouponAmount(),
+                        couponUsage.getCoupon().getDiscountAmount(),
                         couponUsage.getUsedDate(),
                         couponUsage.getCreatedBy(),
                         couponUsage.getCreatedDate(),
@@ -484,7 +496,47 @@ public class OrderServiceImpl implements OrderService {
 
     }
 
-//        if (order.getIsPos() != null && !order.getIsPos()
+//        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId());
+//        if (shipmentOptional.isPresent()) {
+//            Shipment shipment = shipmentOptional.get();
+//            response.setShipment(new OrderResponse.ShipmentResponse(
+//                    shipment.getId(),
+//                    shipment.getShipmentDate(),
+//                    shipment.getShipmentStatus(),
+//                    shipment.getTrackingNumber(),
+//                    shipment.getCarrier().getName(),
+//                    shipment.getEstimatedDeliveryDate()
+//            ));
+//        }
+
+        shipmentRepository.findByOrderId(order.getId()).stream().findFirst().ifPresent(shipment -> {
+            OrderResponse.ShipmentResponse shipmentResponse = new OrderResponse.ShipmentResponse();
+            shipmentResponse.setId(shipment.getId());
+            shipmentResponse.setShipmentDate(shipment.getShipmentDate());
+            shipmentResponse.setShipmentStatus(String.valueOf(shipment.getShipmentStatus()));
+            shipmentResponse.setTrackingNumber(shipment.getTrackingNumber());
+            shipmentResponse.setCarrierName(shipment.getCarrier().getName());
+            shipmentResponse.setEstimatedDeliveryDate(shipment.getEstimatedDeliveryDate());
+            response.setShipment(shipmentResponse);
+        });
+
+
+
+        response.setItems(orderItemRepository.findByOrderId(order.getId()).stream()
+            .map(orderItem -> {
+                OrderItemResponse orderItemResponse = new OrderItemResponse();
+                orderItemResponse.setId(orderItem.getId());
+                orderItemResponse.setProductId(orderItem.getProduct().getId());
+                orderItemResponse.setProductName(orderItem.getProduct().getName());
+                orderItemResponse.setQuantity(orderItem.getQuantity());
+                orderItemResponse.setUnitPrice(orderItem.getUnitPrice());
+                return  orderItemResponse;
+            }).collect(Collectors.toList()));
+
+    return response;
+
+
+        //        if (order.getIsPos() != null && !order.getIsPos()
 //                && order.getUser() != null && order.getUser().getId() != null){
 //            response.setAddress((OrderResponse.AddressResponse) userAddressMappingRepository.findByUserId(order.getUser().getId()).stream()
 //                    .map(userAddressMapping -> {
@@ -506,35 +558,6 @@ public class OrderServiceImpl implements OrderService {
 //                            }
 //                            ).collect(Collectors.toList()));
 //
-
-
-
-    // Map shipment
-    Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId());
-    if (shipmentOptional.isPresent()) {
-        Shipment shipment = shipmentOptional.get();
-        response.setShipment(new OrderResponse.ShipmentResponse(
-                shipment.getId(),
-                shipment.getShipmentDate(),
-                shipment.getShipmentStatus(),
-                shipment.getTrackingNumber(),
-                shipment.getCarrier(),
-                shipment.getEstimatedDeliveryDate()
-        ));
-    }
-
-    response.setItems(orderItemRepository.findByOrderId(order.getId()).stream()
-            .map(orderItem -> {
-                OrderItemResponse orderItemResponse = new OrderItemResponse();
-                orderItemResponse.setId(orderItem.getId());
-                orderItemResponse.setProductId(orderItem.getProduct().getId());
-                orderItemResponse.setProductName(orderItem.getProduct().getName());
-                orderItemResponse.setQuantity(orderItem.getQuantity());
-                orderItemResponse.setUnitPrice(orderItemResponse.getUnitPrice());
-                return  orderItemResponse;
-            }).collect(Collectors.toList()));
-
-    return response;
 }
 
     private String generateOrderCode() {

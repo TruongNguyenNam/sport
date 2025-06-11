@@ -32,11 +32,12 @@ public class Discount extends Auditable {
         private Double discountPercentage;
 
 
+       private Double priceThreshold;
+
         private LocalDateTime startDate;
 
         private LocalDateTime endDate;
 
-        private Double priceThreshold;
 
 
         @Enumerated(EnumType.STRING)

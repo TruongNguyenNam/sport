@@ -64,7 +64,7 @@ public class CouponUsageServiceImpl implements CouponUsageService {
                     coupon.getCouponName(),
                     coupon.getCodeCoupon(),
                     coupon.getExpirationDate().toString(),
-                    coupon.getCouponAmount() + "đ"
+                    coupon.getDiscountAmount() + "đ"
             );
         }
 
@@ -96,7 +96,7 @@ public class CouponUsageServiceImpl implements CouponUsageService {
                         coupon.getCouponName(),
                         coupon.getCodeCoupon(),
                         coupon.getExpirationDate().toString(),
-                        coupon.getCouponAmount() + "đ"
+                        coupon.getDiscountAmount() + "đ"
                 );
             }
 
