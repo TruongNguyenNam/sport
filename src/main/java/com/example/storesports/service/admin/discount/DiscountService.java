@@ -12,7 +12,7 @@ import java.util.List;
 public interface DiscountService {
 
  DiscountResponse create(DiscountRequest discountRequest);
-     DiscountResponse update(Long id,DiscountRequest discountRequest);
+ DiscountResponse update(Long id,DiscountRequest discountRequest);
 
 List<DiscountResponse>getAll();
 DiscountResponse finByDiscountId(Long id);

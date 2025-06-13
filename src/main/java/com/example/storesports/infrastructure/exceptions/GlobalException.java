@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.file.AccessDeniedException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,16 @@ public class GlobalException {
 //        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
 //                .body(ResponseUtils.ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
 //    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDenied(AccessDeniedException ex) {
+        return new ResponseEntity<>("Lỗi quyền truy cập: " + ex.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<String> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return new ResponseEntity<>("Người dùng không tồn tại: " + ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
         @ExceptionHandler(ResponseStatusException.class)
         public ResponseEntity<Map<String, String>> handleResponseStatusException(ResponseStatusException ex) {
             Map<String, String> errorBody = new HashMap<>();

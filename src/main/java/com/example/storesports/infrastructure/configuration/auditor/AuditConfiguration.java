@@ -1,5 +1,7 @@
 package com.example.storesports.infrastructure.configuration.auditor;
 
+import com.example.storesports.repositories.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
@@ -17,11 +19,19 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
  */
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
+@RequiredArgsConstructor
 public class AuditConfiguration {
+
+    private final UserRepository userRepository;
+
+//    @Bean
+//    public AuditorAware<Integer> auditorProvider() {
+//        return new AuditorAwareImpl(userRepository);
+//    }
 
     @Bean
     public AuditorAware<Integer> auditorProvider() {
-        return new AuditorAwareImpl();
+        return new AuditorAwareImpl(userRepository);
     }
 
 }

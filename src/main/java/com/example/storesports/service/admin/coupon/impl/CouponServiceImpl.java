@@ -36,7 +36,7 @@ public class CouponServiceImpl implements CouponService {
     public List<CouponResponse> getAllActiveCoupons() {
         List<Coupon> coupons = couponRepository.getAllActiveCoupons();
         if (coupons.isEmpty()) {
-            throw new IllegalArgumentException("Nhà sản xuất bị trống" + coupons);
+            throw new IllegalArgumentException("danh sách coupun bị trống" + coupons);
         }
         return coupons.stream().map(coupon -> {
             CouponResponse response = modelMapper.map(coupon, CouponResponse.class);

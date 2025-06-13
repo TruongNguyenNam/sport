@@ -19,6 +19,7 @@ public class OrderResponse {
     private AddressResponse address; // Thông tin địa chỉ giao hàng (nếu không phải đơn hàng tại quầy)
     private String orderStatus;
     private Double orderTotal;
+    private String nodes;
     private Boolean isPos; // Đơn hàng tại quầy (true)
     private Boolean Deleted; // Đơn hàng có bị xóa mềm không
     private Date orderDate; // Ngày tạo đơn hàng

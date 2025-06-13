@@ -1,66 +1,65 @@
 package com.example.storesports.core.auth.controller;
 
-import com.example.storesports.entity.User;
-import com.example.storesports.infrastructure.constant.Role;
+import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.infrastructure.validation.RefreshTokenValid;
 import com.example.storesports.core.auth.payload.*;
-import com.example.storesports.repositories.UserRepository;
-import com.example.storesports.service.auth.IAuthService;
-import com.example.storesports.service.auth.IJWTTokenService;
+import com.example.storesports.service.auth.impl.IAuthService;
+import com.example.storesports.service.auth.impl.IJWTTokenService;
 import jakarta.validation.Valid;
-import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping(value = "api/v1/auth")
 @Validated
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private IAuthService authService;
 
-    @Autowired
-    private IJWTTokenService ijwtTokenService;
+    private final IAuthService authService;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+
+    private final IJWTTokenService ijwtTokenService;
+
+
+    private final AuthenticationManager authenticationManager;
 
     @PostMapping("/login")
-    public LoginInfoDto login(@RequestBody @Valid loginForm loginForm){
-                    Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            loginForm.getUsername(),
-                            loginForm.getPassword())
-            );
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+    public ResponseData<LoginInfoDto> login(@RequestBody @Valid loginForm loginForm) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginForm.getUsername(),
+                        loginForm.getPassword()
+                )
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        LoginInfoDto loginInfoDto = authService.login(loginForm.getUsername());
 
-                    return authService.login(loginForm.getUsername());
+        return new ResponseData<>(200, "Đăng nhập thành công", loginInfoDto);
     }
 
+
     @GetMapping("/refreshToken")
-    public ResponseEntity<TokenDTO> refreshToken(@RefreshTokenValid String refreshToken) {
+    public ResponseData<TokenDTO> refreshToken(@RefreshTokenValid String refreshToken) {
         try {
             TokenDTO newToken = ijwtTokenService.getNewToken(refreshToken);
-            return ResponseEntity.ok(newToken);
+            return new ResponseData<>(200, "Token refreshed", newToken);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+            return new ResponseData<>(403, "Invalid refresh token");
         }
     }
 
-
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@RequestBody @Valid RegisterForm registerForm) {
+    public ResponseData<UserResponse> register(@RequestBody @Valid RegisterForm registerForm) {
         UserResponse userResponse = authService.register(registerForm);
-        return new ResponseEntity<>(userResponse, HttpStatus.CREATED);
+        return new ResponseData<>(201, "Đăng Ký Thành công", userResponse);
     }
 
 

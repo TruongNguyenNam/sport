@@ -1,7 +1,6 @@
-package com.example.storesports.core.admin.Carrier.controller;
+package com.example.storesports.core.admin.carrier.controller;
 
-import com.example.storesports.core.admin.Carrier.payload.CarrierResponse;
-import com.example.storesports.core.admin.category.payload.CategoryResponse;
+import com.example.storesports.core.admin.carrier.payload.CarrierResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.carrier.CarrierService;
 import lombok.RequiredArgsConstructor;
