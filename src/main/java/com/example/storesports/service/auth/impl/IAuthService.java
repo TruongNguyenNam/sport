@@ -1,4 +1,4 @@
-package com.example.storesports.service.auth;
+package com.example.storesports.service.auth.impl;
 
 
 import com.example.storesports.infrastructure.constant.Role;
@@ -8,28 +8,31 @@ import com.example.storesports.core.auth.payload.UserResponse;
 import com.example.storesports.entity.Token;
 import com.example.storesports.entity.User;
 import com.example.storesports.repositories.UserRepository;
+import com.example.storesports.service.auth.AuthService;
+import com.example.storesports.service.auth.UserService;
+import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class IAuthService implements AuthService {
 
-    @Autowired
-    private UserService service;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final UserService service;
 
-    @Autowired
-    private UserRepository userRepository;
 
-    @Autowired
-    private IJWTTokenService ijwtTokenService;
+    private final ModelMapper modelMapper;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+
+    private final UserRepository userRepository;
+
+
+    private final IJWTTokenService ijwtTokenService;
+
+    private final PasswordEncoder passwordEncoder;
     @Override
     public LoginInfoDto login(String username) {
         User entity = service.getAccountByUsername(username);
@@ -49,24 +52,18 @@ public class IAuthService implements AuthService {
         if (userRepository.existsByUsername(registerForm.getUsername())) {
             throw new IllegalArgumentException("Username đã tồn tại.");
         }
-
         if (userRepository.existsByEmail(registerForm.getEmail())) {
             throw new IllegalArgumentException("Email đã được sử dụng.");
         }
-
         User user = modelMapper.map(registerForm, User.class);
-
         user.setPassword(passwordEncoder.encode(registerForm.getPassword()));
-
-        user.setRole(Role.ADMIN);
-
+        user.setEmail(registerForm.getEmail());
+        user.setRole(Role.CUSTOMER);
         User savedUser = userRepository.save(user);
-
         UserResponse userResponse = modelMapper.map(savedUser, UserResponse.class);
         userResponse.setMessage("Đăng ký thành công.");
         userResponse.setRole("USER");
         return userResponse;
-
     }
 
 
