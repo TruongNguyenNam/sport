@@ -4,6 +4,7 @@ import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.client.product.payload.ProductResponseClient;
 import com.example.storesports.entity.Product;
 import com.example.storesports.entity.ProductImage;
+import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.client.product.ProductClientService;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,18 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
 
         return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
+
+    @Override
+    public List<ProductResponseClient> findByParentProductId(Long id) {
+        List<Product> productList = productRepository.findByParentProductId(id);
+        if(productList.isEmpty()){
+            throw new ErrorException("danh sách sản phẩm bị trống" + productList);
+        }
+        return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+
+
 
 
 

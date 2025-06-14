@@ -10,6 +10,7 @@ public interface ProductClientService {
 
     List<ProductResponseClient> getAllProduct();
 
+    List<ProductResponseClient> findByParentProductId(Long id);
 
 
 }
