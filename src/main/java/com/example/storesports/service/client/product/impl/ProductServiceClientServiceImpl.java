@@ -57,6 +57,7 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
         response.setDescription(product.getDescription());
         response.setPrice(product.getPrice());
         response.setOriginalPrice(product.getOriginalPrice());
+        response.setParentProductId(product.getParentProductId());
         response.setStockQuantity(product.getStockQuantity());
         response.setSportType(product.getSportType());
         response.setSku(product.getSku());

@@ -15,6 +15,7 @@ public class ProductResponseClient {
     private Double price;
     private Double originalPrice;
     private Integer stockQuantity;
+    private Long parentProductId;
     private String sportType;
     private String sku;
     private String supplierName;
