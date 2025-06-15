@@ -4,14 +4,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderItemResponse {
+public class SellingProductsResponse {
     private Long id;
-    private Long productId;
+    private String imgUrl;
     private String productName;
-    private Integer quantity;
-    private Double unitPrice;
-
+    private Long soldQuantity;
+    private Double percentage;
+    private LocalDate orderDate;
 }

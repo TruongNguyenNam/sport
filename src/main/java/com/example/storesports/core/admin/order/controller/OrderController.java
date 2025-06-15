@@ -1,19 +1,15 @@
 package com.example.storesports.core.admin.order.controller;
 
-import com.example.storesports.core.admin.category.payload.CategoryResponse;
-import com.example.storesports.core.admin.order.payload.CreateInvoiceRequest;
-import com.example.storesports.core.admin.order.payload.OrderRequest;
-import com.example.storesports.core.admin.order.payload.OrderResponse;
-import com.example.storesports.entity.Order;
+import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.order.OrderService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,33 +19,130 @@ public class OrderController {
     private final OrderService orderService;
 
     // Thống Ke doanh thu theo tháng với trạng thái đã hoàn thành và đã thanh toán
-    @GetMapping("/monthly-revenue")
-    public ResponseData<List<Object[]>> getMonthlyRevenue() {
-        List<Object[]> revenue = orderService.getMonthlyRevenue();
-        return ResponseData.<List<Object[]>>builder()
+    @GetMapping("/revenue/daily")
+    public ResponseData<List<DailyRevenueResponse>> getDailyRevenue() {
+        List<DailyRevenueResponse> revenueList = orderService.getDailyRevenue();
+        return ResponseData.<List<DailyRevenueResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê doanh thu theo ngày hôm nay")
+                .data(revenueList)
+                .build();
+    }
+    @GetMapping("/revenue/monthly")
+    public ResponseData<List<MonthlyRevenueResponse>> getMonthlyRevenue() {
+        List<MonthlyRevenueResponse> revenueList = orderService.getMonthlyRevenue();
+        return ResponseData.<List<MonthlyRevenueResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Thống kê doanh thu theo tháng")
-                .data(revenue)
+                .data(revenueList)
                 .build();
     }
-    @GetMapping("/day-revenue")
-    public ResponseData<List<Object[]>> getDaylyRevenue() {
-        List<Object[]> revenue = orderService.getDaylyRevenue();
-        return ResponseData.<List<Object[]>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Thống kê doanh thu theo ngày")
-                .data(revenue)
-                .build();
-    }
-    @GetMapping("/year-revenue")
-    public ResponseData<List<Object[]>> getYearlyRevenue() {
-        List<Object[]> revenue = orderService.getYearlyRevenue();
-        return ResponseData.<List<Object[]>>builder()
+
+    @GetMapping("/revenue/yearly")
+    public ResponseData<List<YearlyRevenueResponse>> getYearlyRevenue() {
+        List<YearlyRevenueResponse> revenueList = orderService.getYearlyRevenue();
+        return ResponseData.<List<YearlyRevenueResponse>>builder()
                 .status(HttpStatus.OK.value())
                 .message("Thống kê doanh thu theo năm")
-                .data(revenue)
+                .data(revenueList)
                 .build();
     }
+    // Thống kê số lượng đơn hàng đã hủy hôm nay
+    @GetMapping("/cancelled/today")
+    public ResponseData<OrderStatusTodayResponse> getCancelledToday() {
+        return ResponseData.<OrderStatusTodayResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng huỷ hôm nay")
+                .data(orderService.getCancelledOrdersToday())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã hủy trong tháng
+    @GetMapping("/cancelled/month")
+    public ResponseData<OrderStatusMonthResponse> getCancelledThisMonth() {
+        return ResponseData.<OrderStatusMonthResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng huỷ trong tháng")
+                .data(orderService.getCancelledOrdersThisMonth())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã hủy trong năm
+    @GetMapping("/cancelled/year")
+    public ResponseData<OrderStatusYearResponse> getCancelledThisYear() {
+        return ResponseData.<OrderStatusYearResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng huỷ trong năm")
+                .data(orderService.getCancelledOrdersThisYear())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã hoàn thành hôm nay
+    @GetMapping("/completed/today")
+    public ResponseData<OrderStatusTodayResponse> getCompletedToday() {
+        return ResponseData.<OrderStatusTodayResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã hoàn thành hôm nay")
+                .data(orderService.countCompletedOrdersToday())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã hoàn thành trong tháng
+    @GetMapping("/completed/month")
+    public ResponseData<OrderStatusMonthResponse> getCompletedThisMonth() {
+        return ResponseData.<OrderStatusMonthResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã hoàn thành trong tháng")
+                .data(orderService.countCompletedOrdersThisMonth())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã hoàn thành trong năm
+    @GetMapping("/completed/year")
+    public ResponseData<OrderStatusYearResponse> getCompletedThisYear() {
+        return ResponseData.<OrderStatusYearResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã hoàn thành trong năm")
+                .data(orderService.countCompletedOrdersThisYear())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã trả lại hôm nay
+    @GetMapping("/returned/today")
+    public ResponseData<OrderStatusTodayResponse> getReturnedToday() {
+        return ResponseData.<OrderStatusTodayResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã trả lại hôm nay")
+                .data(orderService.getReturnedOrdersToday())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã trả lại trong tháng
+    @GetMapping("/returned/month")
+    public ResponseData<OrderStatusMonthResponse> getReturnedThisMonth() {
+        return ResponseData.<OrderStatusMonthResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã trả lại trong tháng")
+                .data(orderService.getReturnedOrdersThisMonth())
+                .build();
+    }
+    // Thống kê số lượng đơn hàng đã trả lại trong năm
+    @GetMapping("/returned/year")
+    public ResponseData<OrderStatusYearResponse> getReturnedThisYear() {
+        return ResponseData.<OrderStatusYearResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng đã trả lại trong năm")
+                .data(orderService.getReturnedOrdersThisYear())
+                .build();
+    }
+    // Thống kê tuỳ chỉnh giữa hai ngày
+    @GetMapping("/custom")
+    public ResponseData<CustomStatisticalResponse> getStatisticsBetweenDates(
+            @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        return ResponseData.<CustomStatisticalResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê doanh thu và đơn hàng trong khoảng thời gian")
+                .data(orderService.getStatisticsBetween(fromDate, toDate))
+                .build();
+    }
+
+
+
 
 
     @GetMapping("/{id}")
