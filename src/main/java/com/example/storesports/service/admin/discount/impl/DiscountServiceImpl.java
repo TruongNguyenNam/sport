@@ -65,8 +65,6 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setPriceThreshold(discountRequest.getPriceThreshold());
         }
 
-
-
         if (now.isBefore(discount.getStartDate())) {
             discount.setStatus(DiscountStatus.PENDING);
         } else if (now.isAfter(discount.getEndDate())) {

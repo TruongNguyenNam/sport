@@ -18,6 +18,8 @@ public class OrderRequest {
     //@Positive(message = "User ID must be positive if provided")
     private Long userId;  // ok
 
+    private String nodes;
+
     //@NotEmpty(message = "Items are required")
     private List<OrderItemRequest> items;  //ok
 

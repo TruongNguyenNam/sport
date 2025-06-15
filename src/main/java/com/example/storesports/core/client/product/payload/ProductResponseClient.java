@@ -1,14 +1,13 @@
-package com.example.storesports.core.admin.product.payload;
+package com.example.storesports.core.client.product.payload;
 
-import lombok.AllArgsConstructor;
+import com.example.storesports.core.admin.product.payload.ProductResponse;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class ProductResponse {
+public class ProductResponseClient {
 
     private Long id;
     private String name;
@@ -16,6 +15,7 @@ public class ProductResponse {
     private Double price;
     private Double originalPrice;
     private Integer stockQuantity;
+    private Long parentProductId;
     private String sportType;
     private String sku;
     private String supplierName;
@@ -33,7 +33,6 @@ public class ProductResponse {
         private Long productId;
         private String value;
     }
-
 
 
 }

@@ -33,6 +33,8 @@ public class Order extends Auditable {
 
         private Boolean isPos;  // true là bán thường // false là bán ship
 
+        private String nodes;
+
         private Boolean deleted;  // xoá mềm
 
         @Enumerated(EnumType.STRING)

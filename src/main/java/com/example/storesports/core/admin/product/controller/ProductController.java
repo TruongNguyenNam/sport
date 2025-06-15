@@ -44,6 +44,17 @@ public class ProductController {
     private final ObjectMapper objectMapper;
 
 
+    @GetMapping("/parent")
+    public ResponseData<List<ProductResponse>> getAllParentProducts() {
+        List<ProductResponse> products = productService.getAllParentProduct();
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm cha thành công")
+                .data(products)
+                .build();
+    }
+
+
     @PostMapping(value = "/{parentProductId}/variants", consumes = {"multipart/form-data"})
     public ResponseData<Void> addVariantsToProduct(
             @PathVariable Long parentProductId,
@@ -151,15 +162,7 @@ public class ProductController {
     }
 
 
-    @GetMapping("/parent")
-    public ResponseData<List<ProductResponse>> getAllParentProducts() {
-        List<ProductResponse> products = productService.getAllParentProduct();
-        return ResponseData.<List<ProductResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy danh sách sản phẩm cha thành công")
-                .data(products)
-                .build();
-    }
+
 
 
     @GetMapping("/child")
