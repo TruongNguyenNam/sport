@@ -2,6 +2,7 @@ package com.example.storesports.repositories;
 
 
 import com.example.storesports.entity.ProductImage;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -17,8 +18,9 @@ public interface ProductImageRepository extends JpaRepository<ProductImage,Long>
 
     //update
     @Modifying
-    @Query("delete from ProductImage a where a.product.id = :id")
-    void  deleteByProductId(@Param("id") Long id);
+    @Transactional
+    @Query("DELETE FROM ProductImage a WHERE a.product.id = :id")
+    void deleteByProductId(@Param("id") Long id);
 
     boolean existsByProductId(Long productId);
 

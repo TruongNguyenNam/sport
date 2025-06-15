@@ -11,18 +11,21 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User,Long> {
-    User findByUsername(String username);
+    Optional<User> findByUsername(String username);
+
 
     Boolean existsByUsername(String username);
 
     Boolean existsByEmail(String email);
 
-    @Query("SELECT DISTINCT u FROM User u " +
-            "LEFT JOIN FETCH u.userAddressMappings m " +
-            "LEFT JOIN FETCH m.address")
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN u.userAddressMappings m " +
+            "LEFT JOIN m.address where u.role = 'CUSTOMER'")
     List<User> findAllWithAddresses();
+
 
     @Query("SELECT u FROM User u WHERE u.role = :role AND u.id NOT IN (SELECT cu.user.id FROM CouponUsage cu WHERE cu.coupon.id = :couponId AND cu.deleted = false)")
     List<User> findCustomersNotReceivedCoupon(@Param("role") Role role, @Param("couponId") Long couponId);

@@ -9,6 +9,7 @@ import com.example.storesports.repositories.UserAddressMappingRepository;
 import com.example.storesports.repositories.UserRepository;
 import com.example.storesports.service.admin.customer.CustomerService;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final UserAddressMappingRepository userAddressMappingRepository;
 
+    private final ModelMapper modelMapper;
 
     @Override
     public List<CustomerResponse> getAll() {
@@ -48,7 +50,7 @@ public class CustomerServiceImpl implements CustomerService {
         response.setEmail(user.getEmail());
         response.setUsername(user.getUsername());
         response.setPhoneNumber(user.getPhoneNumber());
-        response.setActive(user.getIsActive());
+        response.setActive(Boolean.FALSE.equals(user.getIsActive()));
         response.setRole(user.getRole().toString());
         response.setGender(user.getGender() != null ? user.getGender().name() : null);
         if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {

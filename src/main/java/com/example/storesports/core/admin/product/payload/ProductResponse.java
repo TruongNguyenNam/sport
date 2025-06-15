@@ -14,6 +14,7 @@ public class ProductResponse {
     private String name;
     private String description;
     private Double price;
+    private Double originalPrice;
     private Integer stockQuantity;
     private String sportType;
     private String sku;

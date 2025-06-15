@@ -36,7 +36,7 @@ public class CouponServiceImpl implements CouponService {
     public List<CouponResponse> getAllActiveCoupons() {
         List<Coupon> coupons = couponRepository.getAllActiveCoupons();
         if (coupons.isEmpty()) {
-            throw new IllegalArgumentException("Nhà sản xuất bị trống" + coupons);
+            throw new IllegalArgumentException("danh sách coupun bị trống" + coupons);
         }
         return coupons.stream().map(coupon -> {
             CouponResponse response = modelMapper.map(coupon, CouponResponse.class);
@@ -88,7 +88,7 @@ public class CouponServiceImpl implements CouponService {
     public CouponResponse saveCoupon(CouponRequest couponRequest) {
         Coupon coupon = new Coupon();
         coupon.setCouponName(couponRequest.getCouponName());
-        coupon.setCouponAmount(couponRequest.getCouponAmount());
+        coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.ACTIVE);
         coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());
@@ -122,7 +122,7 @@ public class CouponServiceImpl implements CouponService {
         }
 
         coupon.setCouponName(couponRequest.getCouponName());
-        coupon.setCouponAmount(couponRequest.getCouponAmount());
+        coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.valueOf(couponRequest.getCouponStatus()));
         coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());

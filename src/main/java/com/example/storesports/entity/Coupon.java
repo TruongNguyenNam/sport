@@ -30,7 +30,7 @@ public class Coupon extends Auditable {
         @Column( updatable = false, nullable = false, unique = true, length = 8)
         private String codeCoupon;
 
-        private Double couponAmount;
+        private Double discountAmount;
 
         @Enumerated(EnumType.STRING)
         private CouponStatus couponStatus;

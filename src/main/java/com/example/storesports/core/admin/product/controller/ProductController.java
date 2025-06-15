@@ -44,6 +44,17 @@ public class ProductController {
     private final ObjectMapper objectMapper;
 
 
+    @GetMapping("/parent")
+    public ResponseData<List<ProductResponse>> getAllParentProducts() {
+        List<ProductResponse> products = productService.getAllParentProduct();
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm cha thành công")
+                .data(products)
+                .build();
+    }
+
+
     @PostMapping(value = "/{parentProductId}/variants", consumes = {"multipart/form-data"})
     public ResponseData<Void> addVariantsToProduct(
             @PathVariable Long parentProductId,
@@ -85,6 +96,9 @@ public class ProductController {
         } catch (JsonProcessingException e) {
             log.error("Error parsing AddProductChild request", e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu JSON không hợp lệ");
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error while adding variants", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
@@ -148,15 +162,7 @@ public class ProductController {
     }
 
 
-    @GetMapping("/parent")
-    public ResponseData<List<ProductResponse>> getAllParentProducts() {
-        List<ProductResponse> products = productService.getAllParentProduct();
-        return ResponseData.<List<ProductResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy danh sách sản phẩm cha thành công")
-                .data(products)
-                .build();
-    }
+
 
 
     @GetMapping("/child")

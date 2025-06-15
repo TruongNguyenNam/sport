@@ -1,6 +1,7 @@
 package com.example.storesports.core.admin.image.controller;
 import com.example.storesports.core.admin.image.payload.ProductImageResponse;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
+import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.image.ProductImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +10,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 @RestController
-@RequestMapping("/api/v1/admin/ProductImage")
+@RequestMapping("/api/v1/admin/product-image")
 @RequiredArgsConstructor
 public class ProductImageController {
-//    @Autowired
       private final ProductImageService productImageService;
+
+
+    @DeleteMapping("/product/{productId}")
+    public ResponseData<Void> deleteProductImagesByProductId(@PathVariable(name = "productId") Long productId) {
+        productImageService.deleteByProductId(productId);
+        return new ResponseData<>(200, "Xóa ảnh sản phẩm theo productId thành công");
+    }
 
 
     @PostMapping("/upload")
@@ -36,20 +43,12 @@ public class ProductImageController {
         }
     }
 
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProductImageById(@PathVariable Long id) {
         productImageService.deleteById(id);
         return ResponseEntity.noContent().build();  // HTTP 204 No Content
     }
-
-    // Xóa tất cả ProductImage theo Product ID
-    @DeleteMapping("/product/{productId}")
-    public ResponseEntity<Void> deleteProductImagesByProductId(@PathVariable Long productId) {
-        productImageService.deleteByProductId(productId);
-        return ResponseEntity.noContent().build();  // HTTP 204 No Content
-    }
-
-
 
 
 

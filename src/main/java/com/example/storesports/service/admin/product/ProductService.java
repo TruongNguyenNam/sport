@@ -37,8 +37,6 @@ public interface ProductService {
 
      void addVariantsToExistingProduct(AddProductChild child);
 
-
-
     void validateAttributesAndValues(Long productId, List<AddProductChild.ProductAttributeValue> newAttributes);
 
 }
