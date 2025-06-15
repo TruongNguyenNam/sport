@@ -71,10 +71,14 @@ public class ProductImageServiceImpl implements ProductImageService {
     }
 
     @Override
+    @Transactional
     public void deleteByProductId(Long id) {
-        if (!productImageRepository.existsByProductId(id)) {
+        List<ProductImage> images = productImageRepository.findByProductId(id);
+
+        if (images.isEmpty()) {
             throw new ErrorException("No ProductImages found for Product with id " + id);
         }
+
         productImageRepository.deleteByProductId(id);
     }
 
