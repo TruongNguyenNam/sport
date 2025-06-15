@@ -19,6 +19,7 @@ public class EmailServiceImpl implements EmailService {
         message.setSubject("Bạn đã nhận được coupon mới!");
 
         String body = String.format(
+                "Shop ShoesSpost\n" +
                 "Chúc mừng! Bạn vừa nhận được coupon mới:\n" +
                         "Tên coupon: %s\n" +
                         "Mã coupon: %s\n" +

@@ -57,7 +57,7 @@ public class CouponServiceImpl implements CouponService {
         }).collect(Collectors.toList());
     }
 
-    @Scheduled(cron = "0 */1 * * * ?") // 60,000 ms = 1 phút
+    @Scheduled(cron = "0 */1 * * * ?")
     @Transactional
     public void updateExpiredCoupons() {
         System.out.println("Cập nhật coupon");
@@ -65,14 +65,13 @@ public class CouponServiceImpl implements CouponService {
         LocalDateTime now = LocalDateTime.now();
         for (Coupon coupon : coupons) {
             boolean isExpiredTime = coupon.getExpirationDate() != null && coupon.getExpirationDate().isBefore(now);
-            boolean isOutOfQuantity = coupon.getQuantity() != null && coupon.getQuantity() <= 0;
-            if ((isExpiredTime || isOutOfQuantity) && coupon.getCouponStatus() != CouponStatus.EXPIRED) {
+            // Bỏ kiểm tra quantity
+            if (isExpiredTime && coupon.getCouponStatus() != CouponStatus.EXPIRED) {
                 coupon.setCouponStatus(CouponStatus.EXPIRED);
                 couponRepository.save(coupon);
             }
         }
     }
-
     // Hàm sinh code 8 ký tự
     private String generateRandomCode(int length) {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -90,7 +89,6 @@ public class CouponServiceImpl implements CouponService {
         coupon.setCouponName(couponRequest.getCouponName());
         coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.ACTIVE);
-        coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());
         coupon.setExpirationDate(couponRequest.getExpirationDate());
         coupon.setDeleted(false);
@@ -110,21 +108,12 @@ public class CouponServiceImpl implements CouponService {
     public CouponResponse updateCoupon(CouponRequest couponRequest, Long id) {
         Coupon coupon = couponRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy coupon với id: " + id));
-
         // Đếm số đã tặng (số bản ghi CouponUsage)
         long usedCount = couponUsageRepository.countByCouponId(coupon.getId());
-
-        // Kiểm tra số lượng mới không nhỏ hơn số đã tặng
-        if (couponRequest.getQuantity() < usedCount) {
-            throw new IllegalArgumentException(
-                    "Số lượng coupon không được nhỏ hơn số đã tặng cho khách hàng (" + usedCount + ")"
-            );
-        }
 
         coupon.setCouponName(couponRequest.getCouponName());
         coupon.setDiscountAmount(couponRequest.getDiscountAmount());
         coupon.setCouponStatus(CouponStatus.valueOf(couponRequest.getCouponStatus()));
-        coupon.setQuantity(couponRequest.getQuantity());
         coupon.setStartDate(couponRequest.getStartDate());
         coupon.setExpirationDate(couponRequest.getExpirationDate());
 
@@ -133,6 +122,7 @@ public class CouponServiceImpl implements CouponService {
         response.setUsedCount(usedCount);
         return modelMapper.map(updatedCoupon, CouponResponse.class);
     }
+
     @Override
     public CouponResponse findById(Long id) {
         Coupon coupon = couponRepository.findById(id)
@@ -143,5 +133,4 @@ public class CouponServiceImpl implements CouponService {
         response.setUsedCount(usedCount);
         return response;
     }
-
 }
