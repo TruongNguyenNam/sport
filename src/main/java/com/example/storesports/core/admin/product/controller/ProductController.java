@@ -44,6 +44,17 @@ public class ProductController {
     private final ObjectMapper objectMapper;
 
 
+    @GetMapping("/parent")
+    public ResponseData<List<ProductResponse>> getAllParentProducts() {
+        List<ProductResponse> products = productService.getAllParentProduct();
+        return ResponseData.<List<ProductResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách sản phẩm cha thành công")
+                .data(products)
+                .build();
+    }
+
+
     @PostMapping(value = "/{parentProductId}/variants", consumes = {"multipart/form-data"})
     public ResponseData<Void> addVariantsToProduct(
             @PathVariable Long parentProductId,
@@ -58,6 +69,8 @@ public class ProductController {
                     AddProductChild.class
             );
             request.setParentProductId(parentProductId);
+
+            productService.validateAttributesAndValues(parentProductId, request.getProductAttributeValues());
 
             if (variantImages != null && variantImages.length > 0) {
                 int index = 0;
@@ -83,6 +96,9 @@ public class ProductController {
         } catch (JsonProcessingException e) {
             log.error("Error parsing AddProductChild request", e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu JSON không hợp lệ");
+        } catch (IllegalArgumentException e) {
+            log.warn("Validation error: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error while adding variants", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
@@ -146,15 +162,7 @@ public class ProductController {
     }
 
 
-    @GetMapping("/parent")
-    public ResponseData<List<ProductResponse>> getAllParentProducts() {
-        List<ProductResponse> products = productService.getAllParentProduct();
-        return ResponseData.<List<ProductResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy danh sách sản phẩm cha thành công")
-                .data(products)
-                .build();
-    }
+
 
 
     @GetMapping("/child")
@@ -337,6 +345,14 @@ public class ProductController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @GetMapping("/finByNameProductChild/{name}")
+    public List<ProductResponse> finByNameProductChild(@PathVariable("name") String name){
+        return productService.finByNameProductChild(name);
+    }
 
+    @GetMapping("/findChildProductsByCate/{id}")
+    public List<ProductResponse> finChildProByCateId(@PathVariable("id") Long id){
+        return productService.finChildProByCateId(id);
+    }
 
 }

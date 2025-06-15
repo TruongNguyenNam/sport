@@ -37,7 +37,6 @@ public class ProductTagController {
                 .build();
     }
 
-
     @GetMapping("/{id}")
     public ResponseData<ProductTagResponse> getTagById(@PathVariable Long id) {
         ProductTagResponse response = productTagService.findById(id);
@@ -55,6 +54,7 @@ public class ProductTagController {
 //        ProductTagResponse response = productTagService.saveOrUpdateTag(productTagRequest, id);
 //        return ResponseEntity.ok(response);
 //    }
+
     @PostMapping("/add")
     public ResponseData<ProductTagResponse> addProductTag(@RequestBody ProductTagRequest tagRequest) {
         ProductTagResponse savedTag = productTagService.saveTag(tagRequest);

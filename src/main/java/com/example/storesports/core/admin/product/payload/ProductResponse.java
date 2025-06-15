@@ -14,6 +14,7 @@ public class ProductResponse {
     private String name;
     private String description;
     private Double price;
+    private Double originalPrice;
     private Integer stockQuantity;
     private String sportType;
     private String sku;
@@ -27,6 +28,7 @@ public class ProductResponse {
     @NoArgsConstructor
     public static class ProductAttributeValueResponse {
         private Long id;
+        private Long attributeId;
         private String attributeName;
         private Long productId;
         private String value;

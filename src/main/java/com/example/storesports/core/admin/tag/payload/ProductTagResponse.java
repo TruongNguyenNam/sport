@@ -10,4 +10,5 @@ public class ProductTagResponse {
 
     private String name;
     private String description;
+
 }

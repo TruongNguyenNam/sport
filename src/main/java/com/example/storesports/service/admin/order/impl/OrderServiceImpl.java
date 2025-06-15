@@ -11,9 +11,20 @@ import com.example.storesports.service.admin.order.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 import java.time.*;
+
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.file.AccessDeniedException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -170,6 +181,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
+    private final CarrierRepository carrierRepository;
 
 
     @Override
@@ -183,32 +195,67 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponse createInvoice(CreateInvoiceRequest request) {
-        Order order = new Order();
-        order.setOrderCode(generateOrderCode());
-        order.setOrderTotal(0.0);
-        order.setOrderStatus(OrderStatus.PENDING);
-        order.setIsPos(request.getIsPos());
-        order.setDeleted(false);
-        order.setCreatedBy(1); // ADMIN sẽ là người tạo đơn hàng
-        order.setCreatedDate(LocalDateTime.now());
-        orderRepository.save(order);
+        try {
+            if (request == null || request.getIsPos() == null) {
+                throw new IllegalArgumentException("Request hoặc trường isPos không được để trống");
+            }
 
-        return mapToOrderResponse(order);
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) {
+                throw new AccessDeniedException("Người dùng chưa được xác thực");
+            }
+
+            String username;
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetails) {
+                username = ((UserDetails) principal).getUsername();
+            } else if (principal instanceof String) {
+                username = (String) principal; // Xử lý khi principal là username
+            } else {
+                throw new AccessDeniedException("Không thể xác định thông tin người dùng");
+            }
+
+            if (!authentication.getAuthorities().stream()
+                    .anyMatch(authority -> authority.getAuthority().equals("ADMIN"))) {
+                throw new AccessDeniedException("Chỉ ADMIN mới có thể tạo đơn hàng");
+            }
+
+            // Lấy user từ database
+            User currentUser = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
+
+            // Tạo và lưu order
+            Order order = new Order();
+            order.setOrderCode(generateOrderCode());
+            order.setOrderTotal(0.0);
+            order.setOrderStatus(OrderStatus.PENDING);
+            order.setIsPos(request.getIsPos());
+            order.setDeleted(false);
+//            order.setUser(currentUser); // Gán user
+            orderRepository.save(order);
+
+            return mapToOrderResponse(order);
+        } catch (AccessDeniedException e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Lỗi quyền truy cập: " + e.getMessage(), e);
+        } catch (UsernameNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại: " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Yêu cầu không hợp lệ: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống: " + e.getMessage(), e);
+        }
     }
 
     @Override
     @Transactional
     public OrderResponse addProductToOrder(OrderRequest request) {
-        // 1. Find order by code
         Order order = orderRepository.findByOrderCode(request.getOrderCode())
                 .orElseThrow(() -> new IllegalArgumentException("không tìm thấy đơn hàng với mã"));
 
-        // 2. Validate order code
         if (!order.getOrderCode().equals(request.getOrderCode())) {
             throw new IllegalArgumentException("Mã đơn hàng không khớp");
         }
 
-        // 3. Validate required fields
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng cung cấp danh sách sản phẩm");
         }
@@ -216,7 +263,6 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Vui lòng cung cấp thông tin thanh toán");
         }
 
-        // 4. Validate POS and shipping logic
         if (!order.getIsPos()) {
             if (request.getUserId() == null ||  request.getShipments() == null || request.getShipments().isEmpty()) {
                 throw new IllegalArgumentException("Vui lòng cung cấp userId, addressId và shipment cho đơn giao hàng");
@@ -288,12 +334,12 @@ public class OrderServiceImpl implements OrderService {
                 if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
                         coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
                         coupon.getDeleted()) {
-                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCode() + " không hợp lệ hoặc đã hết hạn");
+                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCodeCoupon() + " không hợp lệ hoặc đã hết hạn");
                 }
 
                 // Áp dụng giảm giá
                 totalDiscount += coupon.getDiscountAmount();
-                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCode(), coupon.getDiscountAmount());
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
                 usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
@@ -323,33 +369,47 @@ public class OrderServiceImpl implements OrderService {
         payment.setAmount(paidAmount);
         payment.setChangeAmount(paidAmount - order.getOrderTotal()); // Tính tiền thừa
         log.info("Tổng tiền cần trả: {}, Tiền thừa: {}", order.getOrderTotal(), payment.getChangeAmount()); // số tiền còn lại : 1400
+        payment.setPaymentDate(LocalDateTime.now());
         payment.setPaymentStatus(PaymentStatus.COMPLETED);
         paymentRepository.save(payment);
         order.setOrderStatus(OrderStatus.COMPLETED);
 
         // 9. Lựa chọn đơn vị giao hàng
         if (!order.getIsPos()) {
-            // Process shipments
-            OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
-            Shipment shipment = shipmentRepository.findById(shipmentReq.getShipmentId()).orElseThrow(() ->
-                    new IllegalArgumentException("chưa tìm thấy shipmentIds"));
-            shipment.setOrder(order);
-//            shipment.setCarrier(shipmentReq.getCarrier());
-            shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-            shipment.setShipmentStatus(ShipmentStatus.PENDING);
-            shipment.setTrackingNumber(generateTrackingNumber());
-            Shipment shipment1 =  shipmentRepository.save(shipment);
-
-            // Link shipment with order items
-            for (OrderItem item : savedOrderItems) {
-                ShipmentItem shipmentItem = new ShipmentItem();
-                shipmentItem.setShipment(shipment1);
-                shipmentItem.setOrderItem(item);
-                shipmentItemRepository.save(shipmentItem);
+            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
+                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
             }
-            order.setOrderStatus(OrderStatus.SHIPPED);
 
+            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+                // Tạo mới đối tượng Shipment
+                Shipment shipment = new Shipment();
+                shipment.setOrder(order);
+
+                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
+                shipment.setCarrier(carrier);
+
+                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
+                shipment.setShipmentStatus(ShipmentStatus.PENDING);
+                shipment.setTrackingNumber(generateTrackingNumber());
+                shipment.setShipmentDate(new Date());
+                shipment.setDeleted(false);
+                // Lưu shipment vào DB
+                Shipment savedShipment = shipmentRepository.save(shipment);
+
+                // Liên kết shipment với các order item
+                for (OrderItem item : savedOrderItems) {
+                    ShipmentItem shipmentItem = new ShipmentItem();
+                    shipmentItem.setShipment(savedShipment);
+                    shipmentItem.setOrderItem(item);
+                    shipmentItemRepository.save(shipmentItem);
+                }
+            }
+
+            order.setOrderStatus(OrderStatus.SHIPPED); // Nếu cần thiết thì set SHIPPED
         }
+        order.setNodes(request.getNodes());
         order.setOrderDate(new Date());
         order.setDeleted(true); // đã thanh toán thành 0
         orderRepository.save(order);
@@ -472,10 +532,11 @@ public class OrderServiceImpl implements OrderService {
             OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
             Shipment shipment = new Shipment();
             shipment.setOrder(order);
-            shipment.setCarrier(shipmentReq.getCarrier());
+//            shipment.setCarrier(shipmentReq.getCarrier());
             shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
             shipment.setShipmentStatus(ShipmentStatus.PENDING);
             shipment.setTrackingNumber(generateTrackingNumber());
+            shipment.setShipmentDate(new Date());
             shipmentRepository.save(shipment);
 
             // Link shipment with order items
@@ -511,10 +572,12 @@ public class OrderServiceImpl implements OrderService {
     response.setOrderCode(order.getOrderCode());
     //response.setUserId(order.getUser().getId()); response.setUserId(order.getUser() != null ? order.getUser().getId() : null); //
 //    response.setUserName(order.getUser().getUsername());
+
     response.setOrderStatus(order.getOrderStatus() != null ? order.getOrderStatus().name() : null);
     response.setOrderTotal(order.getOrderTotal());
     response.setIsPos(order.getIsPos());
     response.setDeleted(order.getDeleted());
+    response.setNodes(order.getNodes());
     response.setOrderDate(order.getOrderDate());
     response.setCreatedBy(order.getCreatedBy());
     response.setCreatedDate(order.getCreatedDate());
@@ -541,6 +604,7 @@ public class OrderServiceImpl implements OrderService {
         paymentResponse.setAmount(payment.getAmount());
         paymentResponse.setPaymentStatus(payment.getPaymentStatus() != null ? payment.getPaymentStatus().name() : null);
         paymentResponse.setPaymentDate(payment.getPaymentDate());
+        paymentResponse.setChangeAmount(payment.getChangeAmount());
         paymentResponse.setPaymentMethodName(payment.getPaymentMethod().getName());
         response.setPayment(paymentResponse);
     }
@@ -550,7 +614,7 @@ public class OrderServiceImpl implements OrderService {
         response.setCouponUsages(couponUsages.stream()
                 .map(couponUsage -> new OrderResponse.CouponResponse(
                         couponUsage.getId(),
-                        couponUsage.getCoupon().getCode(),
+                        couponUsage.getCoupon().getCodeCoupon().toString(),
                         couponUsage.getCoupon().getDiscountAmount(),
                         couponUsage.getUsedDate(),
                         couponUsage.getCreatedBy(),
@@ -596,7 +660,47 @@ public class OrderServiceImpl implements OrderService {
 
     }
 
-//        if (order.getIsPos() != null && !order.getIsPos()
+//        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId());
+//        if (shipmentOptional.isPresent()) {
+//            Shipment shipment = shipmentOptional.get();
+//            response.setShipment(new OrderResponse.ShipmentResponse(
+//                    shipment.getId(),
+//                    shipment.getShipmentDate(),
+//                    shipment.getShipmentStatus(),
+//                    shipment.getTrackingNumber(),
+//                    shipment.getCarrier().getName(),
+//                    shipment.getEstimatedDeliveryDate()
+//            ));
+//        }
+
+        shipmentRepository.findByOrderId(order.getId()).stream().findFirst().ifPresent(shipment -> {
+            OrderResponse.ShipmentResponse shipmentResponse = new OrderResponse.ShipmentResponse();
+            shipmentResponse.setId(shipment.getId());
+            shipmentResponse.setShipmentDate(shipment.getShipmentDate());
+            shipmentResponse.setShipmentStatus(String.valueOf(shipment.getShipmentStatus()));
+            shipmentResponse.setTrackingNumber(shipment.getTrackingNumber());
+            shipmentResponse.setCarrierName(shipment.getCarrier().getName());
+            shipmentResponse.setEstimatedDeliveryDate(shipment.getEstimatedDeliveryDate());
+            response.setShipment(shipmentResponse);
+        });
+
+
+
+        response.setItems(orderItemRepository.findByOrderId(order.getId()).stream()
+            .map(orderItem -> {
+                OrderItemResponse orderItemResponse = new OrderItemResponse();
+                orderItemResponse.setId(orderItem.getId());
+                orderItemResponse.setProductId(orderItem.getProduct().getId());
+                orderItemResponse.setProductName(orderItem.getProduct().getName());
+                orderItemResponse.setQuantity(orderItem.getQuantity());
+                orderItemResponse.setUnitPrice(orderItem.getUnitPrice());
+                return  orderItemResponse;
+            }).collect(Collectors.toList()));
+
+    return response;
+
+
+        //        if (order.getIsPos() != null && !order.getIsPos()
 //                && order.getUser() != null && order.getUser().getId() != null){
 //            response.setAddress((OrderResponse.AddressResponse) userAddressMappingRepository.findByUserId(order.getUser().getId()).stream()
 //                    .map(userAddressMapping -> {
@@ -618,35 +722,6 @@ public class OrderServiceImpl implements OrderService {
 //                            }
 //                            ).collect(Collectors.toList()));
 //
-
-
-
-    // Map shipment
-    Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId());
-    if (shipmentOptional.isPresent()) {
-        Shipment shipment = shipmentOptional.get();
-        response.setShipment(new OrderResponse.ShipmentResponse(
-                shipment.getId(),
-                shipment.getShipmentDate(),
-                shipment.getShipmentStatus(),
-                shipment.getTrackingNumber(),
-                shipment.getCarrier(),
-                shipment.getEstimatedDeliveryDate()
-        ));
-    }
-
-    response.setItems(orderItemRepository.findByOrderId(order.getId()).stream()
-            .map(orderItem -> {
-                OrderItemResponse orderItemResponse = new OrderItemResponse();
-                orderItemResponse.setId(orderItem.getId());
-                orderItemResponse.setProductId(orderItem.getProduct().getId());
-                orderItemResponse.setProductName(orderItem.getProduct().getName());
-                orderItemResponse.setQuantity(orderItem.getQuantity());
-                orderItemResponse.setUnitPrice(orderItemResponse.getUnitPrice());
-                return  orderItemResponse;
-            }).collect(Collectors.toList()));
-
-    return response;
 }
 
     private String generateOrderCode() {

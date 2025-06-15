@@ -22,8 +22,11 @@ public class User extends Auditable {
     private Long id;
 
     private String username;
+
     private String password;
+
     private String email;
+
     private String phoneNumber;
 
     private Boolean isActive = true;
@@ -61,4 +64,7 @@ public class User extends Auditable {
     @OneToMany(mappedBy = "user",cascade = CascadeType.REMOVE)
     private List<Token> tokens;
 
+    public User(Long id) {
+        this.id = id;
+    }
 }

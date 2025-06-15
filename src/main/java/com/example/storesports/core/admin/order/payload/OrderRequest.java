@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -16,6 +17,8 @@ public class OrderRequest {
 
     //@Positive(message = "User ID must be positive if provided")
     private Long userId;  // ok
+
+    private String nodes;
 
     //@NotEmpty(message = "Items are required")
     private List<OrderItemRequest> items;  //ok
@@ -57,8 +60,8 @@ public class OrderRequest {
     @Data
     @NoArgsConstructor
     public static class ShipmentRequest {
-        private Long shipmentId;
-        private String carrier;
+//        private Long shipmentId;
+        private Long carrierId;
         private LocalDateTime estimatedDeliveryDate;
         private List<Long> orderItemIds;
     }

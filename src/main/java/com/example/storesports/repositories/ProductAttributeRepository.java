@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface ProductAttributeRepository extends JpaRepository<ProductAttribute,Long>, JpaSpecificationExecutor<ProductAttribute> {
 
-    @Query("select p from  ProductAttribute p order by p.id desc ")
+    @Query("select p from  ProductAttribute p ")
     List<ProductAttribute> findAllProductAttribute();
 
     @Query("select count (p) from ProductAttribute p where p.name=?1")

@@ -20,5 +20,5 @@ public class CustomerResponse {
     private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
     private String addressProvince; // Tỉnh (Quận Long Biên)
     private boolean isActive;
-
+    private String gender;
 }

@@ -142,39 +142,6 @@ public class OrderController {
     }
 
 
-
-
-
-    @GetMapping("/{id}")
-    public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
-        OrderResponse response = orderService.findById(id);
-        return ResponseData.<OrderResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("thông tin của đơn hàng")
-                .data(response)
-                .build();
-    }
-//    @GetMapping("/{id}")
-//    public ResponseData<CategoryResponse> getCategoryById(@PathVariable Long id) {
-//        CategoryResponse categoryResponse = categoryService.findById(id);
-//        return ResponseData.<CategoryResponse>builder()
-//                .status(HttpStatus.OK.value())
-//                .message("Lấy thông tin danh mục thành công")
-//                .data(categoryResponse)
-//                .build();
-//    }
-
-
-    @GetMapping("/pos")
-    public ResponseData<List<OrderResponse>> getAllPosOrders() {
-        List<OrderResponse> orders = orderService.getAll();
-        return ResponseData.<List<OrderResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy danh sách đơn hàng POS thành công")
-                .data(orders)
-                .build();
-    }
-
     @PostMapping
     public ResponseData<OrderResponse> createOrder(@RequestBody CreateInvoiceRequest request) {
         try {
@@ -200,6 +167,17 @@ public class OrderController {
         }
     }
 
+
+    @GetMapping("/pos")
+    public ResponseData<List<OrderResponse>> getAllPosOrders() {
+        List<OrderResponse> orders = orderService.getAll();
+        return ResponseData.<List<OrderResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách đơn hàng POS thành công")
+                .data(orders)
+                .build();
+    }
+
     @PostMapping("/{orderCode}/products")
     public ResponseData<OrderResponse> addProductToOrder(
             @PathVariable String orderCode,
@@ -214,6 +192,16 @@ public class OrderController {
     }
 
 
+    @GetMapping("/{id}")
+    public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
+        OrderResponse response = orderService.findById(id);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("thông tin của đơn hàng")
+                .data(response)
+                .build();
+    }
+
 
     @PostMapping("/{orderCode}/details")
     public ResponseEntity<OrderResponse> addOrderDetails(
@@ -223,11 +211,5 @@ public class OrderController {
         OrderResponse response = orderService.addOrderDetails(orderCode, request);
         return ResponseEntity.ok(response);
     }
-
-
-
-
-
-
 
 }

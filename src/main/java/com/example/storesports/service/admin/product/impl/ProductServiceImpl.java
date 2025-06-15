@@ -34,9 +34,9 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductImageRepository productImageRepository;
 
-    private final  ProductTagRepository productTagRepository;
+    private final ProductTagRepository productTagRepository;
 
-    private final  ProductTagMappingRepository productTagMappingRepository;
+    private final ProductTagMappingRepository productTagMappingRepository;
 
     private final ProductAttributeRepository productAttributeRepository;
 
@@ -45,23 +45,6 @@ public class ProductServiceImpl implements ProductService {
     private final InventoryRepository inventoryRepository;
 
     private final CloudinaryService cloudinaryService;
-
-    @Override
-    public Page<ProductResponse> getAllProducts(int page, int size) {
-        int validatedPage = PageUtils.validatePageNumber(page);
-        int validatedSize = PageUtils.validatePageSize(size, 2);
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-        Page<Product> productPage  = productRepository.findAll(pageable);
-        if(productPage.isEmpty()){
-            return new PageImpl<>(Collections.emptyList(), pageable, 0);
-        }
-        List<ProductResponse> productResponses = productPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-
-        return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
-    }
-
 
     @Override
     public List<ProductResponse> getAllParentProduct() {
@@ -106,8 +89,8 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductResponse> getAllChildProduct() {
         List<Product> productList = productRepository.findAllChildProduct();
-        if(productList.isEmpty()){
-            throw new IllegalArgumentException("Danh Sách Sản Phẩm không tồn tại"+productList);
+        if (productList.isEmpty()) {
+            throw new IllegalArgumentException("Danh Sách Sản Phẩm không tồn tại" + productList);
         }
         return productList.stream()
                 .map(this::mapToResponse)
@@ -160,7 +143,7 @@ public class ProductServiceImpl implements ProductService {
                         .collect(Collectors.toList());
                 productImageRepository.saveAll(parentProductImages);
                 parentProduct.getImages().addAll(parentProductImages);
-                log.info("✅ Đã cập nhật {} ảnh cho sản phẩm cha {}: {}", parentProductImages.size(), parentProduct.getSku(), parentImageUrls);
+                log.info(" Đã cập nhật {} ảnh cho sản phẩm cha {}: {}", parentProductImages.size(), parentProduct.getSku(), parentImageUrls);
             }
         }
 
@@ -206,6 +189,7 @@ public class ProductServiceImpl implements ProductService {
 
         log.info("✅ Đã cập nhật sản phẩm cha {}", parentProduct.getSku());
     }
+
     private void handleTags(ProductUpdateParent request, Product product) {
         if (request.getTagId() == null || request.getTagId().isEmpty()) {
             return;
@@ -223,7 +207,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
         productTagMappingRepository.saveAll(mappings);
     }
-
 
 
     @Override
@@ -266,7 +249,7 @@ public class ProductServiceImpl implements ProductService {
 
             productAttributeValueRepository.saveAll(newAttributeValues);
             childProduct.getProductAttributeValues().addAll(newAttributeValues);
-            log.info("✅ Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+            log.info("Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
         }
 
         // Cập nhật lại tên sản phẩm con sau khi cập nhật thuộc tính
@@ -292,13 +275,13 @@ public class ProductServiceImpl implements ProductService {
 
                 productImageRepository.saveAll(childProductImages);
                 childProduct.getImages().addAll(childProductImages);
-                log.info("✅ Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
+                log.info("Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
             }
         }
 
         // Lưu lại sản phẩm đã cập nhật
         productRepository.save(childProduct);
-        log.info("✅ Đã cập nhật biến thể {}", childProduct.getSku());
+        log.info("Đã cập nhật biến thể {}", childProduct.getSku());
     }
 
     @Override
@@ -310,6 +293,152 @@ public class ProductServiceImpl implements ProductService {
 
     }
 
+    @Override
+    public List<ProductResponse> finByNameProductChild(String name) {
+        List<Product> productList=productRepository.finByNameProductChild(name);
+        List<Product> products=new ArrayList<>();
+        for (Product product:productList) {
+            if(product.getParentProductId()!=null){
+                products.add(product);
+            }
+        }
+        return products.stream().map(product -> mapToResponse(product)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductResponse> finChildProByCateId(Long id) {
+        List<Product> productList=productRepository.findChildProductsByCategoryId(id);
+        return productList.stream().map(product -> mapToResponse(product)).collect(Collectors.toList());
+    }
+
+
+    public List<ProductAttributeValue> getProductAttributeValuesByProductId(Long productId) {
+        return productAttributeValueRepository.findByProductParentProductId(productId);
+    }
+
+    public List<String> getAttributeNamesByIds(List<Long> attributeIds) {
+        return productAttributeRepository.findAllById(attributeIds).stream()
+                .map(ProductAttribute::getName)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    @Transactional
+    public void validateAttributesAndValues(Long productId, List<AddProductChild.ProductAttributeValue> newAttributes) {
+        // 1. Kiểm tra đầu vào cơ bản
+        if (newAttributes == null || newAttributes.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách thuộc tính mới không được để trống.");
+        }
+
+        // 2. Lấy danh sách tất cả các biến thể hiện có của sản phẩm cha
+        List<ProductAttributeValue> existingAttributes = getProductAttributeValuesByProductId(productId);
+        if (existingAttributes.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy biến thể nào cho sản phẩm cha với ID: " + productId);
+        }
+
+        // 3. Lấy product_id của biến thể con đầu tiên
+        Long firstVariantProductId = existingAttributes.stream()
+                .map(ProductAttributeValue::getProduct)
+                .map(Product::getId)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy product_id đầu tiên cho sản phẩm cha với ID: " + productId));
+
+        // 4. Lấy tất cả thuộc tính của biến thể con đầu tiên
+        List<ProductAttributeValue> firstVariantAttributes = existingAttributes.stream()
+                .filter(pav -> pav.getProduct().getId().equals(firstVariantProductId))
+                .sorted(Comparator.comparing(pav -> pav.getAttribute().getId()))
+                .collect(Collectors.toList());
+
+        if (firstVariantAttributes.isEmpty()) {
+            throw new IllegalArgumentException("Không tìm thấy biến thể con đầu tiên để tham chiếu cho sản phẩm cha với ID: " + productId);
+        }
+
+        // 5. Lấy tập hợp attribute_id từ biến thể con đầu tiên
+        Set<Long> firstVariantAttributeIds = firstVariantAttributes.stream()
+                .map(pav -> pav.getAttribute().getId())
+                .collect(Collectors.toSet());
+
+        // 6. Lấy tập hợp attribute_id từ sản phẩm con mới
+        Set<Long> newAttributeIds = newAttributes.stream()
+                .map(AddProductChild.ProductAttributeValue::getAttributeId)
+                .collect(Collectors.toSet());
+
+        // 7. Kiểm tra tập hợp attribute_id phải khớp với biến thể con đầu tiên
+        if (!newAttributeIds.equals(firstVariantAttributeIds)) {
+            List<Long> invalidAttributeIds = new ArrayList<>(newAttributeIds);
+            invalidAttributeIds.removeAll(firstVariantAttributeIds);
+            List<String> invalidAttributeNames = getAttributeNamesByIds(invalidAttributeIds);
+            String errorMessage = "Tập hợp thuộc tính không khớp với biến thể con đầu tiên. Thuộc tính không hợp lệ: " +
+                    (invalidAttributeNames.isEmpty() ? "Số lượng hoặc loại thuộc tính không khớp" : String.join(", ", invalidAttributeNames));
+            log.error(errorMessage + " | newAttributeIds: {} | firstVariantAttributeIds: {}", newAttributeIds, firstVariantAttributeIds);
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        // 8. Kiểm tra tổ hợp giá trị (value) không được trùng với bất kỳ biến thể nào hiện có
+        Map<Long, List<ProductAttributeValue>> groupedByProduct = existingAttributes.stream()
+                .collect(Collectors.groupingBy(pav -> pav.getProduct().getId()));
+        List<List<String>> existingValueCombinations = groupedByProduct.values().stream()
+                .map(list -> list.stream()
+                        .sorted(Comparator.comparing(pav -> pav.getAttribute().getId()))
+                        .map(ProductAttributeValue::getValue)
+                        .collect(Collectors.toList()))
+                .collect(Collectors.toList());
+
+        List<String> newValues = newAttributes.stream()
+                .sorted(Comparator.comparing(AddProductChild.ProductAttributeValue::getAttributeId))
+                .map(attr -> attr.getValue() != null ? attr.getValue().trim() : "")
+                .collect(Collectors.toList());
+
+        // 9. Kiểm tra giá trị không được để trống
+        if (newValues.stream().anyMatch(String::isEmpty)) {
+            throw new IllegalArgumentException("Giá trị thuộc tính không được để trống.");
+        }
+
+        // 10. Kiểm tra tổ hợp giá trị đã tồn tại
+        if (existingValueCombinations.contains(newValues)) {
+            String errorMessage = "Tổ hợp giá trị thuộc tính đã tồn tại: " + String.join(", ", newValues);
+            log.error(errorMessage + " | newValues: {} | existingValueCombinations: {}", newValues, existingValueCombinations);
+            throw new IllegalArgumentException(errorMessage);
+        }
+    }
+
+    private List<String> uploadImagesVariants(AddProductChild.ProductVariant variant) {
+        List<String> imageUrls = new ArrayList<>();
+        if (variant.getImages() != null && !variant.getImages().isEmpty()) {
+            for (MultipartFile image : variant.getImages()) {
+                if (!image.isEmpty()) {
+                    try {
+                        String imageUrl = cloudinaryService.uploadFile(image, "products");
+                        imageUrls.add(imageUrl);
+                    } catch (IOException e) {
+                        log.error("Lỗi khi upload ảnh: {}", e.getMessage());
+                        imageUrls.add("");
+                    }
+                }
+            }
+        }
+        return imageUrls;
+    }
+
+    private List<ProductAttributeValue> mapAttributesToValueVariants(Product product, List<String> combination, List<AddProductChild.ProductAttributeValue> productAttributeValues) {
+        List<ProductAttributeValue> values = new ArrayList<>();
+        List<Long> attributeIds = productAttributeValues.stream()
+                .map(AddProductChild.ProductAttributeValue::getAttributeId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < combination.size(); i++) {
+            ProductAttribute attribute = productAttributeRepository.findById(attributeIds.get(i))
+                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại"));
+            ProductAttributeValue value = new ProductAttributeValue();
+            value.setProduct(product);
+            value.setAttribute(attribute);
+            value.setValue(combination.get(i));
+            values.add(value);
+        }
+        return values;
+    }
     @Override
     public void addVariantsToExistingProduct(AddProductChild child) {
         Product parentProduct = productRepository.findById(child.getParentProductId())
@@ -394,7 +523,6 @@ public class ProductServiceImpl implements ProductService {
 
 
 
-
     private void updateChildProductName(Product childProduct) {
         // Lấy sản phẩm cha
         Product parentProduct = productRepository.findById(childProduct.getParentProductId())
@@ -414,38 +542,6 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
-    @Override
-    public Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest) {
-        int validatedPage = PageUtils.validatePageNumber(page);
-        int validatedSize = PageUtils.validatePageSize(size, 2);
-        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
-        Specification<Product> specification = Specification.where(null);
-
-        if (productSearchRequest.getName() != null && !productSearchRequest.getName().isEmpty()) {
-            specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
-        }
-
-        if (productSearchRequest.getSportType() != null && !productSearchRequest.getSportType().isEmpty()) {
-            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSportType()));
-        }
-        if (productSearchRequest.getSupplierName() != null && !productSearchRequest.getSupplierName().isEmpty()) {
-            specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
-        }
-        if (productSearchRequest.getCategoryName() != null && !productSearchRequest.getCategoryName().isEmpty()) {
-            specification = specification.and(ProductSpecification.findByCategoryName(productSearchRequest.getCategoryName()));
-        }
-        if (productSearchRequest.getMinPrice() != null && productSearchRequest.getMaxPrice() != null) {
-            specification = specification.and(ProductSpecification.hasPriceRange(productSearchRequest.getMinPrice(),productSearchRequest.getMaxPrice()));
-        }
-
-        Page<Product> productPage = productRepository.findAll(specification, pageable);
-
-        List<ProductResponse> productResponses = productPage.getContent().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-
-        return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
-    }
 
     @Override
     @Transactional
@@ -492,8 +588,9 @@ public class ProductServiceImpl implements ProductService {
 
         // Upload và lưu ảnh cho sản phẩm cha
         List<String> parentImageUrls = uploadImages(request.getParentImages());
+        List<ProductImage> parentProductImages = new ArrayList<>();
         if (!parentImageUrls.isEmpty()) {
-            List<ProductImage> parentProductImages = parentImageUrls.stream()
+            parentProductImages = parentImageUrls.stream()
                     .map(url -> {
                         ProductImage productImage = new ProductImage();
                         productImage.setImageUrl(url);
@@ -504,14 +601,21 @@ public class ProductServiceImpl implements ProductService {
             productImageRepository.saveAll(parentProductImages);
             parentProduct.getImages().addAll(parentProductImages);
             productRepository.save(parentProduct);
-            System.out.println(" Đã gán " + parentProductImages.size() + " ảnh cho sản phẩm cha " + parentProduct.getSku() + ": " + parentImageUrls);
+            log.info("Đã gán {} ảnh cho sản phẩm cha {}: {}", parentProductImages.size(), parentProduct.getSku(), parentImageUrls);
         }
 
-        List<Set<String>> attributeValues = request.getProductAttributeValues().stream()
-                .collect(Collectors.groupingBy(
-                        ProductRequest.ProductAttributeValue::getAttributeId,
-                        Collectors.mapping(ProductRequest.ProductAttributeValue::getValue, Collectors.toSet())
-                )).values().stream().collect(Collectors.toList());
+        // Tạo danh sách attributeValues theo đúng thứ tự của productAttributeValues
+        List<Long> attributeIds = request.getProductAttributeValues().stream()
+                .map(ProductRequest.ProductAttributeValue::getAttributeId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<Set<String>> attributeValues = attributeIds.stream()
+                .map(attrId -> request.getProductAttributeValues().stream()
+                        .filter(pav -> pav.getAttributeId().equals(attrId))
+                        .map(ProductRequest.ProductAttributeValue::getValue)
+                        .collect(Collectors.toSet()))
+                .collect(Collectors.toList());
 
         List<List<String>> valueCombinations = generateCombinations(attributeValues);
         int expectedCombinations = attributeValues.stream().mapToInt(Set::size).reduce(1, (a, b) -> a * b);
@@ -532,6 +636,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         List<Product> childProducts = new ArrayList<>();
+        List<ProductImage> allChildProductImages = new ArrayList<>();
         List<ProductAttributeValue> attributeValuesList = new ArrayList<>();
         AtomicInteger variantIndex = new AtomicInteger(0);
 
@@ -548,8 +653,11 @@ public class ProductServiceImpl implements ProductService {
             childProduct.setSupplier(parentProduct.getSupplier());
             childProduct.setCategory(parentProduct.getCategory());
             childProduct.setDeleted(false);
-            String sku = request.getSku() != null && !request.getSku().isEmpty() ? request.getSku() : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
-            childProduct.setSku(sku);
+            String baseSku = request.getSku() != null && !request.getSku().isEmpty()
+                    ? request.getSku()
+                    : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+//            String sku = baseSku + "-" + String.join("-", combination);
+            childProduct.setSku(baseSku);
 
             // Tải ảnh và thêm vào danh sách images của childProduct
             List<String> imageUrls = uploadImages(variant);
@@ -564,24 +672,36 @@ public class ProductServiceImpl implements ProductService {
                 }
             }
 
-            if (childProductImages.isEmpty() && !parentProduct.getImages().isEmpty()) {
-                List<ProductImage> parentImages = parentProduct.getImages();
-                for (ProductImage parentImage : parentImages) {
+            if (childProductImages.isEmpty()) {
+                if (parentProduct.getImages().isEmpty()) {
+                    throw new IllegalStateException("Không có ảnh nào cho sản phẩm cha hoặc sản phẩm con: " + childProduct.getSku());
+                }
+                for (ProductImage parentImage : parentProduct.getImages()) {
                     ProductImage childImage = new ProductImage();
                     childImage.setImageUrl(parentImage.getImageUrl());
                     childImage.setProduct(childProduct);
                     childProductImages.add(childImage);
                     childProduct.getImages().add(childImage);
                 }
-                System.out.println(" Không có ảnh riêng, sử dụng ảnh cha cho biến thể " + childProduct.getSku());
+                log.info("Không có ảnh riêng, sử dụng ảnh cha cho biến thể {}", childProduct.getSku());
             }
 
+            allChildProductImages.addAll(childProductImages);
             childProducts.add(childProduct);
             attributeValuesList.addAll(mapAttributesToValues(childProduct, combination, request.getProductAttributeValues()));
             variantIndex.incrementAndGet();
         }
 
-        productRepository.saveAll(childProducts);
+        List<Product> allProducts = new ArrayList<>();
+        allProducts.add(parentProduct);
+        allProducts.addAll(childProducts);
+        productRepository.saveAll(allProducts);
+
+        List<ProductImage> allImages = new ArrayList<>();
+        allImages.addAll(parentProductImages);
+        allImages.addAll(allChildProductImages);
+        productImageRepository.saveAll(allImages);
+
         productAttributeValueRepository.saveAll(attributeValuesList);
 
         for (Product child : childProducts) {
@@ -589,6 +709,49 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    private List<ProductAttributeValue> mapAttributesToValues(Product product, List<String> combination, List<ProductRequest.ProductAttributeValue> productAttributeValues) {
+        List<ProductAttributeValue> values = new ArrayList<>();
+
+        // Lấy danh sách attributeId theo thứ tự từ productAttributeValues
+        List<Long> attributeIds = productAttributeValues.stream()
+                .map(ProductRequest.ProductAttributeValue::getAttributeId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // Nhóm các giá trị theo attributeId
+        Map<Long, Set<String>> attributeValueMap = new LinkedHashMap<>();
+        for (ProductRequest.ProductAttributeValue pav : productAttributeValues) {
+            attributeValueMap.computeIfAbsent(pav.getAttributeId(), k -> new HashSet<>()).add(pav.getValue());
+        }
+
+        // Kiểm tra xem combination có đủ giá trị không
+        if (combination.size() != attributeIds.size()) {
+            throw new IllegalArgumentException("Số giá trị trong tổ hợp không khớp với số thuộc tính!");
+        }
+
+        // Duyệt qua attributeId theo thứ tự
+        for (int i = 0; i < attributeIds.size(); i++) {
+            Long attributeId = attributeIds.get(i);
+            String value = combination.get(i); // Lấy giá trị từ combination theo đúng vị trí
+
+            // Kiểm tra giá trị hợp lệ
+            Set<String> validValues = attributeValueMap.get(attributeId);
+            if (!validValues.contains(value)) {
+                throw new IllegalArgumentException("Giá trị '" + value + "' không hợp lệ cho attributeId: " + attributeId);
+            }
+
+            // Tạo ProductAttributeValue
+            ProductAttribute attribute = productAttributeRepository.findById(attributeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại: " + attributeId));
+            ProductAttributeValue pav = new ProductAttributeValue();
+            pav.setProduct(product);
+            pav.setAttribute(attribute);
+            pav.setValue(value);
+            values.add(pav);
+        }
+
+        return values;
+    }
 
 
     private Product createParentProduct(ProductRequest request) {
@@ -635,45 +798,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
         productTagMappingRepository.saveAll(mappings);
     }
-
-    private List<ProductAttributeValue> mapAttributesToValueVariants(Product product, List<String> combination, List<AddProductChild.ProductAttributeValue> productAttributeValues) {
-        List<ProductAttributeValue> values = new ArrayList<>();
-        List<Long> attributeIds = productAttributeValues.stream()
-                .map(AddProductChild.ProductAttributeValue::getAttributeId)
-                .distinct()
-                .collect(Collectors.toList());
-
-        for (int i = 0; i < combination.size(); i++) {
-            ProductAttribute attribute = productAttributeRepository.findById(attributeIds.get(i))
-                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại"));
-            ProductAttributeValue value = new ProductAttributeValue();
-            value.setProduct(product);
-            value.setAttribute(attribute);
-            value.setValue(combination.get(i));
-            values.add(value);
-        }
-        return values;
-    }
-
-    private List<ProductAttributeValue> mapAttributesToValues(Product product, List<String> combination, List<ProductRequest.ProductAttributeValue> productAttributeValues) {
-        List<ProductAttributeValue> values = new ArrayList<>();
-        List<Long> attributeIds = productAttributeValues.stream()
-                .map(ProductRequest.ProductAttributeValue::getAttributeId)
-                .distinct()
-                .collect(Collectors.toList());
-
-        for (int i = 0; i < combination.size(); i++) {
-            ProductAttribute attribute = productAttributeRepository.findById(attributeIds.get(i))
-                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại"));
-            ProductAttributeValue value = new ProductAttributeValue();
-            value.setProduct(product);
-            value.setAttribute(attribute);
-            value.setValue(combination.get(i));
-            values.add(value);
-        }
-        return values;
-    }
-
     private void associateImagesWithVariants(List<ProductRequest.ProductVariant> variants, MultipartFile[] images) {
         int imageIndex = 0;
         for (ProductRequest.ProductVariant variant : variants) {
@@ -707,23 +831,7 @@ public class ProductServiceImpl implements ProductService {
         return imageUrls;
     }
 
-    private List<String> uploadImagesVariants(AddProductChild.ProductVariant variant) {
-        List<String> imageUrls = new ArrayList<>();
-        if (variant.getImages() != null && !variant.getImages().isEmpty()) {
-            for (MultipartFile image : variant.getImages()) {
-                if (!image.isEmpty()) {
-                    try {
-                        String imageUrl = cloudinaryService.uploadFile(image, "products");
-                        imageUrls.add(imageUrl);
-                    } catch (IOException e) {
-                        log.error("Lỗi khi upload ảnh: {}", e.getMessage());
-                        imageUrls.add("");
-                    }
-                }
-            }
-        }
-        return imageUrls;
-    }
+
 
     private List<String> uploadImages(ProductRequest.ProductVariant variant) {
         List<String> imageUrls = new ArrayList<>();
@@ -781,6 +889,7 @@ public class ProductServiceImpl implements ProductService {
         response.setName(product.getName());
         response.setDescription(product.getDescription());
         response.setPrice(product.getPrice());
+        response.setOriginalPrice(product.getOriginalPrice());
         response.setStockQuantity(product.getStockQuantity());
         response.setSportType(product.getSportType());
         response.setSku(product.getSku());
@@ -807,6 +916,7 @@ public class ProductServiceImpl implements ProductService {
                         .map(productAttributeValue -> {
                             ProductResponse.ProductAttributeValueResponse optionResponse = new ProductResponse.ProductAttributeValueResponse();
                             optionResponse.setId(productAttributeValue.getId());
+                            optionResponse.setAttributeId(productAttributeValue.getAttribute().getId());
                             optionResponse.setAttributeName(productAttributeValue.getAttribute().getName());
                             optionResponse.setProductId(productAttributeValue.getProduct().getId());
                             optionResponse.setValue(productAttributeValue.getValue());
@@ -873,7 +983,53 @@ public class ProductServiceImpl implements ProductService {
 //    }
 
 
+    @Override
+    public Page<ProductResponse> searchProductsByAttribute(int page, int size, ProductSearchRequest productSearchRequest) {
+        int validatedPage = PageUtils.validatePageNumber(page);
+        int validatedSize = PageUtils.validatePageSize(size, 2);
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+        Specification<Product> specification = Specification.where(null);
 
+        if (productSearchRequest.getName() != null && !productSearchRequest.getName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByName(productSearchRequest.getName()));
+        }
 
+        if (productSearchRequest.getSportType() != null && !productSearchRequest.getSportType().isEmpty()) {
+            specification = specification.and(ProductSpecification.findBySportType(productSearchRequest.getSportType()));
+        }
+        if (productSearchRequest.getSupplierName() != null && !productSearchRequest.getSupplierName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findBySupplierName(productSearchRequest.getSupplierName()));
+        }
+        if (productSearchRequest.getCategoryName() != null && !productSearchRequest.getCategoryName().isEmpty()) {
+            specification = specification.and(ProductSpecification.findByCategoryName(productSearchRequest.getCategoryName()));
+        }
+        if (productSearchRequest.getMinPrice() != null && productSearchRequest.getMaxPrice() != null) {
+            specification = specification.and(ProductSpecification.hasPriceRange(productSearchRequest.getMinPrice(),productSearchRequest.getMaxPrice()));
+        }
+
+        Page<Product> productPage = productRepository.findAll(specification, pageable);
+
+        List<ProductResponse> productResponses = productPage.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
+    }
+
+    @Override
+    public Page<ProductResponse> getAllProducts(int page, int size) {
+        int validatedPage = PageUtils.validatePageNumber(page);
+        int validatedSize = PageUtils.validatePageSize(size, 2);
+        Pageable pageable = PageRequest.of(validatedPage, validatedSize);
+        Page<Product> productPage  = productRepository.findAll(pageable);
+        if(productPage.isEmpty()){
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+        List<ProductResponse> productResponses = productPage.getContent().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(productResponses, pageable, productPage.getTotalElements());
+    }
 
 }

@@ -7,6 +7,6 @@ import lombok.NoArgsConstructor;
 @Getter
 public enum CouponStatus {
     ACTIVE,  //đang hoạt động
-    EXPIRED // kết thưucs
+    EXPIRED // kết thúc
 
     }

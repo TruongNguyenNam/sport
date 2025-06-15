@@ -10,5 +10,4 @@ public class ProductTagRequest {
     private String name;
     private String description;
 
-
 }

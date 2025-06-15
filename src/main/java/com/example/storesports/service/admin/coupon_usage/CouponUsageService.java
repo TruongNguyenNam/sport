@@ -9,8 +9,8 @@ public interface CouponUsageService {
     List<CouponUsageResponse> getCouponsForCustomer(Long customerId);
 
 
+    CouponUsageResponse addCouponToCustomer(Long userId, Long couponId);
 
-
-
+    List<CouponUsageResponse> addCouponToMultipleCustomers(List<Long> userIds, Long couponId);
 
 }
