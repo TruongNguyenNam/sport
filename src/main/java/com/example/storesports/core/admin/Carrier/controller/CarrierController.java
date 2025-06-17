@@ -1,4 +1,4 @@
-package com.example.storesports.core.admin.carrier.controller;
+package com.example.storesports.core.admin.Carrier.controller;
 
 import com.example.storesports.core.admin.carrier.payload.CarrierResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
