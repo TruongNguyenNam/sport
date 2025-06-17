@@ -46,9 +46,24 @@ public class IJWTTokenService implements JWTTokenService {
     @Value("${jwt.token.refresh.expiration.time}")
     private Long REFRESH_EXPIRATION_TIME;
 
+//    private Key getSigningKey() {
+//        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+//        return Keys.hmacShaKeyFor(keyBytes);
+//    }
+
     private Key getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        try {
+            byte[] keyBytes = jwtSecret.getBytes("UTF-8");
+            log.info("JWT Secret Key length: {} bytes", keyBytes.length);
+            if (keyBytes.length < 64) {
+                log.error("JWT secret key is too short: {} bytes, required at least 64 bytes for HS512", keyBytes.length);
+                throw new IllegalArgumentException("JWT secret key must be at least 64 bytes for HS512");
+            }
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (Exception e) {
+            log.error("Error creating signing key: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create signing key", e);
+        }
     }
 
 

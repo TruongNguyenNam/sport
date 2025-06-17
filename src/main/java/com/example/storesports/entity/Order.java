@@ -25,7 +25,7 @@ public class Order extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
-        private String orderCode;
+        private String orderCode; // mã code
 
         private Double orderTotal; // tổng số tiền
 
@@ -33,9 +33,9 @@ public class Order extends Auditable {
 
         private Boolean isPos;  // true là bán thường // false là bán ship
 
-        private String nodes;
+        private String nodes;  //
 
-        private Boolean deleted;  // xoá mềm
+        private Boolean deleted;  // xoá mềm neeus va true
 
         @Enumerated(EnumType.STRING)
         private OrderStatus orderStatus;
