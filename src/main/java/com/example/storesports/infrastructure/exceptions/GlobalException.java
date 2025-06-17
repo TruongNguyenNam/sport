@@ -1,5 +1,6 @@
 package com.example.storesports.infrastructure.exceptions;
 
+import com.example.storesports.infrastructure.utils.ResponseData;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -9,6 +10,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,76 +24,107 @@ import java.util.Map;
 @Slf4j
 public class GlobalException {
 
-//    @ExceptionHandler(IllegalArgumentException.class)
-//    public ResponseEntity<ResponseUtils.ApiResponse<String>> handleIllegalArgument(IllegalArgumentException e) {
-//        log.error("Validation error: {}", e.getMessage());
-//        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-//                .body(ResponseUtils.ApiResponse.error(e.getMessage()));
-//    }
-//
+    @ExceptionHandler({ResponseStatusException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseData<String> handleValidationException(Exception e) {
+        log.error("Validation error: {}", e.getMessage());
+        return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "Dữ liệu không hợp lệ: " + e.getMessage());
+    }
+
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ResponseData<Map<String, String>>> handleIllegalArgument(IllegalArgumentException e) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("name", e.getMessage()); // key có thể thay theo field tương ứng
+        return ResponseEntity.badRequest().body(
+                new ResponseData<>(400, "Dữ liệu không hợp lệ", errors)
+        );
+    }
+
+    // Xử lý lỗi hệ thống chung
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseData<String> handleException(Exception e) {
+        log.error("Internal server error: {}", e.getMessage(), e);
+        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi hệ thống, vui lòng thử lại sau");
+    }
+
+    @ExceptionHandler(NameNotExists.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseData<Map<String, String>> handleNameNotExists(NameNotExists e) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("name", e.getMessage());
+        return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "Tên đã tồn tại", errors);
+    }
+
+
+    @ExceptionHandler(AttributeValueDuplicate.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseData<String> handleErrorAttributeValueDuplicate(AttributeValueDuplicate ex) {
+        log.warn("Conflict error: {}", ex.getMessage());
+        return new ResponseData<>(HttpStatus.CONFLICT.value(), ex.getMessage());
+    }
+
+    // Xử lý lỗi hệ thống chung
 //    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ResponseUtils.ApiResponse<String>> handleException(Exception e) {
+//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+//    public ResponseData<String> handleException(Exception e) {
 //        log.error("Internal server error: {}", e.getMessage(), e);
-//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(ResponseUtils.ApiResponse.error("Lỗi hệ thống: " + e.getMessage()));
+//        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi hệ thống: " + e.getMessage());
 //    }
 
+    // Xử lý lỗi quyền truy cập
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<String> handleAccessDenied(AccessDeniedException ex) {
-        return new ResponseEntity<>("Lỗi quyền truy cập: " + ex.getMessage(), HttpStatus.FORBIDDEN);
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ResponseData<String> handleAccessDenied(AccessDeniedException ex) {
+        return new ResponseData<>(HttpStatus.FORBIDDEN.value(), "Lỗi quyền truy cập: " + ex.getMessage());
     }
 
+    // Xử lý lỗi người dùng không tồn tại
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<String> handleUsernameNotFound(UsernameNotFoundException ex) {
-        return new ResponseEntity<>("Người dùng không tồn tại: " + ex.getMessage(), HttpStatus.NOT_FOUND);
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseData<String> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return new ResponseData<>(HttpStatus.NOT_FOUND.value(), "Người dùng không tồn tại: " + ex.getMessage());
     }
-        @ExceptionHandler(ResponseStatusException.class)
-        public ResponseEntity<Map<String, String>> handleResponseStatusException(ResponseStatusException ex) {
-            Map<String, String> errorBody = new HashMap<>();
-            errorBody.put("message", ex.getReason());
-            return ResponseEntity.status(ex.getStatusCode()).body(errorBody);
-        }
+
+    // Xử lý lỗi ResponseStatusException
+//    @ExceptionHandler(ResponseStatusException.class)
+//    public ResponseData<String> handleResponseStatusException(ResponseStatusException ex) {
+//        return new ResponseData<>(ex.getStatusCode().value(), ex.getReason());
+//    }
+
+    // Xử lý lỗi validate tham số
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseData<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return errors;
+        return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "Dữ liệu không hợp lệ", errors);
     }
 
-
+    // Xử lý lỗi ràng buộc cơ sở dữ liệu
     @ExceptionHandler(ConstraintViolationException.class)
-    public Map<String, String> handleConstraintViolationException(ConstraintViolationException ex) {
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ResponseData<Map<String, String>> handleConstraintViolationException(ConstraintViolationException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getConstraintViolations().forEach(violation -> {
             String fieldName = violation.getPropertyPath().toString();
             String errorMessage = violation.getMessage();
             errors.put(fieldName, errorMessage);
         });
-        return errors;
+        return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "Dữ liệu không hợp lệ", errors);
     }
 
-    @ExceptionHandler( ErrorException.class)
-    public ResponseEntity<Object> handleNoHandlerFoundException(
-            ErrorException exception
-    ){
-
-        System.out.println(exception.getMessage());
-        return new ResponseEntity<>(exception.getMessage(), HttpStatus.BAD_REQUEST);
-
-    }
-
+    // Xử lý lỗi vi phạm ràng buộc SQL
     @ExceptionHandler(SQLIntegrityConstraintViolationException.class)
-    public ResponseEntity<Object> handleNoHandlerFoundException(
-            SQLIntegrityConstraintViolationException exception
-    ){
-
-        System.out.println(exception.getMessage());
-        return new ResponseEntity<>(exception.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseData<String> handleSQLIntegrityConstraintViolation(SQLIntegrityConstraintViolationException ex) {
+        log.error("SQL constraint violation: {}", ex.getMessage());
+        return new ResponseData<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Lỗi cơ sở dữ liệu: " + ex.getMessage());
     }
 
     // checktrung

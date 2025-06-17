@@ -38,28 +38,40 @@ public class JWTAuthorizationFilter extends GenericFilterBean {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        log.info("Tên Header: {}", authorizationHeader);
-        log.info("Tiền tố Token: {}", tokenPrefix);
+        // Lấy đường dẫn yêu cầu
+        String requestPath = request.getRequestURI();
+        log.info("Request URI: {}", requestPath);
+
+        // Bỏ qua filter cho các endpoint công khai
+        if (requestPath.startsWith("/api/v1/auth/register") || requestPath.startsWith("/api/v1/auth/login")) {
+            log.debug("Bỏ qua JWT filter cho endpoint: {}", requestPath);
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = request.getHeader(authorizationHeader);
         log.info("Raw Authorization Header: {}", token);
 
-        if (token != null && token.startsWith(tokenPrefix + " ")) {
-            try {
-                String jwtToken = token.replace(tokenPrefix + " ", "").trim();
-                log.info("Extracted JWT Token: {}", jwtToken);
-
-                Authentication authentication = ijwtTokenService.parseTokenToUserInformation(request);
-                if (authentication != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    log.info("Đã đặt Authentication cho user: {}", authentication.getName());
-                } else {
-                    log.warn("Authentication null hoặc đã được đặt");
-                }
-            } catch (Exception e) {
-                log.error("Lỗi xử lý JWT: {}", e.getMessage(), e);
-            }
-        } else {
+        // Bỏ qua nếu không có token hoặc token không bắt đầu bằng "Bearer "
+        if (token == null || !token.startsWith(tokenPrefix + " ")) {
             log.debug("Không tìm thấy JWT token hợp lệ trong header");
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        try {
+            String jwtToken = token.replace(tokenPrefix + " ", "").trim();
+            log.info("Extracted JWT Token: {}", jwtToken);
+
+            Authentication authentication = ijwtTokenService.parseTokenToUserInformation(request);
+            if (authentication != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                log.info("Đã đặt Authentication cho user: {}", authentication.getName());
+            } else {
+                log.warn("Authentication null hoặc đã được đặt");
+            }
+        } catch (Exception e) {
+            log.error("Lỗi xử lý JWT: {}", e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);

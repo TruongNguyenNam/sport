@@ -2,7 +2,9 @@ package com.example.storesports.core.admin.product.controller;
 
 import com.example.storesports.core.admin.product.payload.*;
 import com.example.storesports.entity.Product;
+import com.example.storesports.infrastructure.exceptions.AttributeValueDuplicate;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
+import com.example.storesports.infrastructure.exceptions.NameNotExists;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.product.ProductService;
@@ -13,6 +15,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
@@ -28,10 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "api/v1/admin/product")
@@ -42,7 +43,7 @@ import java.util.Map;
 public class ProductController {
     private final ProductService productService;
     private final ObjectMapper objectMapper;
-
+    private final Validator validator;
 
     @GetMapping("/parent")
     public ResponseData<List<ProductResponse>> getAllParentProducts() {
@@ -53,7 +54,6 @@ public class ProductController {
                 .data(products)
                 .build();
     }
-
 
     @PostMapping(value = "/{parentProductId}/variants", consumes = {"multipart/form-data"})
     public ResponseData<Void> addVariantsToProduct(
@@ -93,7 +93,7 @@ public class ProductController {
                     .status(HttpStatus.CREATED.value())
                     .message("Thêm biến thể sản phẩm thành công")
                     .build();
-        } catch (JsonProcessingException e) {
+        } catch (ErrorException e) {
             log.error("Error parsing AddProductChild request", e);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu JSON không hợp lệ");
         } catch (IllegalArgumentException e) {
@@ -124,6 +124,19 @@ public class ProductController {
             if (requests.isEmpty()) {
                 throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
             }
+            for (int i = 0; i < requests.size(); i++) {
+                ProductRequest req = requests.get(i);
+                Set<ConstraintViolation<ProductRequest>> violations = validator.validate(req);
+
+                if (!violations.isEmpty()) {
+                    Map<String, String> errors = new HashMap<>();
+                    for (ConstraintViolation<ProductRequest> violation : violations) {
+                        String path = "products[" + i + "]." + violation.getPropertyPath();
+                        errors.put(path, violation.getMessage());
+                    }
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errors.toString());
+                }
+            }
 
             ProductRequest request = requests.get(0);
             if (parentImages != null && parentImages.length > 0) {
@@ -152,17 +165,17 @@ public class ProductController {
                     .status(HttpStatus.OK.value())
                     .message("Thêm sản phẩm thành công")
                     .build();
-        } catch (JsonProcessingException e) {
-            log.error("Error parsing product request", e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu không hợp lệ");
+        } catch (NameNotExists e) {
+            log.warn("Lỗi nghiệp vụ - Tên sản phẩm đã tồn tại: {}", e.getMessage());
+            throw e; // Ném lại để GlobalException xử lý
+        } catch (IllegalArgumentException e) {
+            log.warn("Lỗi tham số không hợp lệ: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
-            log.error("Unexpected error while creating product", e);
+            log.error("Unexpected error while creating product: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
-
-
-
 
 
     @GetMapping("/child")
@@ -180,48 +193,85 @@ public class ProductController {
             @PathVariable Long id,
             @RequestParam("product") String productJson,
             @RequestParam(value = "parentImages", required = false) MultipartFile[] parentImages) {
+
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             ProductUpdateParent request = objectMapper.readValue(productJson, ProductUpdateParent.class);
+
             if (parentImages != null) {
                 request.setParentImages(List.of(parentImages));
             }
+
             productService.updateParentProduct(id, request);
+
             return ResponseData.<Void>builder()
                     .status(HttpStatus.OK.value())
                     .message("Cập nhật sản phẩm cha thành công")
                     .build();
-        } catch (Exception e) {
-            return ResponseData.<Void>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
+
+        }
+        catch (NameNotExists e) {
+            throw e;
+        }
+        catch (Exception e) {
+            log.error("Unexpected error while updating parent product", e);
+            throw new RuntimeException("Lỗi hệ thống, vui lòng thử lại sau", e);
         }
     }
 
+
+
     @PutMapping("/child/{id}")
-    public ResponseData<Void> updateChildProduct(
+    public ResponseEntity<ResponseData<?>> updateChildProduct(
             @PathVariable Long id,
             @RequestParam("product") String productJson,
             @RequestParam(value = "images", required = false) MultipartFile[] images) {
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
             ProductUpdateChild request = objectMapper.readValue(productJson, ProductUpdateChild.class);
+
             if (images != null) {
                 request.setImages(List.of(images));
             }
+
+            Set<ConstraintViolation<ProductUpdateChild>> violations = validator.validate(request);
+
+            if (!violations.isEmpty()) {
+                Map<String, String> errors = new HashMap<>();
+                for (ConstraintViolation<?> violation : violations) {
+                    errors.put(violation.getPropertyPath().toString(), violation.getMessage());
+                }
+
+                return ResponseEntity
+                        .status(HttpStatus.BAD_REQUEST)
+                        .body(ResponseData.builder()
+                                .status(HttpStatus.BAD_REQUEST.value())
+                                .message("Dữ liệu không hợp lệ")
+                                .data(errors)
+                                .build());
+            }
+
             productService.updateChildProduct(id, request);
-            return ResponseData.<Void>builder()
-                    .status(HttpStatus.OK.value())
-                    .message("Cập nhật biến thể thành công")
-                    .build();
+
+            return ResponseEntity.ok(
+                    ResponseData.<Void>builder()
+                            .status(HttpStatus.OK.value())
+                            .message("Cập nhật sản phẩm con thành công")
+                            .build()
+            );
+
+        } catch (AttributeValueDuplicate | IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
-            return ResponseData.<Void>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
+            log.error("Unexpected error", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ResponseData.builder()
+                            .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                            .message("Lỗi hệ thống, vui lòng thử lại sau")
+                            .build());
         }
     }
+
+
+
 
 
 

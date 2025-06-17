@@ -46,6 +46,9 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
         return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+
+
+
     @Override
     public List<ProductResponseClient> findByParentProductId(Long id) {
         List<Product> productList = productRepository.findByParentProductId(id);
@@ -55,8 +58,18 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
         return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
+    @Override
+    public List<ProductResponseClient> findByCategoryName(String name) {
+        List<Product> productList = productRepository.findByCategoryName(name);
+        if(productList.isEmpty()){
+            throw new IllegalArgumentException("danh sách sản phẩm chưa có");
+        }
 
+        return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
 
+    }
+
+    // cái này là xem chi tiết
 
 
 
