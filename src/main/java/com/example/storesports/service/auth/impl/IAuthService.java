@@ -58,7 +58,7 @@ public class IAuthService implements AuthService {
         User user = modelMapper.map(registerForm, User.class);
         user.setPassword(passwordEncoder.encode(registerForm.getPassword()));
         user.setEmail(registerForm.getEmail());
-        user.setRole(Role.ADMIN);
+        user.setRole(Role.CUSTOMER);
         User savedUser = userRepository.save(user);
         UserResponse userResponse = modelMapper.map(savedUser, UserResponse.class);
         userResponse.setMessage("Đăng ký thành công.");
