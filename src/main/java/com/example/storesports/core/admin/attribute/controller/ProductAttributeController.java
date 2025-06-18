@@ -14,7 +14,7 @@ import java.util.List;
 @RequestMapping("/api/v1/admin/attribute")
 @RequiredArgsConstructor
 public class ProductAttributeController {
-        private final AttributeService attributeService;
+    private final AttributeService attributeService;
 
     @GetMapping("/{id}")
     public ResponseData<ProductAttributeResponse> getProductAttributeById(@PathVariable Long id) {
@@ -26,35 +26,35 @@ public class ProductAttributeController {
                 .build();
     }
 
-        @GetMapping
-        public ResponseData<List<ProductAttributeResponse>> getAllProductAttribute(){
-            List<ProductAttributeResponse> productAttributeResponses = attributeService.findAllProductAttribute();
-            return ResponseData.<List<ProductAttributeResponse>>builder()
-                    .status(HttpStatus.OK.value())
-                    .message("lấy danh sách thuộc tính thành công")
-                    .data(productAttributeResponses)
-                    .build();
-        }
+    @GetMapping
+    public ResponseData<List<ProductAttributeResponse>> getAllProductAttribute(){
+        List<ProductAttributeResponse> productAttributeResponses = attributeService.findAllProductAttribute();
+        return ResponseData.<List<ProductAttributeResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("lấy danh sách thuộc tính thành công")
+                .data(productAttributeResponses)
+                .build();
+    }
 
 
 
-        @PostMapping("/save")
-        public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
+    @PostMapping("/save")
+    public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
         ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
         return ResponseData.<ProductAttributeResponse>builder().status(200)
                 .message("tạo thành công")
                 .data(productAttributeResponse)
                 .build();
-        }
+    }
 
-        @PutMapping("/update/{id}")
-        public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
-            ProductAttributeResponse productAttributeResponse = attributeService.update(id, productAttributeRequest);
-            return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
-                    .message("update thành công")
-                    .status(200).build();
+    @PutMapping("/update/{id}")
+    public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
+        ProductAttributeResponse productAttributeResponse = attributeService.update(id, productAttributeRequest);
+        return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
+                .message("update thành công")
+                .status(200).build();
 
-        }
+    }
 
 
 }

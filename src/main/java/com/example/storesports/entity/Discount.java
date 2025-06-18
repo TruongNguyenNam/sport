@@ -8,13 +8,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
-
-
-
-
 import java.time.LocalDateTime;
-
+import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Discount")
@@ -26,29 +22,14 @@ public class Discount extends Auditable {
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
-
         private String name;
-
         private Double discountPercentage;
-
-
-       private Double priceThreshold;
-
+        private Double priceThreshold;
         private LocalDateTime startDate;
-
         private LocalDateTime endDate;
-
-
-
         @Enumerated(EnumType.STRING)
         private DiscountStatus status;
-
-
         private Boolean deleted; // 0 là chưa xoá, còn hạn  // 1
-
-
-
-
 
 
 }

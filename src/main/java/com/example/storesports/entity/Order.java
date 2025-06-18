@@ -29,7 +29,7 @@ public class Order extends Auditable {
 
         private Double orderTotal; // tổng số tiền
 
-        private Date orderDate;
+        private Date orderDate; // ngày thang năm
 
         private Boolean isPos;  // true là bán thường // false là bán ship
 

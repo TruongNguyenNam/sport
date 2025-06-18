@@ -1,12 +1,15 @@
 package com.example.storesports.repositories;
 
 
+import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,5 +21,118 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
     @Query("select p from Order p where p.isPos = false")
     List<Order> findAllOrderIsPos();
+
+    //Doanh Thu Theo Ngày
+    @Query(
+            value = "SELECT DATE(o.order_date) AS day, SUM(o.order_total) AS total_revenue " +
+                    "FROM `order` o " +
+                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "AND DATE(o.order_date) = CURDATE() " +
+                    "GROUP BY day",
+            nativeQuery = true
+    )
+    DailyRevenueProjection getTodayRevenue();
+
+
+    //Theo Tháng
+    @Query(
+            value = "SELECT DATE_FORMAT(o.order_date, '%Y-%m') AS month, SUM(o.order_total) AS total_revenue " +
+                    "FROM `order` o " +
+                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "AND YEAR(o.order_date) = YEAR(CURDATE()) " +
+                    "AND MONTH(o.order_date) = MONTH(CURDATE()) " +
+                    "GROUP BY month",
+            nativeQuery = true
+    )
+    MonthlyRevenueProjection getCurrentMonthRevenue();
+
+
+    //Theo Năm
+    @Query(
+            value = "SELECT YEAR(o.order_date) AS year, SUM(o.order_total) AS total_revenue " +
+                    "FROM `order` o " +
+                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "AND YEAR(o.order_date) = YEAR(CURDATE()) " +
+                    "GROUP BY year",
+            nativeQuery = true
+    )
+    YearlyRevenueProjection getCurrentYearRevenue();
+
+    //Hàng Huỷ theo ngày
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' AND DATE(o.orderDate) = CURRENT_DATE")
+    Long countCancelledOrdersToday();
+
+    //Hàng Huỷ theo tháng
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
+            "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countCancelledOrdersThisMonth();
+
+    //Hàng Huỷ theo năm
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countCancelledOrdersThisYear();
+
+    //đơn Hàng đã hoàn thành theo ngày
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' AND DATE(o.orderDate) = CURRENT_DATE")
+    Long countCompletedOrdersToday();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+            "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countCompletedOrdersThisMonth();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countCompletedOrdersThisYear();
+
+
+    //
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'RETURNED' AND DATE(o.orderDate) = CURRENT_DATE")
+    Long countReturnedOrdersToday();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'RETURNED' " +
+            "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countReturnedOrdersThisMonth();
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'RETURNED' " +
+            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    Long countReturnedOrdersThisYear();
+
+    //test
+    @Query(value = "SELECT SUM(o.order_total) FROM `order` o " +
+            "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+            "AND o.order_date BETWEEN :startDate AND :endDate", nativeQuery = true)
+    Double getRevenueBetweenDates(@Param("startDate") LocalDateTime startDate,
+                                  @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
+            "AND o.orderDate BETWEEN :startDate AND :endDate")
+    Long countCancelledOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+            "AND o.orderDate BETWEEN :startDate AND :endDate")
+    Long countCompletedOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
+                                          @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'RETURNED' " +
+            "AND o.orderDate BETWEEN :startDate AND :endDate")
+    Long countReturnedOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
+                                         @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT MONTH(o.orderDate) AS month, o.isPos AS isPos, COUNT(o) AS totalOrders " +
+            "FROM Order o " +
+            "WHERE o.deleted = true AND o.orderDate IS NOT NULL " +
+            "GROUP BY MONTH(o.orderDate), o.isPos " +
+            "ORDER BY MONTH(o.orderDate)")
+    List<MonthlyOrderTypeProjection> getMonthlyOrderTypeStats();
+
+
+
+
+
+
 
 }
