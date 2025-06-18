@@ -21,11 +21,4 @@ public interface CouponRepository extends JpaRepository<Coupon, Long>, JpaSpecif
     @Query("SELECT c FROM Coupon c WHERE c.deleted = false AND c.couponStatus = 'ACTIVE' ORDER BY c.id desc")
     List<Coupon> getAllActiveCoupons();
 
-    @Query("SELECT c \n" +
-            "FROM Coupon c \n" +
-            "WHERE c.deleted = false \n" +
-            "  AND c.quantity > 0 order by c.id desc")
-    List<Coupon> getAllCoupon();
-
 }
-

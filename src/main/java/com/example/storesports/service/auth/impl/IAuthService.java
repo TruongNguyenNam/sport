@@ -65,6 +65,4 @@ public class IAuthService implements AuthService {
         userResponse.setRole("USER");
         return userResponse;
     }
-
-
 }

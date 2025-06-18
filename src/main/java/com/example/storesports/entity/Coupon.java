@@ -35,9 +35,6 @@ public class Coupon extends Auditable {
         @Enumerated(EnumType.STRING)
         private CouponStatus couponStatus;
 
-        @Min(1)
-        private Integer quantity;
-
         private LocalDateTime startDate;
 
         private LocalDateTime expirationDate;

@@ -1,6 +1,5 @@
 package com.example.storesports.core.client.product.controller;
 
-import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.client.product.payload.ProductResponseClient;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.client.product.ProductClientService;
@@ -9,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -46,17 +42,21 @@ public class ProductClientController {
                 .build();
     }
 
+    @GetMapping("/collection")
+    public ResponseData<List<ProductResponseClient>> findByCategoryName(@RequestParam(required = false) String category){
+        List<ProductResponseClient> result;
 
-
-
-    
-
-
-
-
-
-
-
+        if (category != null) {
+            result = productClientService.findByCategoryName(category);
+        } else {
+            result = productClientService.getAllProduct();
+        }
+        return ResponseData.<List<ProductResponseClient>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Tìm kiếm danh sách sản phẩm theo danh mục thành công")
+                .data(result)
+                .build();
+    }
 
 
 
