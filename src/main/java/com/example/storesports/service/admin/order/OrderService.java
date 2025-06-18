@@ -36,4 +36,7 @@ public interface OrderService {
      //test
      CustomStatisticalResponse getStatisticsBetween(LocalDate startDate, LocalDate endDate);
 
+     List<MonthlyOrderTypeResponse> getMonthlyOrderChart();
+
+
 }

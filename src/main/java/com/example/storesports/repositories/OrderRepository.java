@@ -1,10 +1,7 @@
 package com.example.storesports.repositories;
 
 
-import com.example.storesports.core.admin.order.payload.DailyRevenueProjection;
-import com.example.storesports.core.admin.order.payload.MonthlyRevenueProjection;
-import com.example.storesports.core.admin.order.payload.MonthlyRevenueResponse;
-import com.example.storesports.core.admin.order.payload.YearlyRevenueProjection;
+import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -124,6 +121,17 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
             "AND o.orderDate BETWEEN :startDate AND :endDate")
     Long countReturnedOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT MONTH(o.orderDate) AS month, o.isPos AS isPos, COUNT(o) AS totalOrders " +
+            "FROM Order o " +
+            "WHERE o.deleted = true AND o.orderDate IS NOT NULL " +
+            "GROUP BY MONTH(o.orderDate), o.isPos " +
+            "ORDER BY MONTH(o.orderDate)")
+    List<MonthlyOrderTypeProjection> getMonthlyOrderTypeStats();
+
+
+
+
 
 
 

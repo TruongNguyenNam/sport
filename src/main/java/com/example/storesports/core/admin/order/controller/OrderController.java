@@ -18,6 +18,87 @@ import java.util.List;
 public class OrderController {
     private final OrderService orderService;
 
+    @PostMapping
+    public ResponseData<OrderResponse> createOrder(@RequestBody CreateInvoiceRequest request) {
+        try {
+            OrderResponse response = orderService.createInvoice(request);
+            return ResponseData.<OrderResponse>builder()
+                    .status(HttpStatus.CREATED.value())
+                    .message("Tạo đơn hàng thành công")
+                    .data(response)
+                    .build();
+        } catch (IllegalArgumentException e) {
+            return ResponseData.<OrderResponse>builder()
+                    .status(HttpStatus.BAD_REQUEST.value())
+                    .message("Yêu cầu không hợp lệ: " + e.getMessage())
+                    .data(null)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseData.<OrderResponse>builder()
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Lỗi server: " + e.getMessage())
+                    .data(null)
+                    .build();
+        }
+    }
+
+
+    @GetMapping("/pos")
+    public ResponseData<List<OrderResponse>> getAllPosOrders() {
+        List<OrderResponse> orders = orderService.getAll();
+        return ResponseData.<List<OrderResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách đơn hàng POS thành công")
+                .data(orders)
+                .build();
+    }
+
+    @PostMapping("/{orderCode}/products")
+    public ResponseData<OrderResponse> addProductToOrder(
+            @PathVariable String orderCode,
+            @RequestBody OrderRequest request) {
+        request.setOrderCode(orderCode);
+        OrderResponse response = orderService.addProductToOrder(request);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thêm sản phẩm vào đơn hàng thành công")
+                .data(response)
+                .build();
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
+        OrderResponse response = orderService.findById(id);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("thông tin của đơn hàng")
+                .data(response)
+                .build();
+    }
+
+
+    @PostMapping("/{orderCode}/details")
+    public ResponseEntity<OrderResponse> addOrderDetails(
+            @PathVariable String orderCode,
+            @RequestBody OrderRequest request
+    ) {
+        OrderResponse response = orderService.addOrderDetails(orderCode, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/chart/monthly-orders")
+    public ResponseData<List<MonthlyOrderTypeResponse>> getMonthlyOrderChart() {
+        List<MonthlyOrderTypeResponse> data = orderService.getMonthlyOrderChart();
+        return ResponseData.<List<MonthlyOrderTypeResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thống kê đơn hàng theo tháng (bán thường & ship)")
+                .data(data)
+                .build();
+    }
+
+
     // Thống Ke doanh thu theo tháng với trạng thái đã hoàn thành và đã thanh toán
     @GetMapping("/revenue/daily")
     public ResponseData<List<DailyRevenueResponse>> getDailyRevenue() {
@@ -139,77 +220,6 @@ public class OrderController {
                 .message("Thống kê doanh thu và đơn hàng trong khoảng thời gian")
                 .data(orderService.getStatisticsBetween(fromDate, toDate))
                 .build();
-    }
-
-
-    @PostMapping
-    public ResponseData<OrderResponse> createOrder(@RequestBody CreateInvoiceRequest request) {
-        try {
-            OrderResponse response = orderService.createInvoice(request);
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.CREATED.value())
-                    .message("Tạo đơn hàng thành công")
-                    .data(response)
-                    .build();
-        } catch (IllegalArgumentException e) {
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message("Yêu cầu không hợp lệ: " + e.getMessage())
-                    .data(null)
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("Lỗi server: " + e.getMessage())
-                    .data(null)
-                    .build();
-        }
-    }
-
-
-    @GetMapping("/pos")
-    public ResponseData<List<OrderResponse>> getAllPosOrders() {
-        List<OrderResponse> orders = orderService.getAll();
-        return ResponseData.<List<OrderResponse>>builder()
-                .status(HttpStatus.OK.value())
-                .message("Lấy danh sách đơn hàng POS thành công")
-                .data(orders)
-                .build();
-    }
-
-    @PostMapping("/{orderCode}/products")
-    public ResponseData<OrderResponse> addProductToOrder(
-            @PathVariable String orderCode,
-            @RequestBody OrderRequest request) {
-        request.setOrderCode(orderCode);
-        OrderResponse response = orderService.addProductToOrder(request);
-        return ResponseData.<OrderResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Thêm sản phẩm vào đơn hàng thành công")
-                .data(response)
-                .build();
-    }
-
-
-    @GetMapping("/{id}")
-    public ResponseData<OrderResponse> findById(@PathVariable(name = "id") Long id){
-        OrderResponse response = orderService.findById(id);
-        return ResponseData.<OrderResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("thông tin của đơn hàng")
-                .data(response)
-                .build();
-    }
-
-
-    @PostMapping("/{orderCode}/details")
-    public ResponseEntity<OrderResponse> addOrderDetails(
-            @PathVariable String orderCode,
-            @RequestBody OrderRequest request
-    ) {
-        OrderResponse response = orderService.addOrderDetails(orderCode, request);
-        return ResponseEntity.ok(response);
     }
 
 }

@@ -58,6 +58,36 @@ public class OrderServiceImpl implements OrderService {
 
     private final ShipmentItemRepository shipmentItemRepository;
 
+    private final CarrierRepository carrierRepository;
+    @Override
+    public List<MonthlyOrderTypeResponse> getMonthlyOrderChart() {
+        List<MonthlyOrderTypeProjection> projections = orderRepository.getMonthlyOrderTypeStats();
+
+        Map<Integer, MonthlyOrderTypeResponse> result = new HashMap<>();
+
+        for (MonthlyOrderTypeProjection p : projections) {
+            int month = p.getMonth();
+            boolean isPos = Boolean.TRUE.equals(p.getIsPos());
+            Long total = p.getTotalOrders();
+
+            // Nếu chưa có tháng này, tạo mới
+            MonthlyOrderTypeResponse data = result.getOrDefault(month, new MonthlyOrderTypeResponse(month, 0L, 0L));
+
+            if (isPos) {
+                data.setPosOrders(total); // bán thường
+            } else {
+                data.setShipOrders(total); // bán ship
+            }
+
+            result.put(month, data);
+        }
+
+        return result.values().stream()
+                .sorted(Comparator.comparingInt(MonthlyOrderTypeResponse::getMonth))
+                .collect(Collectors.toList());
+    }
+
+
     //Doanh Thu
     @Override
     public List<DailyRevenueResponse> getDailyRevenue() {
@@ -180,8 +210,6 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-
-    private final CarrierRepository carrierRepository;
 
 
     @Override
