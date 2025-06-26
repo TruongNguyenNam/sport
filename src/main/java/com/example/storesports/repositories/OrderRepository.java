@@ -3,6 +3,7 @@ package com.example.storesports.repositories;
 
 import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.entity.Order;
+import com.example.storesports.infrastructure.constant.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,11 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query("SELECT o FROM Order o WHERE o.orderCode = :key")
     Optional<Order> findByOrderCode(@Param("key") String key);
 
+    @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus AND o.deleted = false AND o.createdDate < :createdDate")
+    List<Order> findByOrderStatusAndDeletedFalseAndCreatedDateBefore(
+            @Param("orderStatus") OrderStatus orderStatus,
+            @Param("createdDate") LocalDateTime createdDate
+    );
 
     @Query("select p from Order p where p.isPos = false")
     List<Order> findAllOrderIsPos();

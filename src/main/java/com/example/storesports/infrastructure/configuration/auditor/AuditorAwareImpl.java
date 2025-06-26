@@ -67,4 +67,23 @@ public class AuditorAwareImpl implements AuditorAware<Integer> {
         return Optional.empty();
     }
 
+
+//    public Optional<Integer> getCurrentAuditor() {
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        if (authentication == null || !authentication.isAuthenticated()) {
+//            return Optional.empty();
+//        }
+//
+//        if (authentication.getPrincipal() instanceof UserDetails && authentication.getDetails() instanceof Claims) {
+//            Claims claims = (Claims) authentication.getDetails();
+//            Integer userId = claims.get("userId", Integer.class);
+//            if (userId == null) {
+//                return Optional.empty();
+//            }
+//            return Optional.of(userId);
+//        }
+//
+//        return Optional.empty();
+//    }  // cái này dùng cho cả 2 phía clienr và admin
+
 }

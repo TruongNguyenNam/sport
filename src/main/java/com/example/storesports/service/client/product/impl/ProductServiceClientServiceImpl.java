@@ -2,16 +2,23 @@ package com.example.storesports.service.client.product.impl;
 
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.core.client.product.payload.ProductResponseClient;
+import com.example.storesports.core.client.product.payload.ProductSearchClientRequest;
 import com.example.storesports.entity.Product;
 import com.example.storesports.entity.ProductImage;
+import com.example.storesports.entity.Supplier;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.repositories.*;
+import com.example.storesports.service.admin.product.impl.ProductSpecification;
 import com.example.storesports.service.client.product.ProductClientService;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -69,7 +76,47 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
 
     }
 
-    // cái này là xem chi tiết
+    @Override
+    public List<ProductResponseClient> FilterProducts(ProductSearchClientRequest request) {
+        Specification<Product> specification = Specification.where(
+                ProductClientSpecification.filterProducts(
+                        request.getCategoryName(),
+                        request.getSportType(),
+                        request.getMinPrice(),
+                        request.getMaxPrice()
+                )
+        );
+
+        // Thêm điều kiện theo tên sản phẩm nếu có
+//        if (request.getName() != null && !request.getName().isEmpty()) {
+//            specification = specification.and((root, query, cb) ->
+//                    cb.like(cb.lower(root.get("name")), "%" + request.getName().toLowerCase() + "%")
+//            );
+//        }
+
+        // Thêm điều kiện theo tên nhà cung cấp nếu có
+        if (request.getSupplierName() != null && !request.getSupplierName().isEmpty()) {
+            specification = specification.and((root, query, cb) -> {
+                Join<Product, Supplier> supplierJoin = root.join("supplier", JoinType.INNER);
+                return cb.like(cb.lower(supplierJoin.get("name")), "%" + request.getSupplierName().toLowerCase() + "%");
+            });
+        }
+
+        // Truy vấn và chỉ lấy sản phẩm con
+        List<Product> products = productRepository.findAll(specification);
+        List<Product> parentProducts = products.stream()
+                .filter(product -> product.getParentProductId() != null)
+                .toList();
+
+        // Map sang DTO
+        return parentProducts.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+
+
+
 
 
 
