@@ -576,7 +576,6 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         //  orderItemRepository.saveAll(orderItemList);
 
-
         // 16. Trả về response
         return mapToOrderResponse(order);
     }

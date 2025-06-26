@@ -49,6 +49,16 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional
     @Override
     public CustomerResponse createCustomer(CustomerRequest request) {
+        // Validate định dạng
+        validateEmailAndPhone(request.getEmail(), request.getPhoneNumber());
+        // Kiểm tra trùng email/sđt
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email đã tồn tại");
+        }
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new IllegalArgumentException("Số điện thoại đã tồn tại");
+        }
+
         // Tạo khách hàng
         User user = modelMapper.map(request, User.class);
         user.setRole(Role.CUSTOMER);
@@ -71,26 +81,51 @@ public class CustomerServiceImpl implements CustomerService {
         return mapToResponse(user);
     }
 
-// Cập nhật
+    // Cập nhật
     @Transactional
     @Override
     public CustomerResponse updateCustomer(Long id, CustomerRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        // Kiểm tra định dạng email và số điện thoại
+        validateEmailAndPhone(request.getEmail(), request.getPhoneNumber());
+
+        // Kiểm tra trùng email với user khác
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email đã tồn tại");
+        }
+        // Kiểm tra trùng sđt với user khác
+        if (!user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new IllegalArgumentException("Số điện thoại đã tồn tại");
+        }
 
         modelMapper.map(request, user);
-        user.setIsActive(true); // luôn active khi update
         user.setRole(Role.CUSTOMER);
         userRepository.save(user);
 
-        // cập nhật địa chỉ
-        if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
-            UserAddressMapping mapping = user.getUserAddressMappings().get(0);
-            Address address = mapping.getAddress();
-            AddressRequest addrReq = request.getAddress();
-            if (addrReq != null && address != null) {
-                modelMapper.map(addrReq, address);
-                addressRepository.save(address);
+        AddressRequest addrReq = request.getAddress();
+        if (addrReq != null) {
+            if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
+                // cập nhật address cũ
+                UserAddressMapping mapping = user.getUserAddressMappings().get(0);
+                Address address = mapping.getAddress();
+                if (address != null) {
+                    modelMapper.map(addrReq, address);
+                    addressRepository.save(address);
+                }
+            } else {
+                //  tạo mới Address
+                Address address = modelMapper.map(addrReq, Address.class);
+                address.setDeleted(false);
+                address = addressRepository.save(address);
+                UserAddressMapping mapping = new UserAddressMapping();
+                mapping.setUser(user);
+                mapping.setAddress(address);
+                mapping.setDeleted(false);
+                userAddressMappingRepository.save(mapping);
+                if (user.getUserAddressMappings() != null) {
+                    user.getUserAddressMappings().add(mapping);
+                }
             }
         }
         return mapToResponse(user);
@@ -102,6 +137,33 @@ public class CustomerServiceImpl implements CustomerService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return mapToResponse(user);
+    }
+
+// tìm kiếm theo nhiều trường
+    @Override
+    public List<CustomerResponse> searchCustomer(String keyword) {
+        List<User> users;
+        if (keyword.contains("@")) { // kiem tra key cos phai email ko va tim kiem
+            users = userRepository.findByEmailOrderByIdDesc(keyword);
+        } else if (keyword.matches("\\d+")) // neu key chi chua so
+        {
+            users = userRepository.findByPhoneNumberOrderByIdDesc(keyword);
+        } else {
+            users = userRepository.findByUsernameContainingIgnoreCaseOrderByIdDesc(keyword);
+        }
+        return users.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    // regex email và số đt
+    private void validateEmailAndPhone(String email, String phoneNumber) {
+        String emailRegex = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+        String phoneRegex = "^(0|\\+84)[1-9][0-9]{8}$";
+        if (!email.matches(emailRegex)) {
+            throw new IllegalArgumentException("Email không hợp lệ");
+        }
+        if (!phoneNumber.matches(phoneRegex)) {
+            throw new IllegalArgumentException("Số điện thoại không hợp lệ");
+        }
     }
 
     private CustomerResponse mapToResponse(User user) {

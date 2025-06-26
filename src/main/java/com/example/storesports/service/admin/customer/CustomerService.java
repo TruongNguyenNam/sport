@@ -18,4 +18,7 @@ public interface CustomerService {
     CustomerResponse createCustomer(CustomerRequest request);
 
     CustomerResponse updateCustomer(Long customerId, CustomerRequest request);
+
+    List<CustomerResponse> searchCustomer(String keyword);
+
 }
