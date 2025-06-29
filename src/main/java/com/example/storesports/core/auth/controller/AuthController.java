@@ -45,7 +45,6 @@ public class AuthController {
         return new ResponseData<>(200, "Đăng nhập thành công", loginInfoDto);
     }
 
-
     @GetMapping("/refreshToken")
     public ResponseData<TokenDTO> refreshToken(@RefreshTokenValid String refreshToken) {
         try {
@@ -61,9 +60,4 @@ public class AuthController {
         UserResponse userResponse = authService.register(registerForm);
         return new ResponseData<>(201, "Đăng Ký Thành công", userResponse);
     }
-
-
-
-
-
 }

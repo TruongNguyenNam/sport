@@ -60,8 +60,12 @@ public class DiscountServiceImpl implements DiscountService {
             throw new ErrorException("ko được nhập ngày kết thúc bé hơn ngày bắt đầu");
         }
         if(discountRequest.getPercentValue()>100){
-            throw new ErrorException("giảm giá không được nhập quá 100%");
-        }else{
+            throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập "+discountRequest.getPercentValue()+"%");
+        }
+        else if(discountRequest.getPercentValue() <0){
+            throw new ErrorException("giảm giá không được bé hơn 0% bạn đang nhập "+discountRequest.getPercentValue()+"%");
+        }
+        else{
             discount.setPriceThreshold(discountRequest.getPriceThreshold());
         }
 
@@ -181,9 +185,13 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setEndDate(discountRequest.getEndDate());
         }
 
-        if (discountRequest.getPercentValue() > 100) {
-            throw new ErrorException("giảm giá không được nhập quá 100%");
-        } else {
+        if(discountRequest.getPercentValue()>100){
+            throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập "+discountRequest.getPercentValue()+"%");
+        }
+        else if(discountRequest.getPercentValue() <0){
+            throw new ErrorException("giảm giá không được bé hơn 0% bạn đang nhập "+discountRequest.getPercentValue()+"%");
+        }
+            else {
             discount.setPriceThreshold(discountRequest.getPriceThreshold());
         }
 
