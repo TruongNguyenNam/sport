@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "ReturnRequestReason")
 @Getter
@@ -20,6 +22,8 @@ public class ReturnRequestReason extends Auditable {
 
         private String name;
         private String description;
+        @OneToMany(mappedBy = "returnRequestReason", cascade = CascadeType.REMOVE)
+        private List<ReturnRequest> returnRequests;
 
         private Boolean deleted;
 }
