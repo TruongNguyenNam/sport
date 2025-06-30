@@ -28,8 +28,14 @@ public class ShoppingCartController {
     private final ShoppingCartService shoppingCartService;
 
     @PostMapping("/checkout")
-    public OrderResponseClient checkout(@RequestBody OrderRequestClient request){
-            return shoppingCartService.checkout(request);
+    public ResponseData<OrderResponseClient> checkout(@RequestBody OrderRequestClient request) {
+        try {
+            OrderResponseClient response = shoppingCartService.checkout(request);
+            return new ResponseData<>(200, "Thanh toán thành công", response);
+        } catch (Exception e) {
+            log.error("Lỗi khi thanh toán đơn hàng", e);
+            return new ResponseData<>(500, "Thanh toán thất bại");
+        }
     }
 
     @PostMapping("/add")
