@@ -16,17 +16,18 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User,Long> {
     Optional<User> findByUsername(String username);
 
-
     Boolean existsByUsername(String username);
 
     Boolean existsByEmail(String email);
 
     @Query("SELECT u FROM User u " +
             "LEFT JOIN u.userAddressMappings m " +
-            "LEFT JOIN m.address where u.role = 'CUSTOMER'")
+            "LEFT JOIN m.address where u.role = 'CUSTOMER' and u.deleted = false ORDER BY u.id desc " )
     List<User> findAllWithAddresses();
 
-
-    @Query("SELECT u FROM User u WHERE u.role = :role AND u.id NOT IN (SELECT cu.user.id FROM CouponUsage cu WHERE cu.coupon.id = :couponId AND cu.deleted = false)")
+    @Query("SELECT u FROM User u WHERE u.role = :role AND u.id NOT IN (SELECT cu.user.id FROM CouponUsage cu WHERE cu.coupon.id = :couponId AND cu.deleted = false) ORDER BY u.id desc ")
     List<User> findCustomersNotReceivedCoupon(@Param("role") Role role, @Param("couponId") Long couponId);
+
+    @Query("select u from User u where u.username=:userName")
+    Optional<User> findUserByUsername(@Param("userName") String userName);
 }

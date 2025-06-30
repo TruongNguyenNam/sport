@@ -1,10 +1,12 @@
 package com.example.storesports.core.admin.orderItem.payload;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class OrderItemResponse {
     private Long id;
     private Long productId;
@@ -12,7 +14,4 @@ public class OrderItemResponse {
     private Integer quantity;
     private Double unitPrice;
 
-    public OrderItemResponse(Long id, Long id1, String name, Integer quantity, Double unitPrice) {
-
-    }
 }

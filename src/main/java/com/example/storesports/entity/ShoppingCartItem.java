@@ -28,7 +28,6 @@ public class ShoppingCartItem extends Auditable {
 
         private Integer quantity;
 
-        @Transient
         private Double totalPrice;
 
         private Boolean deleted;

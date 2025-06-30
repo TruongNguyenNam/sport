@@ -19,7 +19,6 @@ public class ProductTag extends Auditable {
     private Long id;
 
     private String name;
-
     private String description;
 
     private Boolean deleted;

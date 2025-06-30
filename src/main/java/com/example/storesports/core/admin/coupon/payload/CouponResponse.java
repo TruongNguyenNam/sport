@@ -11,7 +11,7 @@ public class CouponResponse {
     private Double discountAmount;
     private String couponStatus;
     private Integer quantity;
-    private LocalDateTime startDate;
+   private LocalDateTime startDate;
     private LocalDateTime expirationDate;
     private Boolean deleted;
     private Long usedCount;

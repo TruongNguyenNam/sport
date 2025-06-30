@@ -1,9 +1,7 @@
 package com.example.storesports.service.admin.order.impl;
 
 
-import com.example.storesports.core.admin.order.payload.CreateInvoiceRequest;
-import com.example.storesports.core.admin.order.payload.OrderRequest;
-import com.example.storesports.core.admin.order.payload.OrderResponse;
+import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.core.admin.orderItem.payload.OrderItemResponse;
 import com.example.storesports.core.admin.payment.payload.PaymentResponse;
 import com.example.storesports.entity.*;
@@ -13,6 +11,8 @@ import com.example.storesports.service.admin.order.OrderService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.*;
 
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.http.HttpStatus;
@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.file.AccessDeniedException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -60,6 +59,155 @@ public class OrderServiceImpl implements OrderService {
     private final ShipmentItemRepository shipmentItemRepository;
 
     private final CarrierRepository carrierRepository;
+    @Override
+    public List<MonthlyOrderTypeResponse> getMonthlyOrderChart() {
+        List<MonthlyOrderTypeProjection> projections = orderRepository.getMonthlyOrderTypeStats();
+
+        Map<Integer, MonthlyOrderTypeResponse> result = new HashMap<>();
+
+        for (MonthlyOrderTypeProjection p : projections) {
+            int month = p.getMonth();
+            boolean isPos = Boolean.TRUE.equals(p.getIsPos());
+            Long total = p.getTotalOrders();
+
+            // Nếu chưa có tháng này, tạo mới
+            MonthlyOrderTypeResponse data = result.getOrDefault(month, new MonthlyOrderTypeResponse(month, 0L, 0L));
+
+            if (isPos) {
+                data.setPosOrders(total); // bán thường
+            } else {
+                data.setShipOrders(total); // bán ship
+            }
+
+            result.put(month, data);
+        }
+
+        return result.values().stream()
+                .sorted(Comparator.comparingInt(MonthlyOrderTypeResponse::getMonth))
+                .collect(Collectors.toList());
+    }
+
+
+    //Doanh Thu
+    @Override
+    public List<DailyRevenueResponse> getDailyRevenue() {
+        DailyRevenueProjection projection = orderRepository.getTodayRevenue(); // gọi truy vấn CURDATE()
+        if (projection == null) {
+            return Collections.emptyList(); // không có đơn hàng nào hôm nay
+        }
+        DailyRevenueResponse response = new DailyRevenueResponse(projection.getDay(), projection.getTotalRevenue());
+        return Collections.singletonList(response); // trả về danh sách chứa 1 phần tử
+    }
+
+    @Override
+    public List<MonthlyRevenueResponse> getMonthlyRevenue() {
+        MonthlyRevenueProjection projection = orderRepository.getCurrentMonthRevenue();
+        if (projection == null) {
+            return Collections.emptyList(); // không có dữ liệu tháng này
+        }
+        YearMonth month = YearMonth.parse(projection.getMonth()); // "yyyy-MM"
+        MonthlyRevenueResponse response = new MonthlyRevenueResponse(month, projection.getTotalRevenue());
+        return Collections.singletonList(response);
+    }
+
+    @Override
+    public List<YearlyRevenueResponse> getYearlyRevenue() {
+        YearlyRevenueProjection projection = orderRepository.getCurrentYearRevenue();
+        if (projection == null) {
+            return Collections.emptyList();
+        }
+
+        YearlyRevenueResponse response = new YearlyRevenueResponse(
+                Year.parse(projection.getYear()), // hoặc Year.of(...) nếu là int
+                projection.getTotalRevenue()
+        );
+        return Collections.singletonList(response); // ✅ Trả về List<YearlyRevenueResponse>
+    }
+
+
+    //Đơn Hàng huy ngay
+    @Override
+    public OrderStatusTodayResponse getCancelledOrdersToday() {
+        long count = orderRepository.countCancelledOrdersToday();
+        return new OrderStatusTodayResponse(LocalDate.now(), count);
+    }
+    //Đơn Hàng huy thang
+    @Override
+    public OrderStatusMonthResponse getCancelledOrdersThisMonth() {
+        long count = orderRepository.countCancelledOrdersThisMonth();
+        LocalDate now = LocalDate.now();
+        return new OrderStatusMonthResponse(now.getMonthValue(), now.getYear(), count);
+    }
+    //Đơn Hàng huy nam
+    @Override
+    public OrderStatusYearResponse getCancelledOrdersThisYear() {
+        long count = orderRepository.countCancelledOrdersThisYear();
+        return new OrderStatusYearResponse(LocalDate.now().getYear(), count);
+    }
+
+    //
+    //Đơn Hàng hoan thanh ngay
+    @Override
+    public OrderStatusTodayResponse countCompletedOrdersToday() {
+        long count = orderRepository.countCompletedOrdersToday();
+        return new OrderStatusTodayResponse(LocalDate.now(), count);
+    }
+    //Đơn Hàng hoan thanh thang
+    @Override
+    public OrderStatusMonthResponse countCompletedOrdersThisMonth() {
+        long count = orderRepository.countCompletedOrdersThisMonth();
+        LocalDate now = LocalDate.now();
+        return new OrderStatusMonthResponse(now.getMonthValue(), now.getYear(), count);
+    }
+    //Đơn Hàng hoan thanh nam
+    @Override
+    public OrderStatusYearResponse countCompletedOrdersThisYear() {
+        long count = orderRepository.countCompletedOrdersThisYear();
+        return new OrderStatusYearResponse(LocalDate.now().getYear(), count);
+    }
+
+
+
+    //Đơn Hàng huy ngay
+    @Override
+    public OrderStatusTodayResponse getReturnedOrdersToday() {
+        long count = orderRepository.countReturnedOrdersToday();
+        return new OrderStatusTodayResponse(LocalDate.now(), count);
+    }
+    //Đơn Hàng huy thang
+    @Override
+    public OrderStatusMonthResponse getReturnedOrdersThisMonth() {
+        long count = orderRepository.countReturnedOrdersThisMonth();
+        LocalDate now = LocalDate.now();
+        return new OrderStatusMonthResponse(now.getMonthValue(), now.getYear(), count);
+    }
+    //Đơn Hàng huy nam
+    @Override
+    public OrderStatusYearResponse getReturnedOrdersThisYear() {
+        long count = orderRepository.countReturnedOrdersThisYear();
+        return new OrderStatusYearResponse(LocalDate.now().getYear(), count);
+    }
+    //theo ngày
+    @Override
+    public CustomStatisticalResponse getStatisticsBetween(LocalDate fromDate, LocalDate toDate) {
+        LocalDateTime startDateTime = fromDate.atStartOfDay(); // 00:00:00
+        LocalDateTime endDateTime = toDate.atTime(LocalTime.MAX); // 23:59:59.999
+
+        Double revenue = orderRepository.getRevenueBetweenDates(startDateTime, endDateTime);
+        Long cancelled = orderRepository.countCancelledOrdersBetweenDates(startDateTime, endDateTime);
+        Long completed = orderRepository.countCompletedOrdersBetweenDates(startDateTime, endDateTime);
+        Long returned = orderRepository.countReturnedOrdersBetweenDates(startDateTime, endDateTime);
+        Long totalSoldQuantity = orderItemRepository.getTotalSoldQuantityBetween(startDateTime, endDateTime); // ✅ mới thêm
+
+        return CustomStatisticalResponse.builder()
+                .totalRevenue(revenue != null ? revenue : 0.0)
+                .totalSoldQuantity(totalSoldQuantity != null ? totalSoldQuantity : 0L)
+                .completedOrders(completed != null ? completed : 0L)
+                .cancelledOrders(cancelled != null ? cancelled : 0L)
+                .returnedOrders(returned != null ? returned : 0L)
+                .build();
+    }
+
 
 
     @Override
@@ -98,9 +246,9 @@ public class OrderServiceImpl implements OrderService {
                 throw new AccessDeniedException("Chỉ ADMIN mới có thể tạo đơn hàng");
             }
 
-            // Lấy user từ database
-            User currentUser = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
+//            // Lấy user từ database
+//            User currentUser = userRepository.findByUsername(username)
+//                    .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
 
             // Tạo và lưu order
             Order order = new Order();
@@ -232,7 +380,7 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Tổng số tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
 
-
+        //Thanh toán
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
         Payment payment = paymentOptional.orElseGet(() -> {
             Payment newPayment = new Payment();

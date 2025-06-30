@@ -1,7 +1,9 @@
 package com.example.storesports.service.admin.product.impl;
 import com.example.storesports.core.admin.product.payload.*;
 import com.example.storesports.entity.*;
+import com.example.storesports.infrastructure.exceptions.AttributeValueDuplicate;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
+import com.example.storesports.infrastructure.exceptions.NameNotExists;
 import com.example.storesports.infrastructure.utils.PageUtils;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.admin.image.cloudinary.CloudinaryService;
@@ -80,8 +82,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         List<Product> products = productRepository.findAll(specification);
+        List<Product> parentProducts = products.stream()
+                .filter(product -> product.getParentProductId() == null)
+                .toList();
 
-        return products.stream()
+        return parentProducts.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -108,10 +113,14 @@ public class ProductServiceImpl implements ProductService {
         String oldParentName = parentProduct.getName();
 
         // Cập nhật thông tin cơ bản của sản phẩm cha
+        if (request.getName() != null && !oldParentName.equalsIgnoreCase(request.getName()) &&
+                productRepository.existsByNameIgnoreCase(request.getName())) {
+            log.warn("Name conflict detected: {}", request.getName());
+            throw new NameNotExists("Tên sản phẩm đã tồn tại");
+        }
         parentProduct.setName(request.getName());
         parentProduct.setDescription(request.getDescription());
         parentProduct.setSportType(request.getSportType());
-        parentProduct.setSku(request.getSku());
 
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
                 .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại với ID: " + request.getSupplierId()));
@@ -120,6 +129,18 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại với ID: " + request.getCategoryId()));
         parentProduct.setCategory(category);
+
+        if (!oldParentName.equals(request.getName())) {
+            parentProduct.setName(request.getName());
+
+            String newParentSku = generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+            parentProduct.setSku(newParentSku);
+
+            log.info("Đã đổi tên sản phẩm cha từ '{}' thành '{}', SKU mới: '{}'", oldParentName, request.getName(), newParentSku);
+        } else {
+            parentProduct.setName(request.getName());
+            parentProduct.setSku(request.getSku()); // hoặc giữ nguyên nếu không muốn chỉnh SKU thủ công
+        }
 
         // Xử lý tags cho sản phẩm cha
         handleTags(request, parentProduct);
@@ -187,7 +208,7 @@ public class ProductServiceImpl implements ProductService {
             productRepository.saveAll(childProducts);
         }
 
-        log.info("✅ Đã cập nhật sản phẩm cha {}", parentProduct.getSku());
+        log.info("Đã cập nhật sản phẩm cha {}", parentProduct.getSku());
     }
 
     private void handleTags(ProductUpdateParent request, Product product) {
@@ -214,8 +235,13 @@ public class ProductServiceImpl implements ProductService {
     public void updateChildProduct(Long id, ProductUpdateChild request) {
         Product childProduct = productRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Sản phẩm con không tồn tại hoặc đã bị xóa với ID: " + id));
-
         // Cập nhật mô tả nếu có
+        List<Product> products = productRepository.findByParentProductId(childProduct.getParentProductId());
+        if(products == null || products.isEmpty()){
+            throw new IllegalStateException("Không tìm thấy sản phẩm con nào thuộc parent với ID: " + childProduct.getParentProductId());
+        }
+
+
         if (request.getDescription() != null) {
             childProduct.setDescription(request.getDescription());
         }
@@ -228,7 +254,8 @@ public class ProductServiceImpl implements ProductService {
             childProduct.setStockQuantity(request.getStockQuantity());
         }
 
-        // Cập nhật giá trị thuộc tính sản phẩm
+        checkDuplicateAtb(request, products, childProduct.getId());
+        // Cập nhật giá trị thuộc tính sản phẩm và valid thuộc tính sản phẩm bị trùng
         if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
             // Xóa thuộc tính cũ
             productAttributeValueRepository.deleteByProductId(childProduct.getId());
@@ -283,6 +310,35 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(childProduct);
         log.info("Đã cập nhật biến thể {}", childProduct.getSku());
     }
+
+    private void checkDuplicateAtb(ProductUpdateChild request, List<Product> products, Long currentProductId) {
+
+        // Tạo tổ hợp mới từ request, sắp xếp theo attributeId
+        List<String> newCombination = request.getProductAttributeValues() != null ? request.getProductAttributeValues().stream()
+                .sorted(Comparator.comparing(ProductUpdateChild.ProductAttributeValue::getAttributeId))
+                .map(attr -> attr.getValue() != null ? attr.getValue().trim() : "")
+                .collect(Collectors.toList()) : Collections.emptyList();
+
+        // Kiểm tra trùng lặp với các sản phẩm con khác
+        boolean isDuplicate = products.stream()
+                .filter(product -> !product.getId().equals(currentProductId))
+                .anyMatch(product -> {
+                    List<String> existingCombination = product.getProductAttributeValues().stream()
+                            .sorted(Comparator.comparing(pav -> pav.getAttribute().getId()))
+                            .map(ProductAttributeValue::getValue)
+                            .collect(Collectors.toList());
+
+                    // So sánh số lượng và nội dung tổ hợp
+                    return existingCombination.size() == newCombination.size() && existingCombination.equals(newCombination);
+                });
+
+        if (isDuplicate) {
+            throw new AttributeValueDuplicate(" Tổ hợp giá trị thuộc tính [" + String.join(", ", newCombination) + "] đã tồn tại ở biến thể khác.");
+        }
+
+        log.info("Kiểm tra trùng lặp thành công cho tổ hợp: {}", newCombination);
+    }
+
 
     @Override
     public void deleteSoft(Long id) {
@@ -381,13 +437,13 @@ public class ProductServiceImpl implements ProductService {
         List<List<String>> existingValueCombinations = groupedByProduct.values().stream()
                 .map(list -> list.stream()
                         .sorted(Comparator.comparing(pav -> pav.getAttribute().getId()))
-                        .map(ProductAttributeValue::getValue)
+                        .map(pav -> pav.getValue() != null ? pav.getValue().trim().toLowerCase().replaceAll("\\s+", " ") : "")
                         .collect(Collectors.toList()))
                 .collect(Collectors.toList());
 
         List<String> newValues = newAttributes.stream()
                 .sorted(Comparator.comparing(AddProductChild.ProductAttributeValue::getAttributeId))
-                .map(attr -> attr.getValue() != null ? attr.getValue().trim() : "")
+                .map(attr -> attr.getValue() != null ? attr.getValue().trim().toLowerCase().replaceAll("\\s+", " ") : "")
                 .collect(Collectors.toList());
 
         // 9. Kiểm tra giá trị không được để trống
@@ -423,20 +479,45 @@ public class ProductServiceImpl implements ProductService {
 
     private List<ProductAttributeValue> mapAttributesToValueVariants(Product product, List<String> combination, List<AddProductChild.ProductAttributeValue> productAttributeValues) {
         List<ProductAttributeValue> values = new ArrayList<>();
+
+        // Lấy danh sách attributeId theo thứ tự từ productAttributeValues
         List<Long> attributeIds = productAttributeValues.stream()
                 .map(AddProductChild.ProductAttributeValue::getAttributeId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        for (int i = 0; i < combination.size(); i++) {
-            ProductAttribute attribute = productAttributeRepository.findById(attributeIds.get(i))
-                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại"));
-            ProductAttributeValue value = new ProductAttributeValue();
-            value.setProduct(product);
-            value.setAttribute(attribute);
-            value.setValue(combination.get(i));
-            values.add(value);
+        // Nhóm các giá trị theo attributeId
+        Map<Long, Set<String>> attributeValueMap = new LinkedHashMap<>();
+        for (AddProductChild.ProductAttributeValue pav : productAttributeValues) {
+            attributeValueMap.computeIfAbsent(pav.getAttributeId(), k -> new HashSet<>()).add(pav.getValue());
         }
+
+        // Kiểm tra xem combination có đủ giá trị không
+        if (combination.size() != attributeIds.size()) {
+            throw new IllegalArgumentException("Số giá trị trong tổ hợp không khớp với số thuộc tính!");
+        }
+
+        // Duyệt qua attributeId theo thứ tự
+        for (int i = 0; i < attributeIds.size(); i++) {
+            Long attributeId = attributeIds.get(i);
+            String value = combination.get(i); // Lấy giá trị từ combination theo đúng vị trí
+
+            // Kiểm tra giá trị hợp lệ
+            Set<String> validValues = attributeValueMap.get(attributeId);
+            if (!validValues.contains(value)) {
+                throw new IllegalArgumentException("Giá trị '" + value + "' không hợp lệ cho attributeId: " + attributeId);
+            }
+
+            // Tạo ProductAttributeValue
+            ProductAttribute attribute = productAttributeRepository.findById(attributeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại: " + attributeId));
+            ProductAttributeValue pav = new ProductAttributeValue();
+            pav.setProduct(product);
+            pav.setAttribute(attribute);
+            pav.setValue(value);
+            values.add(pav);
+        }
+
         return values;
     }
     @Override
@@ -756,6 +837,9 @@ public class ProductServiceImpl implements ProductService {
 
     private Product createParentProduct(ProductRequest request) {
         Product parentProduct = new Product();
+        if(productRepository.existsByNameIgnoreCase(request.getName())){
+            throw new NameNotExists("sản phẩm đã tồn tại");
+        }
         parentProduct.setName(request.getName());
         parentProduct.setDescription(request.getDescription());
         parentProduct.setSportType(request.getSportType());
@@ -763,11 +847,11 @@ public class ProductServiceImpl implements ProductService {
         parentProduct.setStockQuantity(0);
         parentProduct.setDeleted(false);
         Supplier supplier = supplierRepository.findById(request.getSupplierId())
-                .orElseThrow(() -> new IllegalArgumentException("Nhà cung cấp không tồn tại"));
+                .orElseThrow(() -> new ErrorException("Nhà cung cấp không tồn tại"));
         parentProduct.setSupplier(supplier);
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Danh mục không tồn tại"));
+                .orElseThrow(() -> new ErrorException("Danh mục không tồn tại"));
         parentProduct.setCategory(category);
 
         String sku = request.getSku() != null && !request.getSku().isEmpty() ? request.getSku() : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());

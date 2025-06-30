@@ -1,3 +1,4 @@
+
 package com.example.storesports.service.admin.tag.impl;
 
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
@@ -63,17 +64,17 @@ public class ProductTagServiceImpl implements ProductTagService {
 
     @Override
     public void deleteTag(List<Long> id) {
-    List<ProductTag> productTags = productTagRepository.findAllById(id);
-    if(!productTags.isEmpty()){
+        List<ProductTag> productTags = productTagRepository.findAllById(id);
+        if(!productTags.isEmpty()){
             productTagRepository.deleteAllInBatch(productTags);
-    }
+        }
     }
 
     @Override
     public ProductTagResponse findById(Long id) {
-            ProductTag productTag = productTagRepository.
-                    findById(id).orElseThrow(() -> new ErrorException("TagId is not found"));
-            return modelMapper.map(productTag,ProductTagResponse.class);
+        ProductTag productTag = productTagRepository.
+                findById(id).orElseThrow(() -> new ErrorException("TagId is not found"));
+        return modelMapper.map(productTag,ProductTagResponse.class);
 
     }
 

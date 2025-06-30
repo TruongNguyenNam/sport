@@ -6,6 +6,7 @@ import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.shipment.ShipmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/shipment")
+@Validated
 @RequiredArgsConstructor
 public class ShipmentController {
     private final ShipmentService shipmentService;

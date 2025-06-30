@@ -1,5 +1,6 @@
 package com.example.storesports.core.auth.controller;
 
+import com.example.storesports.core.admin.category.payload.CategoryResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.infrastructure.validation.RefreshTokenValid;
 import com.example.storesports.core.auth.payload.*;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 @RequiredArgsConstructor
 public class AuthController {
-
 
     private final IAuthService authService;
 
@@ -60,4 +60,42 @@ public class AuthController {
         UserResponse userResponse = authService.register(registerForm);
         return new ResponseData<>(201, "Đăng Ký Thành công", userResponse);
     }
+
+
+
+    @GetMapping("/{id}")
+    public ResponseData<UserResponse> findByUserId(@PathVariable(name = "id") Long id) {
+        UserResponse userResponse = authService.finById(id);
+        return ResponseData.<UserResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy thông tin người dùng thành công")
+                .data(userResponse)
+                .build();
+    }
+
+
+    @PutMapping("/{userId}/address")
+    public ResponseData<UserResponse> updateUserAddress(
+            @PathVariable Long userId,
+            @RequestBody @Valid UpdateUserForm userForm
+    ) {
+        try {
+            UserResponse userResponse = authService.updateAddress(userId, userForm);
+            return new ResponseData<>(200, "Cập nhật địa chỉ thành công", userResponse);
+        } catch (IllegalArgumentException e) {
+            return new ResponseData<>(404, e.getMessage());
+        } catch (Exception e) {
+            return new ResponseData<>(500, "Đã xảy ra lỗi khi cập nhật địa chỉ.");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
 }
