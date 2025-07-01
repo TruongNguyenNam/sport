@@ -24,7 +24,7 @@ public class DiscountRequest {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
-    private List<Long> categoryIds;
+
     @NotNull(message = "ko được để trống priceThreshold")
     private Double priceThreshold;
     private Boolean applyToAll;

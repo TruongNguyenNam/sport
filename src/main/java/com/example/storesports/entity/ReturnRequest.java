@@ -24,7 +24,10 @@ public class ReturnRequest extends Auditable{
         @JoinColumn(name = "order_id")
         private Order order;
 
-        private Integer reasonId;
+        @ManyToOne
+        @JoinColumn(name = "reason_id")
+        private ReturnRequestReason returnRequestReason;
+
         private Date requestDate;
 
         private Boolean deleted;

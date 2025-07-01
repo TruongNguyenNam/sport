@@ -250,9 +250,9 @@ public class OrderServiceImpl implements OrderService {
                 throw new AccessDeniedException("Chỉ ADMIN mới có thể tạo đơn hàng");
             }
 
-            // Lấy user từ database
-            User currentUser = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
+//            // Lấy user từ database
+//            User currentUser = userRepository.findByUsername(username)
+//                    .orElseThrow(() -> new UsernameNotFoundException("Người dùng không tồn tại: " + username));
 
             // Tạo và lưu order
             Order order = new Order();
@@ -385,7 +385,7 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Tổng số tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
 
-
+        //Thanh toán
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
         Payment payment = paymentOptional.orElseGet(() -> {
             Payment newPayment = new Payment();

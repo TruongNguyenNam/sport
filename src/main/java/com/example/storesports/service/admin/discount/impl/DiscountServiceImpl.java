@@ -3,7 +3,7 @@ package com.example.storesports.service.admin.discount.impl;
 import com.example.storesports.core.admin.discount.payload.DiscountRequest;
 import com.example.storesports.core.admin.discount.payload.DiscountResponse;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
-import com.example.storesports.entity.Category;
+import com.example.storesports.entity.Auditable;
 import com.example.storesports.entity.Discount;
 import com.example.storesports.entity.Product;
 import com.example.storesports.entity.ProductDiscountMapping;
@@ -59,8 +59,8 @@ public class DiscountServiceImpl implements DiscountService {
         if (!discountRequest.getStartDate().isBefore(discountRequest.getEndDate())) {
             throw new ErrorException("ko được nhập ngày kết thúc bé hơn ngày bắt đầu");
         }
-        if(discountRequest.getPriceThreshold()>50){
-            throw new ErrorException("giảm giá không được nhập quá 50%");
+        if(discountRequest.getPercentValue()>100){
+            throw new ErrorException("giảm giá không được nhập quá 100%");
         }else{
             discount.setPriceThreshold(discountRequest.getPriceThreshold());
         }
@@ -81,20 +81,14 @@ public class DiscountServiceImpl implements DiscountService {
             applicableProducts.addAll(productRepository.findAll());
         }
 
-        if (discountRequest.getCategoryIds() != null && !discountRequest.getCategoryIds().isEmpty()) {
-            List<Category> categories = categoryRepository.findAllById(discountRequest.getCategoryIds());
-            for (Category category : categories) {
-                applicableProducts.addAll(category.getProducts());
 
-            }
-        }
         if (discountRequest.getProductIds() != null && !discountRequest.getProductIds().isEmpty()) {
             applicableProducts.addAll(productRepository.findAllById(discountRequest.getProductIds()));
 
         }
 
         boolean noProductSelected = Boolean.FALSE.equals(discountRequest.getApplyToAll())
-                && (discountRequest.getCategoryIds() == null || discountRequest.getCategoryIds().isEmpty())
+
                 && (discountRequest.getProductIds() == null || discountRequest.getProductIds().isEmpty());
 
         if (noProductSelected) {
@@ -187,8 +181,8 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setEndDate(discountRequest.getEndDate());
         }
 
-        if (discountRequest.getPercentValue() > 50) {
-            throw new ErrorException("giảm giá không được nhập quá 50%");
+        if (discountRequest.getPercentValue() > 100) {
+            throw new ErrorException("giảm giá không được nhập quá 100%");
         } else {
             discount.setPriceThreshold(discountRequest.getPriceThreshold());
         }
@@ -210,7 +204,7 @@ public class DiscountServiceImpl implements DiscountService {
                 .collect(Collectors.toSet());
 
         boolean noProductSelected = Boolean.FALSE.equals(discountRequest.getApplyToAll())
-                && (discountRequest.getCategoryIds() == null || discountRequest.getCategoryIds().isEmpty())
+
                 && (discountRequest.getProductIds() == null || discountRequest.getProductIds().isEmpty());
 
         if (noProductSelected) {
@@ -221,11 +215,7 @@ public class DiscountServiceImpl implements DiscountService {
         Set<Product> applicableProducts = new HashSet<>();
         if (Boolean.TRUE.equals(discountRequest.getApplyToAll())) {
             applicableProducts.addAll(productRepository.findAll());
-        }  if (discountRequest.getCategoryIds() != null && !discountRequest.getCategoryIds().isEmpty()) {
-            List<Category> categories = categoryRepository.findAllById(discountRequest.getCategoryIds());
-            for (Category category : categories) {
-                applicableProducts.addAll(category.getProducts());
-            }
+
         }  if (discountRequest.getProductIds() != null && !discountRequest.getProductIds().isEmpty()) {
             applicableProducts.addAll(productRepository.findAllById(discountRequest.getProductIds()));
         }
@@ -315,7 +305,12 @@ public class DiscountServiceImpl implements DiscountService {
     @Override
     public List<DiscountResponse> getAll() {
         List<Discount>discounts=discountRepository.findAll();
-        return discounts.stream().map(d->mapToResponse(d)).collect(Collectors.toList());
+        return discounts.stream()
+                .sorted(Comparator.comparing
+                        (Discount::getCreatedDate).reversed())
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+
     }
 
     @Override
@@ -367,23 +362,23 @@ public class DiscountServiceImpl implements DiscountService {
             System.out.println("active");
             List<Discount> active = discounts.stream().filter(dc -> dc.getStatus().name().equalsIgnoreCase(discountStatus))
                     .collect(Collectors.toList());
-            return active.stream().map(d -> mapToResponse(d)).collect(Collectors.toList());
+            return active.stream().sorted(Comparator.comparing(Discount::getCreatedDate).reversed()).map(d -> mapToResponse(d)).collect(Collectors.toList());
         } else if (discountStatus.equals("PENDING")) {
             System.out.println("pending");
             List<Discount> active = discounts.stream().filter(dc -> dc.getStatus().name().equalsIgnoreCase(discountStatus))
                     .collect(Collectors.toList());
-            return active.stream().map(d -> mapToResponse(d)).collect(Collectors.toList());
+            return active.stream().sorted(Comparator.comparing(Discount::getCreatedDate).reversed()).map(d -> mapToResponse(d)).collect(Collectors.toList());
         } else if (discountStatus.equals("INACTIVE")) {
             System.out.println("cc");
             List<Discount> active = discounts.stream().filter(dc -> dc.getStatus().name().equalsIgnoreCase(discountStatus))
                     .collect(Collectors.toList());
-            return active.stream().map(d -> mapToResponse(d)).collect(Collectors.toList());
+            return active.stream().sorted(Comparator.comparing(Discount::getCreatedDate).reversed()).map(d -> mapToResponse(d)).collect(Collectors.toList());
         }
         else if(discountStatus.equals("EXPIRED")){
             System.out.println("cc");
             List<Discount> active = discounts.stream().filter(dc -> dc.getStatus().name().equalsIgnoreCase(discountStatus))
                     .collect(Collectors.toList());
-            return active.stream().map(d -> mapToResponse(d)).collect(Collectors.toList());
+            return active.stream().sorted(Comparator.comparing(Discount::getEndDate).reversed()).map(d -> mapToResponse(d)).collect(Collectors.toList());
         }
         else{
             throw new ErrorException("ko co status nay");
@@ -493,7 +488,7 @@ public class DiscountServiceImpl implements DiscountService {
                     p.setOriginalPrice(null);
                     productRepository.save(p);
                 }
-                productDiscountMappingRepository.delete(mapping);
+
                 List<Discount> activeDiscounts = discountRepository.findActiveDiscountsByProductId(p.getId(), DiscountStatus.ACTIVE);
 
                 // Lấy discount có phần trăm lớn nhất

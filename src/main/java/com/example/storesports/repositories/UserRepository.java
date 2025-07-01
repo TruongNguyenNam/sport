@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     @Query("SELECT u FROM User u " +
             "LEFT JOIN u.userAddressMappings m " +
-            "LEFT JOIN m.address where u.role = 'CUSTOMER' ORDER BY u.id desc " )
+            "LEFT JOIN m.address where u.role = 'CUSTOMER' and u.deleted = false ORDER BY u.id desc " )
     List<User> findAllWithAddresses();
 
     @Query("SELECT u FROM User u WHERE u.role = :role AND u.id NOT IN (SELECT cu.user.id FROM CouponUsage cu WHERE cu.coupon.id = :couponId AND cu.deleted = false) ORDER BY u.id desc ")
