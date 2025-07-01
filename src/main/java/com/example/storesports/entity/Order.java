@@ -1,5 +1,6 @@
 package com.example.storesports.entity;
 
+import com.example.storesports.infrastructure.constant.OrderSource;
 import com.example.storesports.infrastructure.constant.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -33,9 +34,14 @@ public class Order extends Auditable {
 
         private Boolean isPos;  // true là bán thường // false là bán ship
 
+        @Enumerated(EnumType.STRING)
+        private OrderSource orderSource;
+
+
         private String nodes;  //
 
         private Boolean deleted;  // xoá mềm neeus va true
+
 
         @Enumerated(EnumType.STRING)
         private OrderStatus orderStatus;
