@@ -59,6 +59,9 @@ public class OrderServiceImpl implements OrderService {
     private final ShipmentItemRepository shipmentItemRepository;
 
     private final CarrierRepository carrierRepository;
+
+
+
     @Override
     public List<MonthlyOrderTypeResponse> getMonthlyOrderChart() {
         List<MonthlyOrderTypeProjection> projections = orderRepository.getMonthlyOrderTypeStats();
@@ -129,6 +132,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public OrderStatusTodayResponse getCancelledOrdersToday() {
         long count = orderRepository.countCancelledOrdersToday();
+
         return new OrderStatusTodayResponse(LocalDate.now(), count);
     }
     //Đơn Hàng huy thang
@@ -255,6 +259,7 @@ public class OrderServiceImpl implements OrderService {
             order.setOrderCode(generateOrderCode());
             order.setOrderTotal(0.0);
             order.setOrderStatus(OrderStatus.PENDING);
+//            order.setCreatedDate(LocalDateTime.now());
             order.setIsPos(request.getIsPos());
             order.setOrderSource(OrderSource.COUNTER);
             order.setDeleted(false);

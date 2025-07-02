@@ -25,7 +25,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
             @Param("createdDate") LocalDateTime createdDate
     );
 
-    @Query("select p from Order p where p.isPos = false")
+    @Query("select p from Order p where p.deleted = true order by p.id desc")
     List<Order> findAllOrderIsPos();
 
     //Doanh Thu Theo Ngày
@@ -64,31 +64,34 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     )
     YearlyRevenueProjection getCurrentYearRevenue();
 
-    //Hàng Huỷ theo ngày
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' AND DATE(o.orderDate) = CURRENT_DATE")
+    // Hàng Huỷ theo ngày
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'CANCELLED' OR o.deleted = false) AND DATE(o.createdDate) = CURRENT_DATE")
     Long countCancelledOrdersToday();
 
-    //Hàng Huỷ theo tháng
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
-            "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
-            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+    // Hàng Huỷ theo tháng
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'CANCELLED' OR o.deleted = false) " +
+            "AND FUNCTION('MONTH', o.createdDate) = FUNCTION('MONTH', CURRENT_DATE) " +
+            "AND FUNCTION('YEAR', o.createdDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCancelledOrdersThisMonth();
 
-    //Hàng Huỷ theo năm
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
-            "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
+
+    // Hàng Huỷ theo năm
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'CANCELLED' OR o.deleted = false) " +
+            "AND FUNCTION('YEAR', o.createdDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCancelledOrdersThisYear();
 
+
+
     //đơn Hàng đã hoàn thành theo ngày
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' AND DATE(o.orderDate) = CURRENT_DATE")
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) AND DATE(o.orderDate) = CURRENT_DATE")
     Long countCompletedOrdersToday();
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) " +
             "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCompletedOrdersThisMonth();
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true ) " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCompletedOrdersThisYear();
 
@@ -113,12 +116,12 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     Double getRevenueBetweenDates(@Param("startDate") LocalDateTime startDate,
                                   @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'CANCELLED' " +
-            "AND o.orderDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'CANCELLED' or o.deleted = false )" +
+            "AND o.createdDate BETWEEN :startDate AND :endDate")
     Long countCancelledOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE o.orderStatus = 'COMPLETED' " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) " +
             "AND o.orderDate BETWEEN :startDate AND :endDate")
     Long countCompletedOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);

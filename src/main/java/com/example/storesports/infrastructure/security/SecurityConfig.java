@@ -38,11 +38,14 @@ public class SecurityConfig  {
                 .authorizeHttpRequests(authz -> authz
 //                        api/v1/admin/product
                      //   .anyRequest().permitAll()
+                      //  .requestMatchers("/api/v1/auth/login").permitAll()
+//                        .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
+//                       .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
 //                        .requestMatchers("/api/v1/auth/login").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
 //                        .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
-                        //.requestMatchers("/api/v1/auth/**").permitAll()MER")
-                        //                      //  .requestMatchers("/api/v1/admin/category/**").hasAnyAuthorit
+                      //  .requestMatchers("/api/v1/admin/category/**").hasAnyAuthority("ADMIN")
+                        //.requestMatchers("/api/v1/auth/**").permitAll()
                         //.requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/product/**").anonymous()
 
