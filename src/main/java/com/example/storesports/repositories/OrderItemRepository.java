@@ -46,7 +46,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         img.image_url AS imgUrl,
         p.name AS productName,
         SUM(oi.quantity) AS soldQuantity,
-        ROUND(SUM(oi.quantity) / total.total_quantity * 100, 2) AS percentage,
+        ROUND(SUM(oi.quantity) / NULLIF(total.total_quantity, 0) * 100, 2) AS percentage,
         DATE(o.order_date) AS orderDate
     FROM order_item oi
     JOIN product p ON oi.product_id = p.id
@@ -60,10 +60,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
           AND DATE(o.order_date) = CURRENT_DATE
     ) total
-    WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
       AND DATE(o.order_date) = CURRENT_DATE
     GROUP BY p.id, p.name, img.image_url, DATE(o.order_date), total.total_quantity
     ORDER BY soldQuantity DESC
@@ -71,15 +71,13 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
 """, nativeQuery = true)
     List<SellingProductsProjection> findTop30SellingProductsToday();
 
-
-
     @Query(value = """
     SELECT 
         p.id AS id,
         img.image_url AS imgUrl,
         p.name AS productName,
         SUM(oi.quantity) AS soldQuantity,
-        ROUND(SUM(oi.quantity) / total.total_quantity * 100, 2) AS percentage,
+        ROUND(SUM(oi.quantity) / NULLIF(total.total_quantity, 0) * 100, 2) AS percentage,
         DATE(MAX(o.order_date)) AS orderDate
     FROM order_item oi
     JOIN product p ON oi.product_id = p.id
@@ -93,11 +91,11 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
           AND MONTH(o.order_date) = MONTH(CURRENT_DATE)
           AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     ) total
-    WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
       AND MONTH(o.order_date) = MONTH(CURRENT_DATE)
       AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     GROUP BY p.id, p.name, img.image_url, total.total_quantity
@@ -113,7 +111,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         img.image_url AS imgUrl,
         p.name AS productName,
         SUM(oi.quantity) AS soldQuantity,
-        ROUND(SUM(oi.quantity) / total.total_quantity * 100, 2) AS percentage,
+        ROUND(SUM(oi.quantity) / NULLIF(total.total_quantity, 0) * 100, 2) AS percentage,
         DATE(MAX(o.order_date)) AS orderDate
     FROM order_item oi
     JOIN product p ON oi.product_id = p.id
@@ -127,10 +125,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE o.ord(o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
           AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     ) total
-    WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
       AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     GROUP BY p.id, p.name, img.image_url, total.total_quantity
     ORDER BY soldQuantity DESC
@@ -144,7 +142,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         img.image_url AS imgUrl,
         p.name AS productName,
         SUM(oi.quantity) AS soldQuantity,
-        ROUND(SUM(oi.quantity) / total.total_quantity * 100, 2) AS percentage,
+        ROUND(SUM(oi.quantity) / NULLIF(total.total_quantity, 0) * 100, 2) AS percentage,
         DATE(o.order_date) AS orderDate
     FROM order_item oi
     JOIN product p ON oi.product_id = p.id
@@ -158,10 +156,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
           AND DATE(o.order_date) BETWEEN :startDate AND :endDate
     ) total
-    WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
       AND DATE(o.order_date) BETWEEN :startDate AND :endDate
     GROUP BY p.id, p.name, img.image_url, DATE(o.order_date), total.total_quantity
     ORDER BY soldQuantity DESC
@@ -180,10 +178,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     WHERE (o.orderStatus = 'COMPLETED' OR o.orderStatus = 'SHIPPED')
     AND o.orderDate BETWEEN :startDate AND :endDate
 """)
-    Long getTotalSoldQuantityBetween(LocalDateTime startDate, LocalDateTime endDate);
-
-
-
-
+    Long getTotalSoldQuantityBetween(@Param("startDate") LocalDateTime startDate,
+                                     @Param("endDate") LocalDateTime endDate);
 
 }
