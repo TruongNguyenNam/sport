@@ -348,7 +348,6 @@ public class OrderServiceImpl implements OrderService {
             if (couponUsages.size() != request.getCouponUsageIds().size()) {
                 throw new IllegalArgumentException("Một hoặc nhiều CouponUsage không tồn tại");
             }
-
             double totalDiscount = 0.0;
             for (CouponUsage usage : couponUsages) {
                 // Kiểm tra xem CouponUsage có thuộc về khách hàng không
