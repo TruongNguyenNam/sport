@@ -61,5 +61,4 @@ public class Order extends Auditable {
         @OneToOne(mappedBy = "order",cascade = CascadeType.REMOVE)
         private Invoice invoice;
 
-
 }
