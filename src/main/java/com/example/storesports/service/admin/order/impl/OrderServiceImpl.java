@@ -261,6 +261,7 @@ public class OrderServiceImpl implements OrderService {
             order.setOrderStatus(OrderStatus.PENDING);
 //            order.setCreatedDate(LocalDateTime.now());
             order.setIsPos(request.getIsPos());
+            order.setOrderSource(OrderSource.COUNTER);
             order.setDeleted(false);
 //            order.setUser(currentUser); // Gán user
             orderRepository.save(order);
