@@ -91,16 +91,15 @@ public class CustomerServiceImpl implements CustomerService {
         validateEmailAndPhone(request.getEmail(), request.getPhoneNumber());
 
         // Kiểm tra trùng email với user khác
-        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+        if (user.getEmail() != null && !user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email đã tồn tại");
         }
         // Kiểm tra trùng sđt với user khác
-        if (!user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+        if (user.getPhoneNumber() != null && !user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new IllegalArgumentException("Số điện thoại đã tồn tại");
         }
 
         modelMapper.map(request, user);
-        user.setRole(Role.CUSTOMER);
         userRepository.save(user);
 
         AddressRequest addrReq = request.getAddress();

@@ -19,6 +19,7 @@ public class PaymentMethod extends Auditable{
     private Long id;
 
     private String name;
+
     private String description;
 
     @OneToMany(mappedBy = "paymentMethod", cascade = CascadeType.REMOVE)
