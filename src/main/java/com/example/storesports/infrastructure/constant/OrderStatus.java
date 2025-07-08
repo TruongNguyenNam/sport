@@ -6,15 +6,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 public enum OrderStatus {
-    PENDING,
-    COMPLETED,
-    CANCELLED,
-    SHIPPED,
-    RETURNED
+    PENDING, //CHỜ XÁC NHẬN
+    COMPLETED, //HOÀN THÀNH
+    CANCELLED, // BỊ HUỶ BỎ
+    SHIPPED, // ĐANG GIAO
+    RETURNED // TRẢ HÀNG
 
-//    CHƯA GIẢI QUYẾT,
-//    HOÀN THÀNH,
-//    Bị hủy bỏ,
-//    Vận chuyển,
-//    Trả lại
 }

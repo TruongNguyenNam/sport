@@ -501,20 +501,20 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         response.setAddress(addressResponse);
 
         // Map shipment
-        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId()).stream().findFirst();
-        if (shipmentOptional.isPresent()) {
-            Shipment shipment = shipmentOptional.get();
-            response.setShipment(new OrderResponseClient.ShipmentResponse(
-                    shipment.getId(),
-                    shipment.getShipmentDate(),
-                    shipment.getShipmentStatus().name(),
-                    shipment.getTrackingNumber(),
-                    shipment.getCarrier().getName(),
-                    shipment.getEstimatedDeliveryDate()
-            ));
-        } else {
-            log.warn("No shipment found for order ID: {}", order.getId());
-        }
+//        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId()).stream().findFirst();
+//        if (shipmentOptional.isPresent()) {
+//            Shipment shipment = shipmentOptional.get();
+//            response.setShipment(new OrderResponseClient.ShipmentResponse(
+//                    shipment.getId(),
+//                    shipment.getShipmentDate(),
+//                    shipment.getShipmentStatus().name(),
+//                    shipment.getTrackingNumber(),
+//                    shipment.getCarrier().getName(),
+//                    shipment.getEstimatedDeliveryDate()
+//            ));
+//        } else {
+//            log.warn("No shipment found for order ID: {}", order.getId());
+//        }
 
         return response;
     }

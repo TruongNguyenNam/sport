@@ -3,8 +3,10 @@ package com.example.storesports.repositories;
 
 import com.example.storesports.core.admin.orderItem.payload.SellingProductsProjection;
 import com.example.storesports.entity.OrderItem;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +15,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaSpecificationExecutor<OrderItem> {
+
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM OrderItem oi WHERE oi.order.id = :orderId")
+    void deleteByOrderId(Long orderId);
 
     @Query("from OrderItem a where a.order.id = :id")
     List<OrderItem> findByOrderId(@Param("id") Long id);

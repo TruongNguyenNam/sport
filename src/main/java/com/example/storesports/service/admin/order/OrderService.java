@@ -1,6 +1,8 @@
 package com.example.storesports.service.admin.order;
 
 import com.example.storesports.core.admin.order.payload.*;
+import com.example.storesports.entity.Order;
+import com.example.storesports.infrastructure.constant.OrderStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,6 +12,7 @@ public interface OrderService {
      OrderResponse findById(Long id);
      OrderResponse createInvoice(CreateInvoiceRequest request);
      OrderResponse addProductToOrder(OrderRequest request);
+
      OrderResponse addOrderDetails(String orderCode, OrderRequest request);
 
      List<OrderResponse> getAll();
@@ -38,5 +41,19 @@ public interface OrderService {
 
      List<MonthlyOrderTypeResponse> getMonthlyOrderChart();
 
+     //test lại để làm xác nhận đơn hàng
+     OrderResponse addProductToOrderV2(OrderRequest request);
+
+     OrderResponse addProductToOrderV3(OrderRequest request);
+     OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes);
+
+//     Order findOrderByCode(String orderCode);
+     OrderResponse editOrderItems(String code, OrderRequest request); // cái này đang sai
+
+     List<OrderResponse> getAllByShip();
+
+     List<OrderResponse> getAllOrderStatus(OrderStatus orderStatus);
+
+      OrderResponse updateOrder(UpdateOrderRequest request);
 
 }

@@ -25,6 +25,18 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
             @Param("createdDate") LocalDateTime createdDate
     );
 
+    @Query("select p from Order p order by p.id desc ")
+    List<Order> getAllOrder();
+
+
+    @Query("select o from  Order o where o.orderStatus = :orderStatus")
+    List<Order> findByOrderStatusAndDeletedFalseAndOrderSource
+            (@Param("orderStatus") OrderStatus orderStatus);
+//
+    @Query("select o from Order o WHERE o.orderStatus= :orderStatus")
+    List<Order> findByOrderStatus(@Param("orderStatus") OrderStatus orderStatus);
+
+
     @Query("select p from Order p where p.deleted = true order by p.id desc")
     List<Order> findAllOrderIsPos();
 

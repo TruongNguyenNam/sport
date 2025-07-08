@@ -26,6 +26,7 @@ public class Order extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
+        @Column(unique = true)
         private String orderCode; // mã code
 
         private Double orderTotal; // tổng số tiền
