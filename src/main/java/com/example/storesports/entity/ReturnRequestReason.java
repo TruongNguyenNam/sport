@@ -22,8 +22,8 @@ public class ReturnRequestReason extends Auditable {
 
         private String name;
         private String description;
-        @OneToMany(mappedBy = "returnRequestReason", cascade = CascadeType.REMOVE)
-        private List<ReturnRequest> returnRequests;
+        @OneToMany(mappedBy = "reason", cascade = CascadeType.REMOVE)
+        private List<ReturnRequestItem> returnRequestItems;
 
         private Boolean deleted;
 }

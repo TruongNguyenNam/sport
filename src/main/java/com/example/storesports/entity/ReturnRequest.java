@@ -5,8 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table(name = "ReturnRequest")
@@ -15,6 +17,7 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReturnRequest extends Auditable{
+
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,12 +28,17 @@ public class ReturnRequest extends Auditable{
         private Order order;
 
         @ManyToOne
-        @JoinColumn(name = "reason_id")
-        private ReturnRequestReason returnRequestReason;
+        @JoinColumn(name = "user_id")
+        private User user;
 
+        @CreationTimestamp
         private Date requestDate;
+
+        private String note; // Ghi chú chung (nếu cần)
 
         private Boolean deleted;
 
+        @OneToMany(mappedBy = "returnRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<ReturnRequestItem> items;
 
 }

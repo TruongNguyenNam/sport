@@ -11,6 +11,8 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class ReturnOderResponse {
+    private Long oderId;
+
     private String code;
 
     private String status;

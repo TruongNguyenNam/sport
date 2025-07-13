@@ -63,6 +63,8 @@ public class User extends Auditable {
 
     @OneToMany(mappedBy = "user",cascade = CascadeType.REMOVE)
     private List<Token> tokens;
+    @OneToMany(mappedBy = "user")
+    private List<ReturnRequest> returnRequest;
 
     public User(Long id) {
         this.id = id;

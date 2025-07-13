@@ -1,21 +1,22 @@
 package com.example.storesports.service.client.returnoder;
 
+import com.example.storesports.core.client.returnoder.payload.request.return_request.ReturnRequestItemRequest;
+import com.example.storesports.core.client.returnoder.payload.request.return_request.ReturnRequestRequest;
 import com.example.storesports.core.client.returnoder.payload.response.ReturnOderDetailResponse;
 import com.example.storesports.core.client.returnoder.payload.response.ReturnProductResponse;
 import com.example.storesports.core.client.returnoder.payload.response.ReturnOderResponse;
+import com.example.storesports.core.client.returnoder.payload.response.return_request.ReturnRequestItemResponse;
+import com.example.storesports.core.client.returnoder.payload.response.return_request.ReturnRequestResponse;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.constant.OrderStatus;
+import com.example.storesports.infrastructure.constant.ReturnRequestItemStatus;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
-import com.example.storesports.repositories.OrderRepository;
-import com.example.storesports.repositories.UserRepository;
+import com.example.storesports.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +24,9 @@ import java.util.stream.Collectors;
 public class ReturnOderServiceIlm implements ReturnOderService {
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final ReturnRequestRepository returnRequestRepository;
+    private final ReturnRequestItemRepository returnRequestItemRepository;
 
     @Override
     public List<ReturnOderResponse> finAll() {
@@ -40,8 +44,95 @@ public class ReturnOderServiceIlm implements ReturnOderService {
         return maptoReturnOderDetailResponse(order);
     }
 
+    @Override
+    public ReturnRequestResponse createReturnRequest(ReturnRequestRequest returnRequestRequest) {
+        String user = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user1 = userRepository.findUserByUsername(user).orElseThrow(() -> new ErrorException("ko có user này"));
+        Order order=orderRepository.findById(returnRequestRequest.getOrderId()).orElseThrow(()->new ErrorException("ko có oder nay "));
+
+        ReturnRequest returnRequest=new ReturnRequest();
+
+        returnRequest.setNote(returnRequestRequest.getNote());
+        returnRequest.setOrder(order);
+        returnRequest.setUser(user1);
+        returnRequest.setNote(returnRequestRequest.getNote());
+        returnRequest =returnRequestRepository.save(returnRequest);
+        List<ReturnRequestItem> items = new ArrayList<>();
+        for (ReturnRequestItemRequest returnRequestItemRequest:returnRequestRequest.getItems()){
+            OrderItem orderItem = orderItemRepository.findById(returnRequestItemRequest.getOrderItemId())
+                    .orElseThrow(() -> new ErrorException("Không tìm thấy orderItem"));
+            boolean exists = returnRequestItemRepository
+                    .existsByOrderItemAndUserAndStatusNotAndDeletedFalse(
+                            orderItem.getId(),
+                            user1.getId(),
+                            ReturnRequestItemStatus.REJECTED
+                    );
+
+            if (exists) {
+                throw new ErrorException("Sản phẩm : "+orderItem.getProduct().getName()+" này đã gửi yêu cầu hoàn hàng vui lòng đợi phản hồi");
+            }
+            ReturnRequestItem item = new ReturnRequestItem();
+            item.setReturnRequest(returnRequest);
+            item.setOrderItem(orderItem);
+            item.setQuantity(returnRequestItemRequest.getQuantity());
+            item.setReason(returnRequestItemRequest.getReason());
+            item.setNote(returnRequestItemRequest.getNote());
+            item.setStatus(ReturnRequestItemStatus.PENDING);
+            item.setDeleted(false);
+            items.add(item);
+        }
+        returnRequest.setItems(items);
+        returnRequestRepository.save(returnRequest);
+        returnRequestItemRepository.saveAll(items);
+        return mapToReturnRequestResponse(returnRequest);
+    }
+
+    @Override
+    public List<ReturnRequestResponse> getAllReturn() {
+        String user = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user1 = userRepository.findUserByUsername(user).orElseThrow(() -> new ErrorException("ko có user này"));
+        return null;
+    }
+
+    public ReturnRequestResponse mapToReturnRequestResponse(ReturnRequest returnRequest) {
+        ReturnRequestResponse returnRequestResponse=new ReturnRequestResponse();
+        returnRequestResponse.setNote(returnRequest.getNote());
+        returnRequestResponse.setRequestDate(returnRequest.getRequestDate());
+        returnRequestResponse.setUserId(returnRequest.getUser().getId());
+        returnRequestResponse.setOrderId(returnRequest.getOrder().getId());
+
+        returnRequestResponse.setRequestDate(returnRequest.getRequestDate());
+
+
+
+        List<ReturnRequestItemResponse> returnRequestItemResponses=new ArrayList<>();
+        for (ReturnRequestItem returnRequestItem:returnRequest.getItems()){
+            ReturnRequestItemResponse returnRequestItemResponse=new ReturnRequestItemResponse();
+            returnRequestItemResponse.setReason(returnRequestItem.getReason());
+            returnRequestItemResponse.setNote(returnRequestItem.getNote());
+            returnRequestItemResponse.setQuantity(returnRequestItem.getQuantity());
+            returnRequestItemResponse.setOrderItemId(returnRequestItem.getOrderItem().getId());
+            if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.PENDING)){
+                returnRequestItemResponse.setStatus("chờ phản hồi");
+            }
+            else if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.APPROVED)){
+                returnRequestItemResponse.setStatus("đã được chấp nhận");
+            }
+            else if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.REJECTED)){
+                returnRequestItemResponse.setStatus("đã bị từ chối");
+            }
+            returnRequestItemResponses.add(returnRequestItemResponse);
+
+
+        }
+
+        returnRequestResponse.setItems(returnRequestItemResponses);
+        return returnRequestResponse;
+    }
+
     public ReturnOderDetailResponse maptoReturnOderDetailResponse(Order order) {
         ReturnOderDetailResponse response = new ReturnOderDetailResponse();
+        response.setOderId(order.getId());
         response.setCode(order.getOrderCode());
         response.setOrderDate(order.getOrderDate());
         response.setStatus(order.getOrderStatus().name());
@@ -89,7 +180,8 @@ public class ReturnOderServiceIlm implements ReturnOderService {
                 imageUrl = product.getImages().get(0).getImageUrl();
             }
             ReturnProductResponse productResponse = new ReturnProductResponse();
-
+            productResponse.setOrderItemId(item.getId());
+            productResponse.setProductId(item.getProduct().getId());
             productResponse.setProductName(item.getProduct().getName());
             productResponse.setImageUrl(imageUrl);
             productResponse.setQuantity(item.getQuantity());

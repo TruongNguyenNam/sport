@@ -138,11 +138,11 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
 
 
-    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus IN :statuses and o.isPos=false")
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus IN :statuses and o.isPos=false and o.deleted=true order by o.createdDate desc ")
     List<Order> findByUserAndStatuses(@Param("userId") Long userId,
                                       @Param("statuses") List<OrderStatus> statuses);
 
-    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderCode = :orderCode AND o.orderStatus IN :statuses AND o.isPos = false")
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderCode = :orderCode AND o.orderStatus IN :statuses AND o.isPos = false and o.deleted=true")
     Optional<Order> findOrderByUserAndCodeAndStatuses(@Param("userId") Long userId,
                                                       @Param("orderCode") String orderCode,
                                                       @Param("statuses") List<OrderStatus> statuses);

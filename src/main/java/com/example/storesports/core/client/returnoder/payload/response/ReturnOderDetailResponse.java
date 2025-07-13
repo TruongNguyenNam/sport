@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ReturnOderDetailResponse {
+    private Long oderId;
     private String code;                  // Mã đơn hàng
 
     private Date orderDate;              // Ngày đặt hàng

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "OrderItem")
 @Getter
@@ -25,6 +27,9 @@ public class OrderItem extends Auditable {
         @ManyToOne
         @JoinColumn(name = "product_id")
         private Product product;
+
+        @OneToMany(mappedBy = "orderItem")
+        private List<ReturnRequestItem> returnRequestItems;
 
         private Integer quantity;
 

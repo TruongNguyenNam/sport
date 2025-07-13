@@ -11,6 +11,8 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReturnProductResponse {
+    private Long orderItemId;
+    private Long productId;
     private String productName;
     private Integer quantity;
     private Double unitPrice;
