@@ -58,4 +58,6 @@ public interface OrderService {
 
       OrderResponse updateOrder(UpdateOrderRequest request);
 
+      List<OrderStatusCount> getOrderStatusCounts();
+
 }
