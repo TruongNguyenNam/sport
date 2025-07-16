@@ -378,6 +378,12 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public List<VariantCountDTO> getVariantCounts() {
+        return productRepository.quantityVariants();
+    }
+
 
     @Override
     @Transactional

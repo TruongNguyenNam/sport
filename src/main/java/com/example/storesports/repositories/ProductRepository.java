@@ -1,6 +1,7 @@
 package com.example.storesports.repositories;
 
 
+import com.example.storesports.core.admin.product.payload.VariantCountDTO;
 import com.example.storesports.entity.Product;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,11 +22,15 @@ public interface ProductRepository extends JpaRepository<Product,Long>, JpaSpeci
     Optional<Product> findByParentProductIdAndSku(Long parentProductId, String sku);
     void deleteByParentProductId(Long parentProductId);
 
+    @Query(value = "SELECT new com.example.storesports.core.admin.product.payload.VariantCountDTO(p.parentProductId, COUNT(p)) " +
+            "FROM Product p WHERE p.parentProductId IS NOT NULL and p.deleted = false GROUP BY p.parentProductId")
+    List<VariantCountDTO> quantityVariants();
+
     @Query("select p from Product p where p.parentProductId is null order by  p.id desc")
     List<Product> findAllParentProducts();
 
 
-    @Query("select p from Product p where p.parentProductId is not null and p.deleted = false order by p.id desc")
+    @Query("select p from Product p where p.parentProductId is not null and p.deleted = false and p.stockQuantity > 0 order by p.id desc")
     List<Product> findAllChildProduct();
 
     @Query("SELECT p FROM Product p JOIN ProductDiscountMapping pdm ON p.id = pdm.product.id WHERE pdm.discount.id = :discountId")

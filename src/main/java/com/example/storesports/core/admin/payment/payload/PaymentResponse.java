@@ -14,6 +14,8 @@ public class PaymentResponse {
     private String paymentStatus; // Trạng thái thanh toán (COMPLETED, PENDING, v.v.)
     private LocalDateTime paymentDate; // Thời gian thanh toán
     private Double changeAmount;
+    private Long paymentMethodId;
     private String paymentMethodName; // Tên phương thức thanh toán (lấy từ PaymentMethodMapping)
-
+    private String returnUrl;
+    private String transactionId;
 }

@@ -39,4 +39,7 @@ public interface ProductService {
 
     void validateAttributesAndValues(Long productId, List<AddProductChild.ProductAttributeValue> newAttributes);
 
+
+    List<VariantCountDTO> getVariantCounts();
+
 }

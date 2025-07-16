@@ -6,9 +6,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Getter
 public enum ShipmentStatus {
-    PENDING,
-    SHIPPED,
-    DELIVERED,
-    RETURNED,
-    CANCELED
+    PENDING, // xác nhận
+    SHIPPED, // đang giao
+    DELIVERED,  // đã giao hàng
+    RETURNED, // trả hàng
+    CANCELED // huỷ
 }

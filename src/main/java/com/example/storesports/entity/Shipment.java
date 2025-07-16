@@ -32,6 +32,8 @@ public class Shipment extends Auditable{
         @Enumerated(EnumType.STRING)
         private ShipmentStatus shipmentStatus;
 
+        private Double shippingCost;
+
         @ManyToOne
         @JoinColumn(name = "carrier_id")
         private Carrier carrier;

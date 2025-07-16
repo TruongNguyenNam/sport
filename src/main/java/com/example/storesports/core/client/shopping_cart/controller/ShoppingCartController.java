@@ -1,5 +1,7 @@
 package com.example.storesports.core.client.shopping_cart.controller;
 
+import com.example.storesports.core.admin.order.payload.OrderRequest;
+import com.example.storesports.core.admin.order.payload.OrderResponse;
 import com.example.storesports.core.client.shopping_cart.payload.OrderRequestClient;
 import com.example.storesports.core.client.shopping_cart.payload.OrderResponseClient;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRequest;
@@ -7,10 +9,12 @@ import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRes
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.client.shopping_cart.ShoppingCartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -27,16 +31,46 @@ public class ShoppingCartController {
 
     private final ShoppingCartService shoppingCartService;
 
+//    @PostMapping("/checkout")
+//    public ResponseData<OrderResponseClient> checkout(@RequestBody OrderRequestClient request) {
+//        try {
+//            OrderResponseClient response = shoppingCartService.checkoutv2(request);
+//            return new ResponseData<>(200, "Thanh toán thành công", response);
+//        } catch (Exception e) {
+//            log.error("Lỗi khi thanh toán đơn hàng", e);
+//            return new ResponseData<>(500, "Thanh toán thất bại");
+//        }
+//    }
+
     @PostMapping("/checkout")
-    public ResponseData<OrderResponseClient> checkout(@RequestBody OrderRequestClient request) {
+    public ResponseData<OrderResponseClient> checkout( @RequestBody OrderRequestClient request, HttpServletRequest httpServletRequest) {
         try {
-            OrderResponseClient response = shoppingCartService.checkout(request);
+            log.info("Nhận yêu cầu thanh toán từ userId: {}", request.getUserId());
+            OrderResponseClient response = shoppingCartService.checkout(request, httpServletRequest);
+            log.info("Hoàn tất thanh toán cho đơn hàng: {}", response.getOrderCode());
             return new ResponseData<>(200, "Thanh toán thành công", response);
+        } catch (IllegalArgumentException e) {
+            log.error("Lỗi khi thanh toán đơn hàng: {}", e.getMessage());
+            return new ResponseData<>(400, "Thanh toán thất bại: " + e.getMessage());
         } catch (Exception e) {
-            log.error("Lỗi khi thanh toán đơn hàng", e);
-            return new ResponseData<>(500, "Thanh toán thất bại");
+            log.error("Lỗi hệ thống khi thanh toán đơn hàng", e);
+            return new ResponseData<>(500, "Thanh toán thất bại: Lỗi hệ thống");
         }
     }
+
+//    public ResponseData<OrderResponse> addProductToOrder(
+//            @PathVariable String orderCode,
+//            @RequestBody OrderRequest request,
+//            HttpServletRequest httpServletRequest) {
+//        log.info("📥 Add product to order {} with payload: {}", orderCode, request);
+//        request.setOrderCode(orderCode);
+//        OrderResponse response = orderService.addProductToOrderV3(request,httpServletRequest);
+//        return ResponseData.<OrderResponse>builder()
+//                .status(HttpStatus.OK.value())
+//                .message("Thêm sản phẩm vào đơn hàng thành công")
+//                .data(response)
+//                .build();
+//    }
 
     @PostMapping("/add")
     public ResponseData<ShoppingCartResponse> addToCart(@RequestBody @Valid ShoppingCartRequest request) {
