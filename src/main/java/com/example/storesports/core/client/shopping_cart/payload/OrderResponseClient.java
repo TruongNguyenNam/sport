@@ -27,12 +27,12 @@ public class OrderResponseClient {
     private List<OrderItemResponse> items; // Danh sách sản phẩm trong đơn hàng
     private PaymentResponse payment; // Thông tin thanh toán
     private List<CouponResponse> couponUsages; // Danh sách thông tin sử dụng coupon
-    private ShipmentResponse shipment; // Thông tin vận chuyển (nếu có)
+    private List<ShipmentResponse> shipments;// Thông tin vận chuyển (nếu có)
     private Integer createdBy; // Người tạo đơn hàng
     private LocalDateTime createdDate; // Thời gian tạo
     private Integer lastModifiedBy; // Người sửa cuối cùng
     private LocalDateTime lastModifiedDate; // Thời gian sửa cuối cùng
-
+    private String paymentUrl;
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -50,9 +50,39 @@ public class OrderResponseClient {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class OrderItemResponse {
+        private Long id;
+        private Long productId;
+        private String productName;
+        private Integer quantity;
+        private Double unitPrice;
+
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static  class PaymentResponse{
+         private Long id; // ID của thanh toán
+        private Double amount; // Số tiền thanh toán
+        private String paymentStatus; // Trạng thái thanh toán (COMPLETED, PENDING, v.v.)
+        private LocalDateTime paymentDate; // Thời gian thanh toán
+        private Double changeAmount;
+        private Long paymentMethodId;
+        private String paymentMethodName; // Tên phương thức thanh toán (lấy từ PaymentMethodMapping)
+        private String returnUrl;
+        private String transactionId;;
+    }
+
+
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class AddressResponse {
         private Long id;
         private String email;
+        private Long userId;
         private String username;
         private String phoneNumber;
         private String role;
@@ -76,6 +106,8 @@ public class OrderResponseClient {
         private String shipmentStatus;
         private String trackingNumber;
         private String carrierName;
+        private Double shippingCost;
+        private Long carrierId;
         private LocalDateTime estimatedDeliveryDate;
 
         public ShipmentResponse(Long id, Date shipmentDate, ShipmentStatus shipmentStatus, String trackingNumber, String carrier, LocalDateTime estimatedDeliveryDate) {

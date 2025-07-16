@@ -28,7 +28,6 @@ public class OrderRequest {
     private List<ShipmentRequest> shipments;
 
 
-
     @Data
     @NoArgsConstructor
     public static class OrderItemRequest {
@@ -41,6 +40,7 @@ public class OrderRequest {
     public static class PaymentRequest {
         private Long paymentMethodId;
         private Double amount;
+        private String returnUrl;
 
     }
 

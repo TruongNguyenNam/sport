@@ -43,11 +43,17 @@ public class JWTAuthorizationFilter extends GenericFilterBean {
         log.info("Request URI: {}", requestPath);
 
         // Bỏ qua filter cho các endpoint công khai
-        if (requestPath.startsWith("/api/v1/auth/register") || requestPath.startsWith("/api/v1/auth/login")) {
+        // Bỏ qua filter cho các endpoint công khai hoặc callback từ VNPay
+        if (
+                requestPath.startsWith("/api/v1/auth/register") ||
+                        requestPath.startsWith("/api/v1/auth/login") ||
+                        requestPath.startsWith("/api/vnpay/callback")
+        ) {
             log.debug("Bỏ qua JWT filter cho endpoint: {}", requestPath);
             filterChain.doFilter(request, response);
             return;
         }
+
 
         String token = request.getHeader(authorizationHeader);
         log.info("Raw Authorization Header: {}", token);

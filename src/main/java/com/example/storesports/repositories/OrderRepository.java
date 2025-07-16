@@ -25,7 +25,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
             @Param("createdDate") LocalDateTime createdDate
     );
 
-    @Query("select p from Order p order by p.id desc ")
+    @Query("select p from Order p order by p.id desc")
     List<Order> getAllOrder();
 
 

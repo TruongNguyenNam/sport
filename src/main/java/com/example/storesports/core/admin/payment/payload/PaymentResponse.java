@@ -16,5 +16,6 @@ public class PaymentResponse {
     private Double changeAmount;
     private Long paymentMethodId;
     private String paymentMethodName; // Tên phương thức thanh toán (lấy từ PaymentMethodMapping)
-
+    private String returnUrl;
+    private String transactionId;
 }

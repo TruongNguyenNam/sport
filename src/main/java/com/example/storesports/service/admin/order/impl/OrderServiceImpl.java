@@ -6,13 +6,18 @@ import com.example.storesports.core.admin.orderItem.payload.OrderItemResponse;
 import com.example.storesports.core.admin.payment.payload.PaymentResponse;
 import com.example.storesports.core.admin.shipment.payload.ShipmentResponse;
 import com.example.storesports.entity.*;
+import com.example.storesports.infrastructure.configuration.vnpay.VnPayConfig;
 import com.example.storesports.infrastructure.constant.*;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.admin.order.OrderService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 
 import org.aspectj.weaver.ast.Or;
@@ -61,6 +66,8 @@ public class OrderServiceImpl implements OrderService {
     private final ShipmentItemRepository shipmentItemRepository;
 
     private final CarrierRepository carrierRepository;
+
+    private final   HttpServletRequest httpServletRequest;
 
 
     @Transactional
@@ -247,232 +254,7 @@ public class OrderServiceImpl implements OrderService {
         return mapToOrderResponse(order);
     }
 
-    @Transactional
-    @Override
-    public OrderResponse addProductToOrderV3(OrderRequest request) {
-        Order order = orderRepository.findByOrderCode(request.getOrderCode())
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + request.getOrderCode()));
 
-        if (!order.getOrderCode().equals(request.getOrderCode())) {
-            throw new IllegalArgumentException("Mã đơn hàng không khớp");
-        }
-
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new IllegalArgumentException("Vui lòng cung cấp danh sách sản phẩm");
-        }
-
-        // Kiểm tra userId và shipment
-        if (!order.getIsPos()) {
-            if (request.getUserId() == null || request.getShipments() == null || request.getShipments().isEmpty()) {
-                throw new IllegalArgumentException("Vui lòng cung cấp userId và thông tin shipment cho đơn giao hàng");
-            }
-        } else {
-            if (request.getShipments() != null && !request.getShipments().isEmpty()) {
-                throw new IllegalArgumentException("Đơn POS không được chứa shipment");
-            }
-        }
-
-        // Xử lý userId
-        User user = null;
-        if (request.getUserId() != null) {
-            user = userRepository.findById(request.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy userId: " + request.getUserId()));
-            log.info("Khách hàng đã đăng ký: {}", user.getId());
-        } else if (order.getIsPos()) {
-            log.info("Khách vãng lai cho đơn POS");
-        } else {
-            throw new IllegalArgumentException("Đơn ship yêu cầu userId");
-        }
-        order.setUser(user);
-
-        // Xử lý OrderItem
-        double totalAmount = 0.0;
-        List<OrderItem> savedOrderItems = new ArrayList<>();
-
-        for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
-            Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
-
-            if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho");
-            }
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemRequest.getQuantity());
-            orderItem.setUnitPrice(product.getPrice());
-            log.info("Số tiền của sản phẩm: {}", product.getPrice());
-            OrderItem savedItem = orderItemRepository.save(orderItem);
-
-            savedOrderItems.add(savedItem);
-            totalAmount += savedItem.getQuantity() * savedItem.getUnitPrice();
-
-            product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
-            productRepository.save(product);
-        }
-
-        // Gán tổng tiền đơn hàng
-        order.setOrderTotal(totalAmount);
-
-        // Áp dụng coupon nếu có
-        if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
-            List<CouponUsage> couponUsages = couponUsageRepository.findAllById(request.getCouponUsageIds());
-            if (couponUsages.size() != request.getCouponUsageIds().size()) {
-                throw new IllegalArgumentException("Một hoặc nhiều CouponUsage không tồn tại");
-            }
-            double totalDiscount = 0.0;
-            for (CouponUsage usage : couponUsages) {
-                if (user == null || !usage.getUser().getId().equals(user.getId())) {
-                    throw new IllegalArgumentException("CouponUsage không thuộc về khách hàng này");
-                }
-
-                Coupon coupon = usage.getCoupon();
-                if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
-                        coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
-                        coupon.getDeleted()) {
-                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCodeCoupon() + " không hợp lệ hoặc đã hết hạn");
-                }
-
-                totalDiscount += coupon.getDiscountAmount();
-                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
-                usage.setDeleted(true);
-                couponUsageRepository.save(usage);
-            }
-
-            order.setOrderTotal(order.getOrderTotal() - totalDiscount);
-            if (order.getOrderTotal() < 0) {
-                order.setOrderTotal(0.0);
-            }
-            orderRepository.save(order);
-        }
-
-        log.info("Tổng số tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
-
-        // Xử lý thanh toán
-        Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
-        Payment payment = paymentOptional.orElseGet(() -> {
-            Payment newPayment = new Payment();
-            newPayment.setOrder(order);
-            return newPayment;
-        });
-
-        if (order.getIsPos()) {
-            // Đơn POS yêu cầu thanh toán ngay
-            if (request.getPayment() == null) {
-                throw new IllegalArgumentException("Vui lòng cung cấp thông tin thanh toán cho đơn POS");
-            }
-            PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
-                    .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
-            if (paymentMethod.getDeleted()) {
-                throw new IllegalArgumentException("Phương thức thanh toán đã bị xóa");
-            }
-            payment.setPaymentMethod(paymentMethod);
-            Double paidAmount = request.getPayment().getAmount();
-            if (paidAmount == null || paidAmount < order.getOrderTotal()) {
-                throw new IllegalArgumentException("Số tiền thanh toán không đủ hoặc không được cung cấp");
-            }
-            log.info("Số tiền khách đưa: {}", paidAmount);
-            payment.setAmount(paidAmount);
-            payment.setChangeAmount(paidAmount - order.getOrderTotal());
-            payment.setPaymentDate(LocalDateTime.now());
-            payment.setPaymentStatus(PaymentStatus.COMPLETED);
-            order.setOrderStatus(OrderStatus.COMPLETED);
-            order.setDeleted(true);
-        } else {
-            // Đơn ship có thể thanh toán ngay hoặc COD
-            if (request.getPayment() != null) {
-                PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
-                        .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
-//                if (paymentMethod.getDeleted()) {
-//                    throw new IllegalArgumentException("Phương thức thanh toán đã bị xóa");
-//                }
-                payment.setPaymentMethod(paymentMethod);
-                if (!paymentMethod.getName().equals("COD")) {
-                    // Thanh toán ngay
-                    Double paidAmount = request.getPayment().getAmount();
-                    if (paidAmount == null || paidAmount < order.getOrderTotal()) {
-                        throw new IllegalArgumentException("Số tiền thanh toán không đủ hoặc không được cung cấp");
-                    }
-                    log.info("Số tiền khách đưa: {}", paidAmount);
-                    payment.setAmount(paidAmount);
-                    payment.setChangeAmount(paidAmount - order.getOrderTotal());
-                    payment.setPaymentDate(LocalDateTime.now());
-                    payment.setPaymentStatus(PaymentStatus.COMPLETED);
-                } else {
-                    // Thanh toán COD
-                    payment.setAmount(0.0);
-                    payment.setChangeAmount(0.0);
-                    payment.setPaymentStatus(PaymentStatus.PENDING); // Hoặc AWAITING_DELIVERY nếu có
-                }
-            } else {
-                // Mặc định COD nếu không có thông tin thanh toán
-                PaymentMethod paymentMethod = paymentMethodRepository.findByName("COD")
-                        .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán COD không tồn tại"));
-//                if (paymentMethod.getDeleted()) {
-//                    throw new IllegalArgumentException("Phương thức thanh toán COD đã bị xóa");
-//                }
-                payment.setPaymentMethod(paymentMethod);
-                payment.setAmount(0.0);
-                payment.setChangeAmount(0.0);
-                payment.setPaymentStatus(PaymentStatus.PENDING); // Hoặc AWAITING_DELIVERY
-            }
-            order.setOrderStatus(OrderStatus.PENDING);
-            order.setDeleted(false);
-        }
-        paymentRepository.save(payment);
-
-        // Xử lý vận chuyển cho đơn giao hàng
-        if (!order.getIsPos()) {
-            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
-            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
-                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
-            }
-
-            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
-                Shipment shipment = new Shipment();
-                shipment.setOrder(order);
-                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
-                shipment.setCarrier(carrier);
-                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-                shipment.setShipmentStatus(ShipmentStatus.PENDING);
-                shipment.setTrackingNumber(generateTrackingNumber());
-                shipment.setShipmentDate(new Date());
-                shipment.setDeleted(false);
-                Shipment savedShipment = shipmentRepository.save(shipment);
-
-                // Liên kết OrderItem với Shipment
-                if (shipmentReq.getOrderItemIds() != null && !shipmentReq.getOrderItemIds().isEmpty()) {
-                    for (Long orderItemId : shipmentReq.getOrderItemIds()) {
-                        OrderItem orderItem = savedOrderItems.stream()
-                                .filter(item -> item.getId().equals(orderItemId))
-                                .findFirst()
-                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy OrderItem với ID: " + orderItemId));
-                        ShipmentItem shipmentItem = new ShipmentItem();
-                        shipmentItem.setShipment(savedShipment);
-                        shipmentItem.setOrderItem(orderItem);
-                        shipmentItemRepository.save(shipmentItem);
-                    }
-                } else {
-                    // Mặc định liên kết tất cả OrderItem nếu orderItemIds rỗng
-                    for (OrderItem item : savedOrderItems) {
-                        ShipmentItem shipmentItem = new ShipmentItem();
-                        shipmentItem.setShipment(savedShipment);
-                        shipmentItem.setOrderItem(item);
-                        shipmentItemRepository.save(shipmentItem);
-                    }
-                }
-            }
-        }
-
-        order.setNodes(request.getNodes());
-        order.setOrderDate(new Date());
-        order.setOrderStatus(OrderStatus.PENDING);
-        orderRepository.save(order);
-
-        return mapToOrderResponse(order);
-    }
     @Transactional
     @Override
     public OrderResponse updateOrder(UpdateOrderRequest request) {
@@ -525,7 +307,6 @@ public class OrderServiceImpl implements OrderService {
         List<OrderItem> currentOrderItems = new ArrayList<>(order.getOrderItems());
         for (OrderItem orderItem : currentOrderItems) {
             if (!requestProductIds.contains(orderItem.getProduct().getId())) {
-                // Xóa ShipmentItem liên quan trước
                 try {
                     shipmentItemRepository.deleteByOrderItemId(orderItem.getId());
                 } catch (Exception e) {
@@ -552,7 +333,6 @@ public class OrderServiceImpl implements OrderService {
             if (itemUpdate.getQuantity() == 0) {
                 if (existingItem.isPresent()) {
                     OrderItem orderItem = existingItem.get();
-                    // Xóa ShipmentItem liên quan trước
                     try {
                         shipmentItemRepository.deleteByOrderItemId(orderItem.getId());
                     } catch (Exception e) {
@@ -616,38 +396,23 @@ public class OrderServiceImpl implements OrderService {
                 usage.setDeleted(true);
                 couponUsageRepository.save(usage);
             }
-            order.setOrderTotal(order.getOrderTotal() - totalDiscount);
+            order.setOrderTotal(totalAmount - totalDiscount);
             if (order.getOrderTotal() < 0) {
                 order.setOrderTotal(0.0);
             }
             log.info("Tổng tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
         }
 
-        // Cập nhật thanh toán
-        if (request.getPayment() != null) {
-            Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
-            Payment payment = paymentOptional.orElseGet(() -> {
-                Payment newPayment = new Payment();
-                newPayment.setOrder(order);
-                return newPayment;
-            });
-            PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
-                    .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
-            payment.setPaymentMethod(paymentMethod);
-            double paidAmount = request.getPayment().getAmount();
-            if (paidAmount < order.getOrderTotal()) {
-                throw new IllegalArgumentException("Số tiền thanh toán không đủ: " + paidAmount + " < " + order.getOrderTotal());
-            }
-            log.info("Cập nhật thanh toán: số tiền khách đưa {}, tiền thừa {}", paidAmount, paidAmount - order.getOrderTotal());
-            payment.setAmount(paidAmount);
-            payment.setChangeAmount(paidAmount - order.getOrderTotal());
-            payment.setPaymentDate(LocalDateTime.now());
-            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
-            paymentRepository.save(payment);
-        }
-
         // Cập nhật vận chuyển
+        double totalShippingCost = 0.0;
         if (!order.getIsPos() && request.getShipments() != null && !request.getShipments().isEmpty()) {
+            // Kiểm tra shippingCost
+            for (UpdateOrderRequest.ShipmentRequest shipmentReq : request.getShipments()) {
+                if (shipmentReq.getShippingCost() == null || shipmentReq.getShippingCost() < 0) {
+                    throw new IllegalArgumentException("Phí vận chuyển không hợp lệ cho đơn vị vận chuyển ID: " + shipmentReq.getCarrierId());
+                }
+            }
+
             // Xóa tất cả ShipmentItem và Shipment liên quan đến order
             try {
                 shipmentItemRepository.deleteByOrderId(order.getId());
@@ -665,11 +430,13 @@ public class OrderServiceImpl implements OrderService {
                 Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
                         .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
                 shipment.setCarrier(carrier);
+                shipment.setShippingCost(shipmentReq.getShippingCost());
                 shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
                 shipment.setShipmentStatus(ShipmentStatus.PENDING);
                 shipment.setTrackingNumber(generateTrackingNumber());
                 shipment.setShipmentDate(new Date());
                 shipment.setDeleted(false);
+                totalShippingCost += shipmentReq.getShippingCost();
                 Shipment savedShipment = shipmentRepository.save(shipment);
                 for (OrderItem item : updatedOrderItems) {
                     ShipmentItem shipmentItem = new ShipmentItem();
@@ -680,7 +447,33 @@ public class OrderServiceImpl implements OrderService {
                 newShipments.add(savedShipment);
             }
             order.setShipments(newShipments);
-            log.info("Cập nhật vận chuyển cho đơn hàng");
+            log.info("Cập nhật vận chuyển cho đơn hàng, tổng phí vận chuyển: {}", totalShippingCost);
+        } else if (!order.getIsPos()) {
+            throw new IllegalArgumentException("Đơn hàng không phải POS yêu cầu thông tin vận chuyển");
+        }
+
+        // Cập nhật thanh toán
+        if (request.getPayment() != null) {
+            Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
+            Payment payment = paymentOptional.orElseGet(() -> {
+                Payment newPayment = new Payment();
+                newPayment.setOrder(order);
+                return newPayment;
+            });
+            PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
+                    .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
+            payment.setPaymentMethod(paymentMethod);
+            double paidAmount = request.getPayment().getAmount();
+            double totalAmountWithShipping = order.getOrderTotal() + totalShippingCost;
+            if (paidAmount < totalAmountWithShipping) {
+                throw new IllegalArgumentException("Số tiền thanh toán không đủ: " + paidAmount + " < " + totalAmountWithShipping);
+            }
+            log.info("Cập nhật thanh toán: số tiền khách đưa {}, tiền thừa {}", paidAmount, paidAmount - totalAmountWithShipping);
+            payment.setAmount(paidAmount);
+            payment.setChangeAmount(paidAmount - totalAmountWithShipping);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+            paymentRepository.save(payment);
         }
 
         // Cập nhật ghi chú
@@ -689,7 +482,9 @@ public class OrderServiceImpl implements OrderService {
             log.info("Cập nhật ghi chú: {}", request.getNodes());
         }
 
+        // Cập nhật trạng thái đơn hàng
         order.setLastModifiedDate(LocalDateTime.now());
+        order.setOrderStatus(order.getIsPos() ? OrderStatus.COMPLETED : OrderStatus.PENDING);
         Order savedOrder = orderRepository.save(order);
         log.info("Hoàn tất cập nhật đơn hàng: {}", order.getOrderCode());
 
@@ -827,48 +622,48 @@ public class OrderServiceImpl implements OrderService {
         paymentRepository.save(payment);
 
         // Cập nhật shipment
-        if (!order.getIsPos()) {
-            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
-            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
-                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
-            }
-
-            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
-                Shipment shipment = new Shipment();
-                shipment.setOrder(order);
-                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
-                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
-                shipment.setCarrier(carrier);
-                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-                shipment.setShipmentStatus(ShipmentStatus.PENDING);
-                shipment.setTrackingNumber(generateTrackingNumber());
-                shipment.setShipmentDate(new Date());
-                shipment.setDeleted(false);
-                Shipment savedShipment = shipmentRepository.save(shipment);
-
-                List<Long> orderItemIds = shipmentReq.getOrderItemIds() != null ? shipmentReq.getOrderItemIds() : new ArrayList<>();
-                if (orderItemIds.isEmpty()) {
-                    for (OrderItem item : savedOrderItems) {
-                        ShipmentItem shipmentItem = new ShipmentItem();
-                        shipmentItem.setShipment(savedShipment);
-                        shipmentItem.setOrderItem(item);
-                        shipmentItemRepository.save(shipmentItem);
-                    }
-                } else {
-                    for (Long orderItemId : orderItemIds) {
-                        OrderItem orderItem = orderItemRepository.findById(orderItemId)
-                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy OrderItem với ID: " + orderItemId));
-                        if (!orderItem.getOrder().getId().equals(order.getId())) {
-                            throw new IllegalArgumentException("OrderItem " + orderItemId + " không thuộc đơn hàng này");
-                        }
-                        ShipmentItem shipmentItem = new ShipmentItem();
-                        shipmentItem.setShipment(savedShipment);
-                        shipmentItem.setOrderItem(orderItem);
-                        shipmentItemRepository.save(shipmentItem);
-                    }
-                }
-            }
-        }
+//        if (!order.getIsPos()) {
+//            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+//            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
+//                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
+//            }
+//
+//            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+//                Shipment shipment = new Shipment();
+//                shipment.setOrder(order);
+//                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
+//                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
+//                shipment.setCarrier(carrier);
+//                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
+//                shipment.setShipmentStatus(ShipmentStatus.PENDING);
+//                shipment.setTrackingNumber(generateTrackingNumber());
+//                shipment.setShipmentDate(new Date());
+//                shipment.setDeleted(false);
+//                Shipment savedShipment = shipmentRepository.save(shipment);
+//
+//                List<Long> orderItemIds = shipmentReq.getOrderItemIds() != null ? shipmentReq.getOrderItemIds() : new ArrayList<>();
+//                if (orderItemIds.isEmpty()) {
+//                    for (OrderItem item : savedOrderItems) {
+//                        ShipmentItem shipmentItem = new ShipmentItem();
+//                        shipmentItem.setShipment(savedShipment);
+//                        shipmentItem.setOrderItem(item);
+//                        shipmentItemRepository.save(shipmentItem);
+//                    }
+//                } else {
+//                    for (Long orderItemId : orderItemIds) {
+//                        OrderItem orderItem = orderItemRepository.findById(orderItemId)
+//                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy OrderItem với ID: " + orderItemId));
+//                        if (!orderItem.getOrder().getId().equals(order.getId())) {
+//                            throw new IllegalArgumentException("OrderItem " + orderItemId + " không thuộc đơn hàng này");
+//                        }
+//                        ShipmentItem shipmentItem = new ShipmentItem();
+//                        shipmentItem.setShipment(savedShipment);
+//                        shipmentItem.setOrderItem(orderItem);
+//                        shipmentItemRepository.save(shipmentItem);
+//                    }
+//                }
+//            }
+//        }
 
         order.setNodes(request.getNodes());
         order.setOrderDate(new Date());
@@ -893,9 +688,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-    @Transactional
-    @Override
-    public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes) {
+@Transactional
+@Override
+public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
 
@@ -974,7 +769,7 @@ public class OrderServiceImpl implements OrderService {
 
 
     // Phương thức kiểm tra tính hợp lệ của chuyển đổi trạng thái
-    private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
+private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
         if (currentStatus == newStatus) {
             return false; // Không cho phép chuyển sang cùng trạng thái
         }
@@ -990,7 +785,7 @@ public class OrderServiceImpl implements OrderService {
             default:
                 return false;
         }
-    }
+}
 
 
 
@@ -1102,8 +897,6 @@ public class OrderServiceImpl implements OrderService {
         long count = orderRepository.countCompletedOrdersThisYear();
         return new OrderStatusYearResponse(LocalDate.now().getYear(), count);
     }
-
-
 
     //Đơn Hàng huy ngay
     @Override
@@ -1296,9 +1089,9 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        // Gán tổng tiền của đơn hàng (bao gồm phí vận chuyển)
-        order.setOrderTotal(totalAmount + totalShippingCost);
-        log.info("Tổng số tiền trước khi áp dụng coupon (bao gồm phí vận chuyển): {}", order.getOrderTotal());
+        // Gán tổng tiền của đơn hàng (chỉ bao gồm tiền sản phẩm)
+        order.setOrderTotal(totalAmount);
+        log.info("Tổng số tiền sản phẩm trước khi áp dụng coupon: {}", order.getOrderTotal());
 
         // Apply coupon if provided
         if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
@@ -1332,7 +1125,8 @@ public class OrderServiceImpl implements OrderService {
             orderRepository.save(order);
         }
 
-        log.info("Tổng số tiền sau khi áp dụng coupon: {}", order.getOrderTotal());
+        log.info("Tổng số tiền sản phẩm sau khi áp dụng coupon: {}", order.getOrderTotal());
+        log.info("Tổng phí vận chuyển: {}", totalShippingCost);
 
         // Thanh toán
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
@@ -1347,7 +1141,8 @@ public class OrderServiceImpl implements OrderService {
         double paidAmount = request.getPayment().getAmount();
         log.info("Số tiền khách đưa: {}", paidAmount);
         payment.setAmount(paidAmount);
-        payment.setChangeAmount(paidAmount - order.getOrderTotal());
+        // Tính tổng tiền phải trả bao gồm phí vận chuyển từ các shipment
+        payment.setChangeAmount(paidAmount - (order.getOrderTotal() + totalShippingCost));
         payment.setPaymentDate(LocalDateTime.now());
 
         // Set trạng thái thanh toán và deleted dựa trên loại đơn hàng
@@ -1393,43 +1188,51 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         return mapToOrderResponse(order);
-
     }
-
-
 
 
     @Override
     @Transactional
-    public OrderResponse addOrderDetails(String orderCode, OrderRequest request) {
-        // 1. Tìm đơn hàng theo mã (orderCode)
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
+    public OrderResponse addProductToOrderV3(OrderRequest request, HttpServletRequest httpServletRequest) {
+        log.info("Bắt đầu thêm sản phẩm vào đơn hàng: {}", request.getOrderCode());
+        // Kiểm tra HttpServletRequest
+        if (httpServletRequest == null) {
+            throw new IllegalArgumentException("Yêu cầu HTTP không được để trống");
+        }
 
-        // 2. Kiểm tra mã đơn hàng có trùng với request không
-        if (!orderCode.equals(request.getOrderCode())) {
+        // Kiểm tra orderCode
+        if (request.getOrderCode() == null || request.getOrderCode().trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
+        }
+
+        // Tìm đơn hàng
+        Order order = orderRepository.findByOrderCode(request.getOrderCode())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + request.getOrderCode()));
+
+        if (!order.getOrderCode().equals(request.getOrderCode())) {
             throw new IllegalArgumentException("Mã đơn hàng không khớp");
         }
 
-        // 3. Kiểm tra dữ liệu bắt buộc
+        // Kiểm tra đầu vào
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new IllegalArgumentException("Vui lòng cung cấp danh sách sản phẩm");
         }
         if (request.getPayment() == null) {
             throw new IllegalArgumentException("Vui lòng cung cấp thông tin thanh toán");
         }
-        // 4. Validate POS and shipping logic
+
+        // Kiểm tra đơn POS hoặc giao hàng
         if (!order.getIsPos()) {
-            if (request.getUserId() == null ||  request.getShipments() == null || request.getShipments().isEmpty()) {
-                throw new IllegalArgumentException("Vui lòng cung cấp userId, addressId và shipment cho đơn giao hàng");
+            if (request.getUserId() == null || request.getShipments() == null || request.getShipments().isEmpty()) {
+                throw new IllegalArgumentException("Vui lòng cung cấp userId và thông tin shipment cho đơn giao hàng");
             }
         } else {
-            if ((request.getShipments() != null && !request.getShipments().isEmpty())) {
-                throw new IllegalArgumentException("Đơn POS không được chứa addressId hoặc shipment");
+            if (request.getShipments() != null && !request.getShipments().isEmpty()) {
+                throw new IllegalArgumentException("Đơn POS không được chứa shipment");
             }
         }
 
-        // userId
+        // Xác thực người dùng
         User user = null;
         if (request.getUserId() != null) {
             user = userRepository.findById(request.getUserId())
@@ -1442,53 +1245,94 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setUser(user);
 
-        // 6. Process OrderItem and calculate total
+        // Logic thêm sản phẩm
         double totalAmount = 0.0;
-        List<OrderItem> savedOrderItems = new ArrayList<>(); // Danh sách để tạo shipment item
+        double totalShippingCost = 0.0;
+        List<OrderItem> savedOrderItems = new ArrayList<>();
 
         for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
+
+            // Kiểm tra tồn kho
+            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho");
+            }
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setUnitPrice(product.getPrice());
-            log.info("số tiền của sản phẩm" + product.getPrice());
-            OrderItem savedItem = orderItemRepository.save(orderItem); // lưu và giữ lại
+            log.info("Thêm sản phẩm {}: số lượng {}, giá {}", product.getName(), itemRequest.getQuantity(), product.getPrice());
+            OrderItem savedItem = orderItemRepository.save(orderItem);
 
-            savedOrderItems.add(savedItem); // thêm vào danh sách để dùng cho ShipmentItem
-
+            savedOrderItems.add(savedItem);
             totalAmount += savedItem.getQuantity() * savedItem.getUnitPrice();
 
-
+            // Cập nhật tồn kho
             product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
             productRepository.save(product);
         }
 
-        // Gán danh sách và tổng tiền của đơn hàng đó
+        // Xử lý phí vận chuyển cho đơn giao hàng
+        if (!order.getIsPos()) {
+            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
+                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
+            }
+
+            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+                if (shipmentReq.getShippingCost() == null || shipmentReq.getShippingCost() < 0) {
+                    throw new IllegalArgumentException("Phí vận chuyển không hợp lệ cho shipment với carrier ID: " + shipmentReq.getCarrierId());
+                }
+                totalShippingCost += shipmentReq.getShippingCost();
+                log.info("Phí vận chuyển cho shipment với carrier ID {}: {}", shipmentReq.getCarrierId(), shipmentReq.getShippingCost());
+            }
+        }
+
+        // Gán tổng tiền của đơn hàng (chỉ bao gồm tiền sản phẩm)
         order.setOrderTotal(totalAmount);
+        log.info("Tổng số tiền sản phẩm trước khi áp dụng coupon: {}", order.getOrderTotal());
 
-        // 7. Apply coupon if provided
-//        if (request.getCouponId() != null) {
-//            Coupon coupon = couponRepository.findById(request.getCouponId())
-//                    .orElseThrow(() -> new IllegalArgumentException("Mã giảm giá không hợp lệ hoặc đã hết hạn"));
-//            order.setOrderTotal(order.getOrderTotal() - coupon.getDiscountAmount());
-//            // tổng số tiền đơn hàng đó sau khi trừ đi phiếu giảm giá còn lại
-//            // đơn hàng lúc đầu 300 thì sẽ còn lại là 100
-//            orderRepository.save(order);
-//            if (order.getUser() != null) {
-//                CouponUsage usage = new CouponUsage();
-//                usage.setCoupon(coupon);
-//                usage.setUser(order.getUser());
-//                couponUsageRepository.save(usage);
-//            }
-//        }
-//
-//        log.info("tổng số tiền khi áp coupun vào là bao nhieu" + order.getOrderTotal());
+        // Áp dụng coupon nếu có
+        if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
+            List<CouponUsage> couponUsages = couponUsageRepository.findAllById(request.getCouponUsageIds());
+            if (couponUsages.size() != request.getCouponUsageIds().size()) {
+                throw new IllegalArgumentException("Một hoặc nhiều CouponUsage không tồn tại");
+            }
+            double totalDiscount = 0.0;
+            for (CouponUsage usage : couponUsages) {
+                if (user == null || !usage.getUser().getId().equals(user.getId())) {
+                    throw new IllegalArgumentException("CouponUsage không thuộc về khách hàng này");
+                }
 
-        // 8. Handle payment
+                Coupon coupon = usage.getCoupon();
+                if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
+                        coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
+                        coupon.getDeleted()) {
+                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCodeCoupon() + " không hợp lệ hoặc đã hết hạn");
+                }
+
+                totalDiscount += coupon.getDiscountAmount();
+                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
+                usage.setDeleted(true);
+                couponUsageRepository.save(usage);
+            }
+
+            order.setOrderTotal(totalAmount - totalDiscount);
+            if (order.getOrderTotal() < 0) {
+                order.setOrderTotal(0.0);
+            }
+        }
+
+        log.info("Tổng số tiền sản phẩm sau khi áp dụng coupon: {}", order.getOrderTotal());
+        log.info("Tổng phí vận chuyển: {}", totalShippingCost);
+
+        // Tính tổng tiền phải trả (bao gồm phí vận chuyển)
+        double totalAmountWithShipping = order.getOrderTotal() + totalShippingCost;
+
+        // Thanh toán
         Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
         Payment payment = paymentOptional.orElseGet(() -> {
             Payment newPayment = new Payment();
@@ -1498,41 +1342,147 @@ public class OrderServiceImpl implements OrderService {
         PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
                 .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
         payment.setPaymentMethod(paymentMethod);
-        payment.setAmount(request.getPayment().getAmount());  // tiền khách đưa 1500
-        payment.setChangeAmount(payment.getAmount() - order.getOrderTotal() ); // số tiền còn lại : 1400
-        boolean isCod = paymentMethod.getName().equalsIgnoreCase("COD");
-        payment.setPaymentStatus(PaymentStatus.COMPLETED);
-        //payment.setPaymentDate(request.getIsPos() || !isCod ? new Date() : null);
+        double paidAmount = request.getPayment().getAmount();
+        log.info("Số tiền khách đưa: {}", paidAmount);
 
-        paymentRepository.save(payment);
+        // Khởi tạo response
+        OrderResponse response = new OrderResponse();
+        String paymentUrl = null;
 
-        // 9. Lựa chọn đơn vị giao hàng
+        if (paymentMethod.getId().equals(2L)) { // VNPay
+            // Kiểm tra số tiền thanh toán
+            if (Math.abs(paidAmount - totalAmountWithShipping) > 0.01) {
+                throw new IllegalArgumentException("Số tiền thanh toán VNPay phải khớp với tổng tiền: " + paidAmount + " != " + totalAmountWithShipping);
+            }
+
+            // Tạo URL thanh toán VNPay
+            String vnp_TxnRef = order.getOrderCode() + "-" + VnPayConfig.getRandomNumber(8);
+            paymentUrl = createVnpayPaymentUrl(order, totalAmountWithShipping, vnp_TxnRef, request.getPayment().getReturnUrl(), httpServletRequest);
+            log.info("Tạo URL thanh toán VNPay: {}", paymentUrl);
+
+            payment.setTransactionId(vnp_TxnRef);
+            payment.setAmount(paidAmount);
+            payment.setChangeAmount(0.0);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setReturnUrl(request.getPayment().getReturnUrl());
+            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+            paymentRepository.save(payment);
+        } else { // Tiền mặt
+            if (paidAmount < totalAmountWithShipping) {
+                throw new IllegalArgumentException("Số tiền thanh toán không đủ: " + paidAmount + " < " + totalAmountWithShipping);
+            }
+            payment.setAmount(paidAmount);
+            payment.setChangeAmount(paidAmount - totalAmountWithShipping);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+            paymentRepository.save(payment);
+        }
+
+        // Xử lý vận chuyển cho đơn giao hàng
         if (!order.getIsPos()) {
-            // Process shipments
-            OrderRequest.ShipmentRequest shipmentReq = request.getShipments().get(0); // Assuming single shipment for simplicity
-            Shipment shipment = new Shipment();
-            shipment.setOrder(order);
-//            shipment.setCarrier(shipmentReq.getCarrier());
-            shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-            shipment.setShipmentStatus(ShipmentStatus.PENDING);
-            shipment.setTrackingNumber(generateTrackingNumber());
-            shipment.setShipmentDate(new Date());
-            shipmentRepository.save(shipment);
+            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+                Shipment shipment = new Shipment();
+                shipment.setOrder(order);
+                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
+                shipment.setCarrier(carrier);
+                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
+                shipment.setShipmentStatus(ShipmentStatus.PENDING);
+                shipment.setTrackingNumber(generateTrackingNumber());
+                shipment.setShipmentDate(new Date());
+                shipment.setShippingCost(shipmentReq.getShippingCost());
+                shipment.setDeleted(false);
+                Shipment savedShipment = shipmentRepository.save(shipment);
 
-            // Link shipment with order items
-            for (OrderItem item : savedOrderItems) {
-                ShipmentItem shipmentItem = new ShipmentItem();
-                shipmentItem.setShipment(shipment);
-                shipmentItem.setOrderItem(item);
-                shipmentItemRepository.save(shipmentItem);
+                for (OrderItem item : savedOrderItems) {
+                    ShipmentItem shipmentItem = new ShipmentItem();
+                    shipmentItem.setShipment(savedShipment);
+                    shipmentItem.setOrderItem(item);
+                    shipmentItemRepository.save(shipmentItem);
+                }
             }
         }
-        orderRepository.save(order);
-        //  orderItemRepository.saveAll(orderItemList);
 
-        // 16. Trả về response
-        return mapToOrderResponse(order);
+        // Cài đặt trạng thái đơn hàng
+        order.setNodes(request.getNodes());
+        order.setOrderDate(new Date());
+        if (order.getIsPos()) {
+            order.setOrderStatus(OrderStatus.COMPLETED);
+            order.setDeleted(true);
+        } else {
+            order.setOrderStatus(OrderStatus.PENDING);
+            order.setDeleted(false);
+        }
+
+        Order savedOrder = orderRepository.save(order);
+        response = mapToOrderResponse(savedOrder);
+
+        // Gán paymentUrl nếu là VNPay
+        if (paymentMethod.getId().equals(2L)) {
+            if (paymentUrl == null) {
+                throw new IllegalStateException("paymentUrl không được khởi tạo cho thanh toán VNPay");
+            }
+            response.setPaymentUrl(paymentUrl);
+        }
+
+        log.info("Hoàn tất xử lý đơn hàng {}: status = {}, deleted = {}, paymentUrl = {}",
+                order.getOrderCode(), order.getOrderStatus(), order.getDeleted(), paymentUrl);
+        return response;
     }
+    private String createVnpayPaymentUrl(Order order, double totalAmount, String vnp_TxnRef, String returnUrl, HttpServletRequest httpRequest) {
+        try {
+            String vnp_Version = "2.1.0";
+            String vnp_Command = "pay";
+            String vnp_OrderInfo = "Thanh toan don hang " + order.getOrderCode();
+            String vnp_OrderType = "billpayment";
+            String vnp_IpAddr = VnPayConfig.getIpAddress(httpRequest);
+            String vnp_CreateDate = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            String vnp_ExpireDate = LocalDateTime.now().plusMinutes(15).format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+            String cleanReturnUrl = VnPayConfig.vnp_ReturnUrl;
+            if (returnUrl != null && !returnUrl.trim().isEmpty() && !"null".equalsIgnoreCase(returnUrl.trim())) {
+                cleanReturnUrl = returnUrl.trim();
+            }
+            log.info("🔁 [VNPay] returnUrl: {}", cleanReturnUrl);
+
+            Map<String, String> vnp_Params = new TreeMap<>();
+            vnp_Params.put("vnp_Version", vnp_Version);
+            vnp_Params.put("vnp_Command", vnp_Command);
+            vnp_Params.put("vnp_TmnCode", VnPayConfig.vnp_TmnCode);
+            vnp_Params.put("vnp_Amount", String.valueOf((long) (totalAmount * 100)));
+            vnp_Params.put("vnp_CurrCode", "VND");
+            vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
+            vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
+            vnp_Params.put("vnp_OrderType", vnp_OrderType);
+            vnp_Params.put("vnp_Locale", "vn");
+            vnp_Params.put("vnp_ReturnUrl", cleanReturnUrl);
+            vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+            vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
+            vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
+
+            StringBuilder queryUrl = new StringBuilder();
+            for (Map.Entry<String, String> entry : vnp_Params.entrySet()) {
+                queryUrl.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8))
+                        .append("=")
+                        .append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
+                        .append("&");
+            }
+
+            String secureHash = VnPayConfig.hashAllFields(vnp_Params);
+            queryUrl.append("vnp_SecureHash=").append(secureHash);
+
+            String paymentUrl = VnPayConfig.vnp_PayUrl + "?" + queryUrl.toString();
+            log.info("✅ [VNPay] Tạo URL thanh toán cho đơn hàng {}: {}", order.getOrderCode(), paymentUrl);
+            return paymentUrl;
+        } catch (Exception e) {
+            log.error("💥 [VNPay] Lỗi khi tạo URL thanh toán: {}", e.getMessage(), e);
+            throw new IllegalArgumentException("Không thể tạo URL thanh toán VNPay: " + e.getMessage());
+        }
+    }
+
+
+
 
     @Override
     public List<OrderResponse> getAll() {
@@ -1558,6 +1508,7 @@ public class OrderServiceImpl implements OrderService {
     response.setDeleted(order.getDeleted());
     response.setNodes(order.getNodes());
     response.setOrderDate(order.getOrderDate());
+    response.setPaymentUrl(order.getPaymentUrl());
     response.setCreatedBy(order.getCreatedBy());
     response.setCreatedDate(order.getCreatedDate());
     response.setLastModifiedBy(order.getLastModifiedBy());
@@ -1586,6 +1537,8 @@ public class OrderServiceImpl implements OrderService {
         paymentResponse.setChangeAmount(payment.getChangeAmount());
         paymentResponse.setPaymentMethodName(payment.getPaymentMethod().getName());
         paymentResponse.setPaymentMethodId(payment.getPaymentMethod().getId());
+        paymentResponse.setReturnUrl(payment.getReturnUrl());
+        paymentResponse.setTransactionId(payment.getTransactionId());
         response.setPayment(paymentResponse);
     }
 
@@ -1608,38 +1561,46 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // Map address (nếu không phải đơn hàng tại quầy)
-    if (order.getIsPos() != null && !order.getIsPos()
-            && order.getUser() != null && order.getUser().getId() != null) {
+        if (order.getIsPos() != null
+                && order.getUser() != null
+                && order.getUser().getId() != null) {
 
-        Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
-                .findByUserId(order.getUser().getId())
-                .stream()
-                .findFirst(); // Giả sử lấy địa chỉ đầu tiên
+            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
+                    .findByUserId(order.getUser().getId())
+                    .stream()
+                    .findFirst(); // Lấy địa chỉ đầu tiên (có thể là địa chỉ mặc định)
 
-        if (addressMappingOptional.isPresent() && addressMappingOptional.get().getAddress() != null) {
-            Address address = addressMappingOptional.get().getAddress();
-            User user = addressMappingOptional.get().getUser(); // Lấy user từ mapping
+            if (addressMappingOptional.isPresent() && addressMappingOptional.get().getAddress() != null) {
+                Address address = addressMappingOptional.get().getAddress();
+                User user = addressMappingOptional.get().getUser(); // Lấy user từ mapping
 
-            response.setAddress(new OrderResponse.AddressResponse(
-                    address.getId(),
-                    user.getEmail(),
-                    user.getId(),
-                    user.getUsername(),
-                    user.getPhoneNumber(),
-                    user.getRole().toString(),
-                    address.getStreet(),
-                    address.getWard(),
-                    address.getCity(),
-                    address.getState(),
-                    address.getCountry(),
-                    address.getZipcode(),
-                    address.getDistrict(),
-                    address.getProvince(),
-                    user.getIsActive()
-            ));
+                response.setAddress(new OrderResponse.AddressResponse(
+                        address.getId(),
+                        user.getEmail(),
+                        user.getId(),
+                        user.getUsername(),
+                        user.getPhoneNumber(),
+                        user.getRole().toString(),
+                        address.getStreet(),
+                        address.getWard(),
+                        address.getCity(),
+                        address.getState(),
+                        address.getCountry(),
+                        address.getZipcode(),
+                        address.getDistrict(),
+                        address.getProvince(),
+                        user.getIsActive()
+                ));
+            }
         }
 
-    }
+
+
+
+
+
+
+
         // cái này đang là 1
 //        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId());
 //        if (shipmentOptional.isPresent()) {
@@ -1683,28 +1644,7 @@ public class OrderServiceImpl implements OrderService {
     return response;
 
 
-        //        if (order.getIsPos() != null && !order.getIsPos()
-//                && order.getUser() != null && order.getUser().getId() != null){
-//            response.setAddress((OrderResponse.AddressResponse) userAddressMappingRepository.findByUserId(order.getUser().getId()).stream()
-//                    .map(userAddressMapping -> {
-//                                OrderResponse.AddressResponse addressResponse = new OrderResponse.AddressResponse();
-//                                addressResponse.setId(userAddressMapping.getId());
-//                                addressResponse.setEmail(userAddressMapping.getUser().getUsername());
-//                                addressResponse.setPhoneNumber(userAddressMapping.getUser().getPhoneNumber());
-//                                addressResponse.setRole(userAddressMapping.getUser().getRole().toString());
-//                                addressResponse.setAddressStreet(userAddressMapping.getAddress().getStreet());
-//                                addressResponse.setAddressWard(userAddressMapping.getAddress().getWard());
-//                                addressResponse.setAddressCity(userAddressMapping.getAddress().getCity());
-//                                addressResponse.setAddressState(userAddressMapping.getAddress().getState());
-//                                addressResponse.setAddressCountry(userAddressMapping.getAddress().getCountry());
-//                                addressResponse.setAddressZipcode(userAddressMapping.getAddress().getZipcode());
-//                                addressResponse.setAddressDistrict(userAddressMapping.getAddress().getDistrict());
-//                                addressResponse.setAddressProvince(userAddressMapping.getAddress().getProvince());
-//                                //addressResponse.isActive(userAddressMapping.getUser().getIsActive());
-//                                return addressResponse;
-//                            }
-//                            ).collect(Collectors.toList()));
-//
+
 }
 
     private String generateOrderCode() {

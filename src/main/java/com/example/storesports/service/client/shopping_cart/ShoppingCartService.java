@@ -4,6 +4,7 @@ import com.example.storesports.core.client.shopping_cart.payload.OrderRequestCli
 import com.example.storesports.core.client.shopping_cart.payload.OrderResponseClient;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRequest;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartResponse;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -18,5 +19,7 @@ public interface ShoppingCartService {
 
     long countCartItemsByUserId(Long userId);
 
-    OrderResponseClient checkout(OrderRequestClient request);
+    OrderResponseClient checkoutv2(OrderRequestClient request);
+
+     OrderResponseClient checkout(OrderRequestClient request, HttpServletRequest httpServletRequest);
 }

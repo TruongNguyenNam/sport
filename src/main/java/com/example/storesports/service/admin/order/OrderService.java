@@ -3,6 +3,7 @@ package com.example.storesports.service.admin.order;
 import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.constant.OrderStatus;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -13,7 +14,7 @@ public interface OrderService {
      OrderResponse createInvoice(CreateInvoiceRequest request);
      OrderResponse addProductToOrder(OrderRequest request);
 
-     OrderResponse addOrderDetails(String orderCode, OrderRequest request);
+     OrderResponse addProductToOrderV3(OrderRequest request, HttpServletRequest httpServletRequest);
 
      List<OrderResponse> getAll();
 
@@ -42,9 +43,10 @@ public interface OrderService {
      List<MonthlyOrderTypeResponse> getMonthlyOrderChart();
 
      //test lại để làm xác nhận đơn hàng
+     // test khi thêm và thanh toán sản phẩm
      OrderResponse addProductToOrderV2(OrderRequest request);
 
-     OrderResponse addProductToOrderV3(OrderRequest request);
+
      OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes);
 
 //     Order findOrderByCode(String orderCode);
