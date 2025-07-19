@@ -81,6 +81,8 @@ public class OrderResponse {
         private String AddressZipcode;
         private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
         private String addressProvince; // Tỉnh (Quận Long Biên)
+        private String receiverName;
+        private String receiverPhone;
         private boolean isActive;
     }
 
