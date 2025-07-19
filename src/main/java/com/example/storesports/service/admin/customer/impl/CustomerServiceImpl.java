@@ -1,5 +1,6 @@
 package com.example.storesports.service.admin.customer.impl;
 
+import com.example.storesports.core.admin.address.payload.AddressResponse;
 import com.example.storesports.core.admin.customer.payload.CustomerRequest;
 import com.example.storesports.core.admin.customer.payload.CustomerResponse;
 import com.example.storesports.core.admin.address.payload.AddressRequest;
@@ -10,12 +11,18 @@ import com.example.storesports.infrastructure.constant.Role;
 import com.example.storesports.repositories.AddressRepository;
 import com.example.storesports.repositories.UserAddressMappingRepository;
 import com.example.storesports.repositories.UserRepository;
+import com.example.storesports.service.admin.address.AddressService;
 import com.example.storesports.service.admin.customer.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.apache.commons.lang3.RandomStringUtils; // tạo mật khẩu ngẫu nhiên
+import com.example.storesports.infrastructure.email.EmailService; // service gửi email
 
+
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -28,6 +35,10 @@ public class CustomerServiceImpl implements CustomerService {
     private final AddressRepository addressRepository;
     private final UserAddressMappingRepository userAddressMappingRepository;
     private final ModelMapper modelMapper;
+    private final AddressService addressService;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
 
     @Override
     public List<CustomerResponse> getAll() {
@@ -59,12 +70,19 @@ public class CustomerServiceImpl implements CustomerService {
             throw new IllegalArgumentException("Số điện thoại đã tồn tại");
         }
 
+        //.Tạo mật khẩu
+        String rawPassword = generateRandomPassword(5);
+        String encodedPassword = passwordEncoder.encode(rawPassword);
         // Tạo khách hàng
         User user = modelMapper.map(request, User.class);
         user.setRole(Role.CUSTOMER);
         user.setIsActive(true);
         user.setDeleted(false);
+        user.setPassword(encodedPassword); // GÁN MẬT KHẨU VÀO USER
         user = userRepository.save(user);
+
+        // gửi email thông tin tài khoản
+        emailService.sendAccountInfo(user.getEmail(), user.getUsername(), rawPassword);
 
         // Tạo địa chỉ
         Address address = modelMapper.map(request.getAddress(), Address.class);
@@ -76,12 +94,15 @@ public class CustomerServiceImpl implements CustomerService {
         mapping.setUser(user);
         mapping.setAddress(address);
         mapping.setDeleted(false);
+        mapping.setReceiverName(request.getAddress().getReceiverName());
+        mapping.setReceiverPhone(request.getAddress().getReceiverPhone());
+        mapping.setIsDefault(request.getAddress().getIsDefault() != null ? request.getAddress().getIsDefault() : true);
         userAddressMappingRepository.save(mapping);
 
         return mapToResponse(user);
     }
 
-    // Cập nhật
+    // Cập nhật khách hàng
     @Transactional
     @Override
     public CustomerResponse updateCustomer(Long id, CustomerRequest request) {
@@ -102,32 +123,14 @@ public class CustomerServiceImpl implements CustomerService {
         modelMapper.map(request, user);
         userRepository.save(user);
 
-        AddressRequest addrReq = request.getAddress();
-        if (addrReq != null) {
-            if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
-                // cập nhật address cũ
-                UserAddressMapping mapping = user.getUserAddressMappings().get(0);
-                Address address = mapping.getAddress();
-                if (address != null) {
-                    modelMapper.map(addrReq, address);
-                    addressRepository.save(address);
-                }
-            } else {
-                //  tạo mới Address
-                Address address = modelMapper.map(addrReq, Address.class);
-                address.setDeleted(false);
-                address = addressRepository.save(address);
-                UserAddressMapping mapping = new UserAddressMapping();
-                mapping.setUser(user);
-                mapping.setAddress(address);
-                mapping.setDeleted(false);
-                userAddressMappingRepository.save(mapping);
-                if (user.getUserAddressMappings() != null) {
-                    user.getUserAddressMappings().add(mapping);
-                }
-            }
-        }
         return mapToResponse(user);
+    }
+
+    //them dia chi moi
+    @Override
+    @Transactional
+    public AddressResponse addAddressForUser(Long userId, AddressRequest addressRequest) {
+        return addressService.addAddressToCustomer(userId, addressRequest);
     }
 
 
@@ -174,20 +177,42 @@ public class CustomerServiceImpl implements CustomerService {
         response.setActive(user.getIsActive());
         response.setRole(user.getRole().toString());
         response.setGender(user.getGender() != null ? user.getGender().name() : null);
+        // Map danh sách địa chỉ
         if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
-            Address address = user.getUserAddressMappings().get(0).getAddress();
-            if (address != null) {
-                response.setAddressStreet(address.getStreet());
-                response.setAddressWard(address.getWard());             // Phường
-                response.setAddressDistrict(address.getDistrict());     // Quận/Huyện
-                response.setAddressProvince(address.getProvince());     // Tỉnh/Thành phố
-                response.setAddressCity(address.getCity());
-                response.setAddressState(address.getState());
-                response.setAddressCountry(address.getCountry());
-                response.setAddressZipcode(address.getZipcode());
-            }
+            List<AddressResponse> addresses = user.getUserAddressMappings().stream()
+                    .filter(mapping -> Boolean.FALSE.equals(mapping.getDeleted()))
+                    .map(mapping -> {
+                        Address address = mapping.getAddress();
+                        AddressResponse addrRes = new AddressResponse();
+                        addrRes.setId(address.getId());
+                        addrRes.setStreet(address.getStreet());
+                        addrRes.setWard(address.getWard());
+                        addrRes.setDistrict(address.getDistrict());
+                        addrRes.setProvince(address.getProvince());
+                        addrRes.setCity(address.getCity());
+                        addrRes.setState(address.getState());
+                        addrRes.setCountry(address.getCountry());
+                        addrRes.setZipcode(address.getZipcode());
+                        addrRes.setIsDefault(mapping.getIsDefault());
+                        addrRes.setReceiverName(mapping.getReceiverName());
+                        addrRes.setReceiverPhone(mapping.getReceiverPhone());
+                        return addrRes;
+                    })
+                    .collect(Collectors.toList());
+            response.setAddresses(addresses);
         }
         return response;
+    }
+    // mat khau ngau nhien
+    public String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$!";
+        SecureRandom random = new SecureRandom();
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
 

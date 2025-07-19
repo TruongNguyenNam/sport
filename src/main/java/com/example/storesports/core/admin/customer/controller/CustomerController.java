@@ -1,13 +1,13 @@
 package com.example.storesports.core.admin.customer.controller;
 
-import com.example.storesports.core.admin.coupon.payload.CouponResponse;
+import com.example.storesports.core.admin.address.payload.AddressRequest;
+import com.example.storesports.core.admin.address.payload.AddressResponse;
 import com.example.storesports.core.admin.customer.payload.CustomerRequest;
 import com.example.storesports.core.admin.customer.payload.CustomerResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.customer.CustomerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,6 +35,7 @@ public class CustomerController {
                 .data(customers)
                 .build();
     }
+
     @GetMapping("/not-received-coupon/{couponId}")
     public ResponseData<List<CustomerResponse>> getCustomersNotReceivedCoupon(@PathVariable Long couponId) {
         List<CustomerResponse> customers = customerService.getCustomersNotReceivedCoupon(couponId);
@@ -90,4 +91,18 @@ public class CustomerController {
                 .build();
     }
 
+    //them dia chi
+    @PostMapping("/{userId}/addresses")
+    public ResponseData<AddressResponse> addAddressForUser(
+            @PathVariable Long userId,
+            @RequestBody AddressRequest addressRequest
+    ) {
+        AddressResponse response = customerService.addAddressForUser(userId, addressRequest);
+        return ResponseData.<AddressResponse>builder()
+                .status(HttpStatus.CREATED.value())
+                .message("Thêm địa chỉ mới thành công")
+                .data(response)
+                .build();
+    }
 }
+

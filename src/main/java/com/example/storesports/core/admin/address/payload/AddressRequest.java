@@ -18,6 +18,8 @@ public class AddressRequest {
     private String zipcode;
     private String district; // Quận/Huyện (Huyện Vĩnh Tuy)
     private String province; // Tỉnh (Quận Long Biên)
-
+    private String receiverName;
+    private String receiverPhone;
+    private Boolean isDefault;
 
 }

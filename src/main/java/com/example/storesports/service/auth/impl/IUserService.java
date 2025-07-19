@@ -31,7 +31,6 @@ public class IUserService implements UserService {
         User user = userRepository.findByUsername(username).orElseThrow(() ->
                 new UsernameNotFoundException("Người dùng không tồn tại" + username));
 
-
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),

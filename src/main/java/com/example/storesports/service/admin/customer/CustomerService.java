@@ -1,5 +1,7 @@
 package com.example.storesports.service.admin.customer;
 
+import com.example.storesports.core.admin.address.payload.AddressRequest;
+import com.example.storesports.core.admin.address.payload.AddressResponse;
 import com.example.storesports.core.admin.customer.payload.CustomerRequest;
 import com.example.storesports.core.admin.customer.payload.CustomerResponse;
 import com.example.storesports.infrastructure.constant.Role;
@@ -21,4 +23,5 @@ public interface CustomerService {
 
     List<CustomerResponse> searchCustomer(String keyword);
 
+    AddressResponse addAddressForUser(Long userId, AddressRequest addressRequest);
 }
