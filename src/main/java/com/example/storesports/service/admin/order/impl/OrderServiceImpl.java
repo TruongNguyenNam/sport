@@ -491,6 +491,18 @@ public class OrderServiceImpl implements OrderService {
         return mapToOrderResponse(savedOrder);
     }
 
+    @Override
+    @Transactional
+    public List<OrderStatusCount> getOrderStatusCounts() {
+        List<OrderStatus> statuses = List.of(
+                OrderStatus.PENDING,
+                OrderStatus.COMPLETED,
+                OrderStatus.CANCELLED,
+                OrderStatus.RETURNED
+        );
+        return orderRepository.countOrdersByStatus(statuses);
+    }
+
     @Transactional
     @Override
     public OrderResponse editOrderItems(String code, OrderRequest request) {

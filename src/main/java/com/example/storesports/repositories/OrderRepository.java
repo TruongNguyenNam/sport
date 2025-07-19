@@ -19,6 +19,13 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query("SELECT o FROM Order o WHERE o.orderCode = :key")
     Optional<Order> findByOrderCode(@Param("key") String key);
 
+    @Query("SELECT new com.example.storesports.core.admin.order.payload.OrderStatusCount(o.orderStatus, COUNT(o)) " +
+            "FROM Order o " +
+            "WHERE o.orderStatus IN :statuses " +
+            "GROUP BY o.orderStatus")
+    List<OrderStatusCount> countOrdersByStatus(@Param("statuses") List<OrderStatus> statuses);
+
+
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus AND o.deleted = false AND o.createdDate < :createdDate")
     List<Order> findByOrderStatusAndDeletedFalseAndCreatedDateBefore(
             @Param("orderStatus") OrderStatus orderStatus,

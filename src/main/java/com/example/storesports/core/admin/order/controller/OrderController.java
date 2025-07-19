@@ -1,6 +1,7 @@
 package com.example.storesports.core.admin.order.controller;
 
 import com.example.storesports.core.admin.order.payload.*;
+import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.constant.OrderStatus;
 import com.example.storesports.infrastructure.utils.ResponseData;
@@ -26,6 +27,16 @@ public class OrderController {
     private final OrderService orderService;
 
 
+    @GetMapping("/status-counts")
+    public ResponseData<List<OrderStatusCount>> getOrderStatusCounts() {
+        List<OrderStatusCount> counts = orderService.getOrderStatusCounts();
+        return ResponseData.<List<OrderStatusCount>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy số lượng trạng thái đơn hàng thành công")
+                .data(counts)
+                .build();
+    }
+
     @GetMapping("/status")
     public ResponseData<List<OrderResponse>> getOrdersByStatus(@RequestParam("status") OrderStatus orderStatus) {
         List<OrderResponse> orders = orderService.getAllOrderStatus(orderStatus);
@@ -37,7 +48,7 @@ public class OrderController {
                 .build();
     }
 
-
+    // cai edit này sai và add sai
     @PostMapping("/{orderCode}/add-product-v2")
     public ResponseData<OrderResponse> addProductToOrderV2(
             @PathVariable("orderCode") String orderCode,
@@ -68,6 +79,7 @@ public class OrderController {
                     .build();
         }
     }
+
 
     @PutMapping("/{orderCode}/edit-items")
     public ResponseData<OrderResponse> updateOrder(
