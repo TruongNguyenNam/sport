@@ -9,10 +9,7 @@ import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartReq
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartResponse;
 import com.example.storesports.core.client.wishlist.payload.WishlistResponse;
 import com.example.storesports.entity.*;
-import com.example.storesports.infrastructure.constant.CouponStatus;
-import com.example.storesports.infrastructure.constant.OrderStatus;
-import com.example.storesports.infrastructure.constant.PaymentStatus;
-import com.example.storesports.infrastructure.constant.ShipmentStatus;
+import com.example.storesports.infrastructure.constant.*;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.client.shopping_cart.ShoppingCartService;
 import jakarta.transaction.Transactional;
@@ -329,6 +326,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         order.setOrderStatus(OrderStatus.PENDING); // Ban đầu là PENDING
         order.setOrderTotal(totalAmount);
         order.setIsPos(false);
+        order.setOrderSource(OrderSource.CLIENT);
         order.setNodes(request.getNodes());
         order.setDeleted(false); // Sẽ đặt true sau khi thanh toán
         order.setCreatedBy(request.getUserId().intValue());
@@ -503,20 +501,20 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         response.setAddress(addressResponse);
 
         // Map shipment
-        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId()).stream().findFirst();
-        if (shipmentOptional.isPresent()) {
-            Shipment shipment = shipmentOptional.get();
-            response.setShipment(new OrderResponseClient.ShipmentResponse(
-                    shipment.getId(),
-                    shipment.getShipmentDate(),
-                    shipment.getShipmentStatus().name(),
-                    shipment.getTrackingNumber(),
-                    shipment.getCarrier().getName(),
-                    shipment.getEstimatedDeliveryDate()
-            ));
-        } else {
-            log.warn("No shipment found for order ID: {}", order.getId());
-        }
+//        Optional<Shipment> shipmentOptional = shipmentRepository.findByOrderId(order.getId()).stream().findFirst();
+//        if (shipmentOptional.isPresent()) {
+//            Shipment shipment = shipmentOptional.get();
+//            response.setShipment(new OrderResponseClient.ShipmentResponse(
+//                    shipment.getId(),
+//                    shipment.getShipmentDate(),
+//                    shipment.getShipmentStatus().name(),
+//                    shipment.getTrackingNumber(),
+//                    shipment.getCarrier().getName(),
+//                    shipment.getEstimatedDeliveryDate()
+//            ));
+//        } else {
+//            log.warn("No shipment found for order ID: {}", order.getId());
+//        }
 
         return response;
     }

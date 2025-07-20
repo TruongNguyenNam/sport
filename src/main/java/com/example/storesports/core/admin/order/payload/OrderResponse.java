@@ -26,7 +26,7 @@ public class OrderResponse {
     private List<OrderItemResponse> items; // Danh sách sản phẩm trong đơn hàng
     private PaymentResponse payment; // Thông tin thanh toán
     private List<CouponResponse> couponUsages; // Danh sách thông tin sử dụng coupon
-    private ShipmentResponse shipment; // Thông tin vận chuyển (nếu có)
+    private List<ShipmentResponse> shipments; // Thông tin vận chuyển (nếu có)
     private Integer createdBy; // Người tạo đơn hàng
     private LocalDateTime createdDate; // Thời gian tạo
     private Integer lastModifiedBy; // Người sửa cuối cùng
@@ -54,6 +54,7 @@ public class OrderResponse {
     public static class AddressResponse {
         private Long id;
         private String email;
+        private Long userId;
         private String username;
         private String phoneNumber;
         private String role;
@@ -77,6 +78,8 @@ public class OrderResponse {
         private String shipmentStatus;
         private String trackingNumber;
         private String carrierName;
+        private Double shippingCost;
+        private Long carrierId;
         private LocalDateTime estimatedDeliveryDate;
         public ShipmentResponse(Long id, Date shipmentDate, ShipmentStatus shipmentStatus, String trackingNumber, String carrier, LocalDateTime estimatedDeliveryDate) {
         }

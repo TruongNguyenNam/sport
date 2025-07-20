@@ -67,7 +67,6 @@ public class SupplierServiceImpl implements SupplierService {
     public SupplierResponse updateSupplier(SupplierRequest supplierRequest, Long id) {
         Supplier supplier = supplierRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Supplier with id " + id + " not found"));
-
         supplier.setName(supplierRequest.getName());
         supplier.setDescription(supplierRequest.getDescription());
 

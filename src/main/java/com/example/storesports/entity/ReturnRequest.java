@@ -23,6 +23,9 @@ public class ReturnRequest extends Auditable{
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long id;
 
+        @Column(name = "code", unique = true, nullable = false)
+        private String code;
+
         @ManyToOne
         @JoinColumn(name = "order_id")
         private Order order;
@@ -36,6 +39,12 @@ public class ReturnRequest extends Auditable{
 
         private String note; // Ghi chú chung (nếu cần)
 
+        @Column(name = "bank_account_number")
+        private String bankAccountNumber;
+        @Column(name = "bank_account_name")
+        private String bankAccountName;
+        @Column(name = "bank_name")
+        private String bankName;
         private Boolean deleted;
 
         @OneToMany(mappedBy = "returnRequest", cascade = CascadeType.ALL, orphanRemoval = true)

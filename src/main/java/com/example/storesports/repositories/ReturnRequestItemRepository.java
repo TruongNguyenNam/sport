@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface ReturnRequestItemRepository extends JpaRepository<ReturnRequestItem, Long> {
 
@@ -24,4 +26,8 @@ public interface ReturnRequestItemRepository extends JpaRepository<ReturnRequest
             @Param("userId") Long userId,
             @Param("status") ReturnRequestItemStatus status
     );
+    @Query("select r from ReturnRequestItem r where r.returnRequest.code=:code and r.returnRequest.user.username=:userName")
+    List<ReturnRequestItem> findByReturnRequestCodeAndUserName(@Param("code") String code,@Param("userName") String userName);
+    @Query("select r from ReturnRequestItem r where r.returnRequest.code=:code")
+    List<ReturnRequestItem> findByReturnRequestCode(@Param("code") String code);
 }

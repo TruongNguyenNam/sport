@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,16 @@ public class ProductController {
                 .status(HttpStatus.OK.value())
                 .message("Lấy danh sách sản phẩm cha thành công")
                 .data(products)
+                .build();
+    }
+
+    @GetMapping("/variant-counts")
+    public ResponseData<List<VariantCountDTO>> getVariantCounts() {
+        List<VariantCountDTO> variantCounts = productService.getVariantCounts();
+        return ResponseData.<List<VariantCountDTO>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách số lượng biến thể thành công")
+                .data(variantCounts)
                 .build();
     }
 

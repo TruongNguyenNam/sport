@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,6 +44,7 @@ public class CustomerController {
                 .data(customers)
                 .build();
     }
+
     //thêm
     @PostMapping("/add")
     public ResponseData<CustomerResponse> createCustomer(@RequestBody CustomerRequest request) {
@@ -76,4 +78,16 @@ public class CustomerController {
                 .data(customerById)
                 .build();
     }
+
+    // tim kiem theo nhieu truong
+    @GetMapping("/search")
+    public ResponseData<List<CustomerResponse>> searchCustomer(@RequestParam String keyword) {
+        List<CustomerResponse> customers = customerService.searchCustomer(keyword);
+        return ResponseData.<List<CustomerResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Tìm kiếm khác hàng thành công")
+                .data((customers))
+                .build();
+    }
+
 }

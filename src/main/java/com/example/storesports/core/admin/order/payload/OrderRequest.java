@@ -12,33 +12,20 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 public class OrderRequest {
-   // @NotBlank(message = "Order code is required")
-    private String orderCode; // ok
 
-    //@Positive(message = "User ID must be positive if provided")
-    private Long userId;  // ok
+    private String orderCode;
+
+    private Long userId;
 
     private String nodes;
 
-    //@NotEmpty(message = "Items are required")
-    private List<OrderItemRequest> items;  //ok
+    private List<OrderItemRequest> items;
 
-    //@NotNull(message = "Payment is required")
     private PaymentRequest payment;
-
-   // @Positive(message = "Coupon ID must be positive if provided")
-    //private Long couponId; // Optional, single coupon  // nên chỉnh sửa lại
 
     private List<Long> couponUsageIds;
 
-    //@NotNull(message = "Order type (isPos) is required")
-    //private Boolean isPos; // True for POS, false for shipping
-
-   // @Positive(message = "Address ID must be positive if provided for shipping")
-   // private Long addressId; // Required for shipping // khả năng cái này sẽ không cần vì khách hàng
-
-   // @NotEmpty(message = "Shipments are required for shipping orders if isPos is false")
-    private List<ShipmentRequest> shipments; // List of shipments for N-N relationship
+    private List<ShipmentRequest> shipments;
 
 
 
@@ -60,8 +47,8 @@ public class OrderRequest {
     @Data
     @NoArgsConstructor
     public static class ShipmentRequest {
-//        private Long shipmentId;
         private Long carrierId;
+        private Double shippingCost;
         private LocalDateTime estimatedDeliveryDate;
         private List<Long> orderItemIds;
     }
