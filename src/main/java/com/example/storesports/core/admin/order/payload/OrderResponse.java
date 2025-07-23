@@ -68,8 +68,8 @@ public class OrderResponse {
     @AllArgsConstructor
     public static class AddressResponse {
         private Long id;
-        private String email;
         private Long userId;
+        private String email;
         private String username;
         private String phoneNumber;
         private String role;
