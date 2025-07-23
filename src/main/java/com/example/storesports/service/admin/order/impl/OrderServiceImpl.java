@@ -1257,6 +1257,15 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
         }
         order.setUser(user);
 
+        if (!order.getIsPos() && request.getAddressId() != null) {
+            Optional<UserAddressMapping> addressMapping = userAddressMappingRepository
+                    .findByUserIdAndAddressId(request.getUserId(), request.getAddressId());
+            if (!addressMapping.isPresent()) {
+                throw new IllegalArgumentException("Địa chỉ với ID " + request.getAddressId() + " không hợp lệ hoặc không thuộc về người dùng");
+            }
+            order.setAddressId(request.getAddressId()); // Gán addressId vào Order
+        }
+
         // Logic thêm sản phẩm
         double totalAmount = 0.0;
         double totalShippingCost = 0.0;
@@ -1573,36 +1582,87 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
     }
 
     // Map address (nếu không phải đơn hàng tại quầy)
+//        if (order.getIsPos() != null
+//                && order.getUser() != null
+//                && order.getUser().getId() != null) {
+//
+//            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
+//                    .findByUserId(order.getUser().getId())
+//                    .stream()
+//                    .findFirst(); // Lấy địa chỉ đầu tiên (có thể là địa chỉ mặc định)
+//
+//            if (addressMappingOptional.isPresent() && addressMappingOptional.get().getAddress() != null) {
+//                Address address = addressMappingOptional.get().getAddress();
+//                User user = addressMappingOptional.get().getUser(); // Lấy user từ mapping
+//
+//                response.setAddress(new OrderResponse.AddressResponse(
+//                        address.getId(),
+//                        user.getEmail(),
+//                        user.getId(),
+//                        user.getUsername(),
+//                        user.getPhoneNumber(),
+//                        user.getRole().toString(),
+//                        address.getStreet(),
+//                        address.getWard(),
+//                        address.getCity(),
+//                        address.getState(),
+//                        address.getCountry(),
+//                        address.getZipcode(),
+//                        address.getDistrict(),
+//                        address.getProvince(),
+//                        user.getIsActive()
+//                ));
+//            }
+//        }
+
         if (order.getIsPos() != null
                 && order.getUser() != null
                 && order.getUser().getId() != null) {
+            if (order.getUser() != null) {
+                Optional<UserAddressMapping> addressMappingOptional;
 
-            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
-                    .findByUserId(order.getUser().getId())
-                    .stream()
-                    .findFirst(); // Lấy địa chỉ đầu tiên (có thể là địa chỉ mặc định)
+                // Nếu có addressId trong Order, lấy địa chỉ được chọn
+                if (order.getAddressId() != null) {
+                    addressMappingOptional = userAddressMappingRepository
+                            .findByUserIdAndAddressId(order.getUser().getId(), order.getAddressId());
+                } else {
+                    // Nếu không có addressId, lấy địa chỉ mặc định
+                    addressMappingOptional = userAddressMappingRepository
+                            .findByUserId(order.getUser().getId()).stream()
+                            .filter(mapping -> Boolean.TRUE.equals(mapping.getIsDefault()))
+                            .findFirst();
+                }
 
-            if (addressMappingOptional.isPresent() && addressMappingOptional.get().getAddress() != null) {
-                Address address = addressMappingOptional.get().getAddress();
-                User user = addressMappingOptional.get().getUser(); // Lấy user từ mapping
+                if (addressMappingOptional.isPresent()) {
+                    UserAddressMapping mapping = addressMappingOptional.get();
+                    Address address = mapping.getAddress();
+                    User user = mapping.getUser();
 
-                response.setAddress(new OrderResponse.AddressResponse(
-                        address.getId(),
-                        user.getEmail(),
-                        user.getId(),
-                        user.getUsername(),
-                        user.getPhoneNumber(),
-                        user.getRole().toString(),
-                        address.getStreet(),
-                        address.getWard(),
-                        address.getCity(),
-                        address.getState(),
-                        address.getCountry(),
-                        address.getZipcode(),
-                        address.getDistrict(),
-                        address.getProvince(),
-                        user.getIsActive()
-                ));
+                    response.setAddress(new OrderResponse.AddressResponse(
+                            address.getId(),
+                            user.getEmail(),
+                            user.getId(),
+                            user.getUsername(),
+                            user.getPhoneNumber(),
+                            user.getRole().toString(),
+                            address.getId(),
+                            address.getStreet(),
+                            address.getWard(),
+                            address.getCity(),
+                            address.getState(),
+                            address.getCountry(),
+                            address.getZipcode(),
+                            address.getDistrict(),
+                            address.getProvince(),
+                            mapping.getReceiverName(),
+                            mapping.getReceiverPhone(),
+                            mapping.getIsDefault(),
+                            user.getIsActive()
+                    ));
+                } else {
+                    log.warn("Không tìm thấy địa chỉ cho userId: {} và addressId: {}",
+                            order.getUser().getId(), order.getAddressId());
+                }
             }
         }
 

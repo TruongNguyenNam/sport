@@ -17,6 +17,8 @@ public class OrderRequest {
 
     private Long userId;
 
+    private Long addressId;
+
     private String nodes;
 
     private List<OrderItemRequest> items;
