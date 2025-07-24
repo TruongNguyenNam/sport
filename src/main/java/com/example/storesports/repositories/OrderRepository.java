@@ -51,7 +51,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query(
             value = "SELECT DATE(o.order_date) AS day, SUM(o.order_total) AS total_revenue " +
                     "FROM `order` o " +
-                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "WHERE o.order_status = 'COMPLETED' " +
                     "AND DATE(o.order_date) = CURDATE() " +
                     "GROUP BY day",
             nativeQuery = true
@@ -63,7 +63,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query(
             value = "SELECT DATE_FORMAT(o.order_date, '%Y-%m') AS month, SUM(o.order_total) AS total_revenue " +
                     "FROM `order` o " +
-                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "WHERE (o.order_status = 'COMPLETED') " +
                     "AND YEAR(o.order_date) = YEAR(CURDATE()) " +
                     "AND MONTH(o.order_date) = MONTH(CURDATE()) " +
                     "GROUP BY month",
@@ -76,7 +76,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query(
             value = "SELECT YEAR(o.order_date) AS year, SUM(o.order_total) AS total_revenue " +
                     "FROM `order` o " +
-                    "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+                    "WHERE (o.order_status = 'COMPLETED') " +
                     "AND YEAR(o.order_date) = YEAR(CURDATE()) " +
                     "GROUP BY year",
             nativeQuery = true
@@ -102,15 +102,15 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
 
     //đơn Hàng đã hoàn thành theo ngày
-    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) AND DATE(o.orderDate) = CURRENT_DATE")
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.deleted = true) AND DATE(o.orderDate) = CURRENT_DATE")
     Long countCompletedOrdersToday();
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.deleted = true) " +
             "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCompletedOrdersThisMonth();
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true ) " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.deleted = true ) " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long countCompletedOrdersThisYear();
 
@@ -130,7 +130,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
     //test
     @Query(value = "SELECT SUM(o.order_total) FROM `order` o " +
-            "WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED') " +
+            "WHERE (o.order_status = 'COMPLETED' ) " +
             "AND o.order_date BETWEEN :startDate AND :endDate", nativeQuery = true)
     Double getRevenueBetweenDates(@Param("startDate") LocalDateTime startDate,
                                   @Param("endDate") LocalDateTime endDate);
@@ -140,7 +140,7 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     Long countCancelledOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus = 'SHIPPED' or o.deleted = true) " +
+    @Query("SELECT COUNT(o) FROM Order o WHERE (o.orderStatus = 'COMPLETED' or o.deleted = true) " +
             "AND o.orderDate BETWEEN :startDate AND :endDate")
     Long countCompletedOrdersBetweenDates(@Param("startDate") LocalDateTime startDate,
                                           @Param("endDate") LocalDateTime endDate);
