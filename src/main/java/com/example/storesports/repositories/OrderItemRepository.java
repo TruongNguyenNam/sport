@@ -33,14 +33,14 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     @Query("SELECT SUM(oi.quantity) " +
             "FROM OrderItem oi " +
             "JOIN oi.order o " +
-            "WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED') " +
+            "WHERE (o.orderStatus = 'COMPLETED') " +
             "AND DATE(o.orderDate) = :date")
     Long getTotalSoldQuantityByDate(@Param("date") LocalDate date);
 
     @Query("SELECT SUM(oi.quantity) " +
             "FROM OrderItem oi " +
             "JOIN oi.order o " +
-            "WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED') " +
+            "WHERE (o.orderStatus = 'COMPLETED') " +
             "AND FUNCTION('MONTH', o.orderDate) = FUNCTION('MONTH', CURRENT_DATE) " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long getTotalSoldQuantityByMonth();
@@ -48,7 +48,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     @Query("SELECT SUM(oi.quantity) " +
             "FROM OrderItem oi " +
             "JOIN oi.order o " +
-            "WHERE (o.orderStatus = 'COMPLETED' or o.orderStatus ='SHIPPED') " +
+            "WHERE (o.orderStatus = 'COMPLETED') " +
             "AND FUNCTION('YEAR', o.orderDate) = FUNCTION('YEAR', CURRENT_DATE)")
     Long getTotalSoldQuantityByYear();
 
@@ -72,10 +72,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' )
           AND DATE(o.order_date) = CURRENT_DATE
     ) total
-    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' )
       AND DATE(o.order_date) = CURRENT_DATE
     GROUP BY p.id, p.name, img.image_url, DATE(o.order_date), total.total_quantity
     ORDER BY soldQuantity DESC
@@ -103,11 +103,11 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' )
           AND MONTH(o.order_date) = MONTH(CURRENT_DATE)
           AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     ) total
-    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' )
       AND MONTH(o.order_date) = MONTH(CURRENT_DATE)
       AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     GROUP BY p.id, p.name, img.image_url, total.total_quantity
@@ -137,10 +137,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' )
           AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     ) total
-    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' )
       AND YEAR(o.order_date) = YEAR(CURRENT_DATE)
     GROUP BY p.id, p.name, img.image_url, total.total_quantity
     ORDER BY soldQuantity DESC
@@ -168,10 +168,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
         SELECT SUM(oi.quantity) AS total_quantity
         FROM order_item oi
         JOIN `order` o ON oi.order_id = o.id
-        WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+        WHERE (o.order_status = 'COMPLETED' )
           AND DATE(o.order_date) BETWEEN :startDate AND :endDate
     ) total
-    WHERE (o.order_status = 'COMPLETED' OR o.order_status = 'SHIPPED')
+    WHERE (o.order_status = 'COMPLETED' )
       AND DATE(o.order_date) BETWEEN :startDate AND :endDate
     GROUP BY p.id, p.name, img.image_url, DATE(o.order_date), total.total_quantity
     ORDER BY soldQuantity DESC
@@ -187,7 +187,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     SELECT SUM(oi.quantity)
     FROM OrderItem oi
     JOIN oi.order o
-    WHERE (o.orderStatus = 'COMPLETED' OR o.orderStatus = 'SHIPPED')
+    WHERE (o.orderStatus = 'COMPLETED' )
     AND o.orderDate BETWEEN :startDate AND :endDate
 """)
     Long getTotalSoldQuantityBetween(@Param("startDate") LocalDateTime startDate,
