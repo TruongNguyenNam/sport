@@ -32,6 +32,12 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
             @Param("createdDate") LocalDateTime createdDate
     );
 
+    //danh sách đơn hàng của customer phía client
+    @Query("select o from Order o where o.user.id = :customerId and o.isPos = false order by o.id desc ")
+    List<Order> findByUserId(@Param("customerId") Long customerId);
+
+
+
     @Query("select p from Order p order by p.id desc")
     List<Order> getAllOrder();
 

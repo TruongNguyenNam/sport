@@ -17,6 +17,8 @@ public class OrderRequestClient {
     @Positive(message = "User ID must be positive")
     private Long userId; // ID người dùng, khớp với ShoppingCartRequest
 
+    private Long addressId;
+
     private String nodes; // Ghi chú đơn hàng (tùy chọn)
 
     private List<OrderItemRequest> items; // Danh sách sản phẩm (tùy chọn, lấy từ giỏ hàng nếu rỗng)

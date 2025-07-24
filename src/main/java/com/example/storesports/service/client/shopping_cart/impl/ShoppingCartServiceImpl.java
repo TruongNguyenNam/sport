@@ -408,6 +408,9 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         return mapToOrderResponse(order);
     }
 
+
+
+
     @Transactional
     @Override
     public OrderResponseClient checkout(OrderRequestClient request, HttpServletRequest httpServletRequest) {
@@ -470,6 +473,15 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
         // 8. Tạo đơn hàng
         Order order = new Order();
+
+        if (!order.getIsPos() && request.getAddressId() != null) {
+            Optional<UserAddressMapping> addressMapping = userAddressMappingRepository
+                    .findByUserIdAndAddressId(request.getUserId(), request.getAddressId());
+            if (!addressMapping.isPresent()) {
+                throw new IllegalArgumentException("Địa chỉ với ID " + request.getAddressId() + " không hợp lệ hoặc không thuộc về người dùng");
+            }
+            order.setAddressId(request.getAddressId()); // Gán addressId vào Order
+        }
         order.setUser(user);
         order.setOrderCode(generateOrderCode());
         order.setOrderDate(new Date());
@@ -641,6 +653,49 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 order.getOrderCode(), order.getOrderStatus(), order.getDeleted(), paymentUrl);
         return response;
     }
+
+    @Override
+    @Transactional
+    public List<OrderResponseClient> findByCustomerId(Long customerId) {
+        List<Order> orders = orderRepository.findByUserId(customerId);
+        return orders.stream().map(this::mapToOrderResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseClient updateOrderStatus(String orderCode) {
+
+        // 1. Tìm đơn hàng
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
+
+        if (order.getOrderStatus().equals(OrderStatus.PENDING)) {
+            order.setOrderStatus(OrderStatus.CANCELLED);
+            order.setLastModifiedDate(LocalDateTime.now());
+            order.setOrderTotal((double) 0);
+            // 4. Lấy danh sách OrderItem và cập nhật lại stock cho sản phẩm
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+            for (OrderItem item : orderItems) {
+                Product product = item.getProduct();
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity()); // hoàn kho
+                productRepository.save(product);
+            }
+
+            // 5. Xoá các OrderItem khỏi DB
+            orderItemRepository.deleteAll(orderItems);
+        } else {
+            throw new IllegalArgumentException("Chỉ hỗ trợ huỷ đơn hàng (CANCELLED)");
+        }
+
+        // 6. Lưu đơn hàng
+        orderRepository.save(order);
+
+        // 7. Trả về response sau khi cập nhật
+        OrderResponseClient response = mapToOrderResponse(order);
+        response.setItems(new ArrayList<>()); // Không còn sản phẩm nào trong đơn
+        return response;
+    }
+
     private String createVnpayPaymentUrl(Order order, double totalAmount, String vnp_TxnRef, String returnUrl, HttpServletRequest httpRequest) {
         try {
             String vnp_Version = "2.1.0";
@@ -769,35 +824,86 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         response.setCouponUsages(couponResponses);
 
         // Map address
-        OrderResponseClient.AddressResponse addressResponse = null;
-        if (!order.getIsPos() && order.getUser() != null) {
-            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
-                    .findByUserId(order.getUser().getId())
-                    .stream()
-                    .findFirst();
-            if (addressMappingOptional.isPresent()) {
-                Address address = addressMappingOptional.get().getAddress();
-                User user = addressMappingOptional.get().getUser();
-                addressResponse = new OrderResponseClient.AddressResponse(
-                        address.getId(),
-                        user.getEmail(),
-                        user.getId(),
-                        user.getUsername(),
-                        user.getPhoneNumber(),
-                        user.getRole().toString(),
-                        address.getStreet(),
-                        address.getWard(),
-                        address.getCity(),
-                        address.getState(),
-                        address.getCountry(),
-                        address.getZipcode(),
-                        address.getDistrict(),
-                        address.getProvince(),
-                        user.getIsActive()
-                );
+//        OrderResponseClient.AddressResponse addressResponse = null;
+//        if (!order.getIsPos() && order.getUser() != null) {
+//            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
+//                    .findByUserId(order.getUser().getId())
+//                    .stream()
+//                    .findFirst();
+//            if (addressMappingOptional.isPresent()) {
+//                Address address = addressMappingOptional.get().getAddress();
+//                User user = addressMappingOptional.get().getUser();
+//                addressResponse = new OrderResponseClient.AddressResponse(
+//                        address.getId(),
+//                        user.getEmail(),
+//                        user.getId(),
+//                        user.getUsername(),
+//                        user.getPhoneNumber(),
+//                        user.getRole().toString(),
+//                        address.getStreet(),
+//                        address.getWard(),
+//                        address.getCity(),
+//                        address.getState(),
+//                        address.getCountry(),
+//                        address.getZipcode(),
+//                        address.getDistrict(),
+//                        address.getProvince(),
+//                        user.getIsActive()
+//                );
+//            }
+//        }
+//        response.setAddress(addressResponse);
+
+        if (order.getIsPos() != null
+                && order.getUser() != null
+                && order.getUser().getId() != null) {
+            if (order.getUser() != null) {
+                Optional<UserAddressMapping> addressMappingOptional;
+
+                // Nếu có addressId trong Order, lấy địa chỉ được chọn
+                if (order.getAddressId() != null) {
+                    addressMappingOptional = userAddressMappingRepository
+                            .findByUserIdAndAddressId(order.getUser().getId(), order.getAddressId());
+                } else {
+                    // Nếu không có addressId, lấy địa chỉ mặc định
+                    addressMappingOptional = userAddressMappingRepository
+                            .findByUserId(order.getUser().getId()).stream()
+                            .filter(mapping -> Boolean.TRUE.equals(mapping.getIsDefault()))
+                            .findFirst();
+                }
+
+                if (addressMappingOptional.isPresent()) {
+                    UserAddressMapping mapping = addressMappingOptional.get();
+                    Address address = mapping.getAddress();
+                    User user = mapping.getUser();
+
+                    response.setAddress(new OrderResponseClient.AddressResponse(
+                            address.getId(),
+                            user.getEmail(),
+                            user.getId(),
+                            user.getUsername(),
+                            user.getPhoneNumber(),
+                            user.getRole().toString(),
+                            address.getId(),
+                            address.getStreet(),
+                            address.getWard(),
+                            address.getCity(),
+                            address.getState(),
+                            address.getCountry(),
+                            address.getZipcode(),
+                            address.getDistrict(),
+                            address.getProvince(),
+                            mapping.getReceiverName(),
+                            mapping.getReceiverPhone(),
+                            mapping.getIsDefault(),
+                            user.getIsActive()
+                    ));
+                } else {
+                    log.warn("Không tìm thấy địa chỉ cho userId: {} và addressId: {}",
+                            order.getUser().getId(), order.getAddressId());
+                }
             }
         }
-        response.setAddress(addressResponse);
 
         // Map shipment
         response.setShipments(shipmentRepository.findByOrderId(order.getId()).stream()

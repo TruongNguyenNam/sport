@@ -498,7 +498,8 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.PENDING,
                 OrderStatus.COMPLETED,
                 OrderStatus.CANCELLED,
-                OrderStatus.RETURNED
+                OrderStatus.RETURNED,
+                OrderStatus.SHIPPED
         );
         return orderRepository.countOrdersByStatus(statuses);
     }
