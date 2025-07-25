@@ -85,9 +85,8 @@ public class OrderResponseClient {
         private String username;
         private String email;
         private String phoneNumber;
-        private String receiverName;
-        private String receiverPhone;
         private String role;
+        private Long addressId;
         private String addressStreet; // ok
         private String addressWard; // Phường (Phường Phúc Đồng)
         private String addressCity;  // ok
@@ -96,6 +95,8 @@ public class OrderResponseClient {
         private String AddressZipcode;
         private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
         private String addressProvince; // Tỉnh (Quận Long Biên)
+        private String receiverName;   // Tên người nhận hàng
+        private String receiverPhone;  // Số điện thoại nhận hàng
         private Boolean isDefault;
         private boolean isActive;
     }

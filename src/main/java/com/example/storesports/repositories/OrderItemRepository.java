@@ -2,6 +2,7 @@ package com.example.storesports.repositories;
 
 
 import com.example.storesports.core.admin.orderItem.payload.SellingProductsProjection;
+import com.example.storesports.entity.Order;
 import com.example.storesports.entity.OrderItem;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,6 +21,10 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     @Modifying
     @Query("DELETE FROM OrderItem oi WHERE oi.order.id = :orderId")
     void deleteByOrderId(Long orderId);
+
+    @Query("SELECT oi FROM OrderItem oi WHERE oi.order = :order")
+    List<OrderItem> findByOrder(@Param("order") Order order);
+
 
     @Query("from OrderItem a where a.order.id = :id")
     List<OrderItem> findByOrderId(@Param("id") Long id);

@@ -25,6 +25,7 @@ public class UpdateUserForm {
         private String addressZipcode;
         private String addressDistrict;
         private String addressProvince;
+
     }
 
 }

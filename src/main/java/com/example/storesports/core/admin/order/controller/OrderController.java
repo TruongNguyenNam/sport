@@ -214,6 +214,7 @@ public class OrderController {
                 .build();
     }
 
+    //đây là cái add sản phẩm vào đơn hàng chuẩn và thanh toán
     @PostMapping("/{orderCode}/products")
     public ResponseData<OrderResponse> addProductToOrder(
             @PathVariable String orderCode,
