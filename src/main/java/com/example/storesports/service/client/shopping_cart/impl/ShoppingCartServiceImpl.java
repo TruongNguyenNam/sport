@@ -776,14 +776,18 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                     .stream()
                     .findFirst();
             if (addressMappingOptional.isPresent()) {
-                Address address = addressMappingOptional.get().getAddress();
-                User user = addressMappingOptional.get().getUser();
+                UserAddressMapping mapping = addressMappingOptional.get();
+                Address address = mapping.getAddress();
+                User user = mapping.getUser();
+
                 addressResponse = new OrderResponseClient.AddressResponse(
                         address.getId(),
-                        user.getEmail(),
                         user.getId(),
                         user.getUsername(),
+                        user.getEmail(),
                         user.getPhoneNumber(),
+                        mapping.getReceiverName(),     // ✅ tên người nhận
+                        mapping.getReceiverPhone(),    // ✅ SĐT người nhận
                         user.getRole().toString(),
                         address.getStreet(),
                         address.getWard(),
@@ -793,10 +797,12 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                         address.getZipcode(),
                         address.getDistrict(),
                         address.getProvince(),
-                        user.getIsActive()
+                        mapping.getIsDefault(),        // ✅ địa chỉ mặc định không
+                        Boolean.TRUE.equals(user.getIsActive()) // tránh NPE
                 );
             }
         }
+
         response.setAddress(addressResponse);
 
         // Map shipment
@@ -824,15 +830,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private String generateTrackingNumber() {
         return "TRK" + System.currentTimeMillis();
     }
-
-
-
-
-
-
-
-
-
 
 
 }

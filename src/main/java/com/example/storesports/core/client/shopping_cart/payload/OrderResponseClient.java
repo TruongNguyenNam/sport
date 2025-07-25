@@ -81,10 +81,12 @@ public class OrderResponseClient {
     @AllArgsConstructor
     public static class AddressResponse {
         private Long id;
-        private String email;
         private Long userId;
         private String username;
+        private String email;
         private String phoneNumber;
+        private String receiverName;
+        private String receiverPhone;
         private String role;
         private String addressStreet; // ok
         private String addressWard; // Phường (Phường Phúc Đồng)
@@ -94,6 +96,7 @@ public class OrderResponseClient {
         private String AddressZipcode;
         private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
         private String addressProvince; // Tỉnh (Quận Long Biên)
+        private Boolean isDefault;
         private boolean isActive;
     }
 
