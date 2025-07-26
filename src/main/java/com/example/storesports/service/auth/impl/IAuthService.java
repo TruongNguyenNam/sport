@@ -24,6 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class IAuthService implements AuthService {
@@ -92,7 +95,6 @@ public class IAuthService implements AuthService {
         return userResponse;
     }
 
-
     @Override
     @Transactional
     public UserResponse updateAddress(Long userId, UpdateUserForm userForm) {
@@ -149,12 +151,12 @@ public class IAuthService implements AuthService {
         return userResponse;
     }
 
+
     @Override
     @Transactional
     public UserResponse finById(Long id) {
         User user = userRepository.findById(id).orElseThrow(() ->
                 new IllegalArgumentException("không tìm thấy id này"));
-
         return mapToResponse(user);
     }
 
@@ -169,35 +171,38 @@ public class IAuthService implements AuthService {
         dto.setGender(user.getGender() != null ? user.getGender().name() : null);
         dto.setActive(Boolean.TRUE.equals(user.getIsActive()));
 
-        // Ánh xạ địa chỉ (lấy địa chỉ đầu tiên chưa bị xóa mềm)
+        // Lấy danh sách địa chỉ chưa bị xóa mềm
         if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
-            // Tìm địa chỉ đầu tiên chưa bị xóa mềm
-            UserAddressMapping mapping = user.getUserAddressMappings().stream()
-                    .filter(m -> !m.getDeleted() && !m.getAddress().getDeleted())
-                    .findFirst()
-                    .orElse(null);
+            List<LoginInfoDto.UserAddress> addressList = user.getUserAddressMappings().stream()
+                    .filter(m -> Boolean.FALSE.equals(m.getDeleted()) && m.getAddress() != null)
+                    .map(mapping -> {
+                        Address address = mapping.getAddress();
+                        LoginInfoDto.UserAddress ua = new LoginInfoDto.UserAddress();
+                        ua.setId(mapping.getId()); // id của mapping
+                        ua.setAddressId(address.getId());
+                        ua.setReceiverName(mapping.getReceiverName());
+                        ua.setReceiverPhone(mapping.getReceiverPhone());
+                        ua.setIsDefault(Boolean.TRUE.equals(mapping.getIsDefault()));
 
-            if (mapping != null) {
-                Address address = mapping.getAddress();
-                LoginInfoDto.UserAddress userAddress = new LoginInfoDto.UserAddress();
-                userAddress.setId(address.getId());
-                userAddress.setAddressStreet(address.getStreet());
-                userAddress.setAddressWard(address.getWard());
-                userAddress.setAddressCity(address.getCity());
-                userAddress.setAddressState(address.getState());
-                userAddress.setAddressCountry(address.getCountry());
-                userAddress.setAddressZipcode(address.getZipcode());
-                userAddress.setAddressDistrict(address.getDistrict());
-                userAddress.setAddressProvince(address.getProvince());
+                        ua.setAddressStreet(address.getStreet());
+                        ua.setAddressWard(address.getWard());
+                        ua.setAddressDistrict(address.getDistrict());
+                        ua.setAddressProvince(address.getProvince());
+                        ua.setAddressCity(address.getCity());
+                        ua.setAddressState(address.getState());
+                        ua.setAddressCountry(address.getCountry());
+                        ua.setAddressZipcode(address.getZipcode());
+                        return ua;
+                    })
+                    .collect(Collectors.toList());
 
-                dto.setAddress(userAddress);
-            }
+            dto.setAddresses(addressList);
         }
-
         return dto;
     }
 
-    private UserResponse mapToResponse(User user){
+
+    private UserResponse mapToResponse(User user) {
         UserResponse dto = new UserResponse();
         dto.setUserId(user.getId());
         dto.setUsername(user.getUsername());
@@ -208,32 +213,36 @@ public class IAuthService implements AuthService {
         dto.setGender(user.getGender() != null ? user.getGender().name() : null);
         dto.setActive(Boolean.TRUE.equals(user.getIsActive()));
 
-        // Ánh xạ địa chỉ (lấy địa chỉ đầu tiên chưa bị xóa mềm)
-        if (user.getUserAddressMappings() != null && !user.getUserAddressMappings().isEmpty()) {
-            // Tìm địa chỉ đầu tiên chưa bị xóa mềm
-            UserAddressMapping mapping = user.getUserAddressMappings().stream()
-                    .filter(m -> !m.getDeleted() && !m.getAddress().getDeleted())
-                    .findFirst()
-                    .orElse(null);
-
-            if (mapping != null) {
-                Address address = mapping.getAddress();
-                UserResponse.UserAddress userAddress = new UserResponse.UserAddress();
-                userAddress.setId(address.getId());
-                userAddress.setAddressStreet(address.getStreet());
-                userAddress.setAddressWard(address.getWard());
-                userAddress.setAddressCity(address.getCity());
-                userAddress.setAddressState(address.getState());
-                userAddress.setAddressCountry(address.getCountry());
-                userAddress.setAddressZipcode(address.getZipcode());
-                userAddress.setAddressDistrict(address.getDistrict());
-                userAddress.setAddressProvince(address.getProvince());
-
-                dto.setAddress(userAddress);
-            }
+        // Ánh xạ danh sách địa chỉ (nếu có)
+        List<UserAddressMapping> mappings = user.getUserAddressMappings();
+        if (mappings == null) {
+            mappings = List.of();
         }
+
+        List<UserResponse.UserAddress> addressList = mappings.stream()
+                .filter(m -> Boolean.FALSE.equals(m.getDeleted()) && m.getAddress() != null)
+                .map(mapping -> {
+                    Address address = mapping.getAddress();
+                    UserResponse.UserAddress userAddress = new UserResponse.UserAddress();
+                    userAddress.setId(address.getId());
+                    userAddress.setReceiverName(mapping.getReceiverName());
+                    userAddress.setReceiverPhone(mapping.getReceiverPhone());
+                    userAddress.setAddressStreet(address.getStreet());
+                    userAddress.setAddressWard(address.getWard());
+                    userAddress.setAddressCity(address.getCity());
+                    userAddress.setAddressState(address.getState());
+                    userAddress.setAddressCountry(address.getCountry());
+                    userAddress.setAddressZipcode(address.getZipcode());
+                    userAddress.setAddressDistrict(address.getDistrict());
+                    userAddress.setAddressProvince(address.getProvince());
+                    userAddress.setIsDefault(mapping.getIsDefault());
+                    return userAddress;
+                })
+                .collect(Collectors.toList());
+
+        dto.setAddresses(addressList);
+
         return dto;
     }
-
 
 }

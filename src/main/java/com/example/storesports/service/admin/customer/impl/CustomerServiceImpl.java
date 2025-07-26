@@ -112,11 +112,13 @@ public class CustomerServiceImpl implements CustomerService {
         validateEmailAndPhone(request.getEmail(), request.getPhoneNumber());
 
         // Kiểm tra trùng email với user khác
-        if (user.getEmail() != null && !user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && !user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
             throw new IllegalArgumentException("Email đã tồn tại");
         }
         // Kiểm tra trùng sđt với user khác
-        if (user.getPhoneNumber() != null && !user.getPhoneNumber().equals(request.getPhoneNumber()) && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+        if (request.getPhoneNumber() != null
+                && !request.getPhoneNumber().equals(user.getPhoneNumber())
+                && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new IllegalArgumentException("Số điện thoại đã tồn tại");
         }
 

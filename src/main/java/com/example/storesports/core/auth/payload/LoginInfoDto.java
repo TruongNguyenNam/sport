@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 public class LoginInfoDto {
@@ -17,14 +19,14 @@ public class LoginInfoDto {
     private String role;
     private String gender;
     private boolean isActive;
-
-    private UserAddress address;
+    private List<UserAddress> addresses;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class UserAddress {
         private Long id;
+        private Long addressId;
         private String addressStreet; // ok
         private String addressWard; // Phường (Phường Phúc Đồng)
         private String addressCity;  // ok
@@ -33,8 +35,9 @@ public class LoginInfoDto {
         private String AddressZipcode;
         private String addressDistrict; // Quận/Huyện (Huyện Vĩnh Tuy)
         private String addressProvince; // Tỉnh (Quận Long Biên)
-
+        private String receiverName;
+        private String receiverPhone;
+        private Boolean isDefault;
     }
-
 
 }

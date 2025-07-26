@@ -1641,8 +1641,8 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
 
                     response.setAddress(new OrderResponse.AddressResponse(
                             address.getId(),
-                            user.getEmail(),
                             user.getId(),
+                            user.getEmail(),
                             user.getUsername(),
                             user.getPhoneNumber(),
                             user.getRole().toString(),

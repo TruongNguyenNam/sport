@@ -824,6 +824,42 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         response.setCouponUsages(couponResponses);
 
         // Map address
+        OrderResponseClient.AddressResponse addressResponse = null;
+        if (!order.getIsPos() && order.getUser() != null) {
+            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
+                    .findByUserId(order.getUser().getId())
+                    .stream()
+                    .findFirst();
+            if (addressMappingOptional.isPresent()) {
+                UserAddressMapping mapping = addressMappingOptional.get();
+                Address address = mapping.getAddress();
+                User user = mapping.getUser();
+                addressResponse = new OrderResponseClient.AddressResponse(
+                        user.getId(),
+                        address.getId(),
+                        user.getEmail(),
+                        user.getUsername(),
+                        user.getPhoneNumber(),
+                        user.getRole().toString(),
+                        address.getId(),
+                        address.getStreet(),
+                        address.getWard(),
+                        address.getCity(),
+                        address.getState(),
+                        address.getCountry(),
+                        address.getZipcode(),
+                        address.getDistrict(),
+                        address.getProvince(),
+                        mapping.getReceiverName(),
+                        mapping.getReceiverPhone(),
+                        mapping.getIsDefault(),
+                         // ✅ địa chỉ mặc định không
+                        Boolean.TRUE.equals(user.getIsActive()) // tránh NPE
+                );
+            }
+        }
+
+        response.setAddress(addressResponse);
 //        OrderResponseClient.AddressResponse addressResponse = null;
 //        if (!order.getIsPos() && order.getUser() != null) {
 //            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
@@ -878,9 +914,9 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                     User user = mapping.getUser();
 
                     response.setAddress(new OrderResponseClient.AddressResponse(
+                            user.getId(),
                             address.getId(),
                             user.getEmail(),
-                            user.getId(),
                             user.getUsername(),
                             user.getPhoneNumber(),
                             user.getRole().toString(),
@@ -904,7 +940,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 }
             }
         }
-
         // Map shipment
         response.setShipments(shipmentRepository.findByOrderId(order.getId()).stream()
                 .map(shipment -> {
@@ -930,15 +965,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     private String generateTrackingNumber() {
         return "TRK" + System.currentTimeMillis();
     }
-
-
-
-
-
-
-
-
-
 
 
 }
