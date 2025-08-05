@@ -33,6 +33,11 @@ public class Payment extends Auditable{
         // tiền thừa khi đưa khách hàng đưa thừa
         private Double changeAmount;
 
+        @Column(name = "transaction_id")
+        private String transactionId;
+
+        private String returnUrl;
+
         private LocalDateTime paymentDate;
 
         private Boolean deleted;

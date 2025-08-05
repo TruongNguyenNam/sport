@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
 import java.util.List;
@@ -32,24 +33,25 @@ private String urlImageOderItem;
 
 
 
+    @Column(length = 30)
     @Enumerated(EnumType.STRING)
     private ReturnRequestItemStatus status;
 
     private Integer quantity;
 
-    private String imageUrl;
-    private String videoUrl;
+    //cái này là lưu số lượng gửi đơn để check
+    private Integer quantityReturnTotal;
 
     private String reason;
 
     private String note;
 
+
     private String adminNote; // Ghi chú phản hồi từ admin (lý do từ chối, v.v.)
 
+    @CreationTimestamp
     private Date respondedAt; // Thời gian phản hồi
 
-    // optional:
-    private String respondedBy; //ai phản hồi
 
     private Boolean deleted;
 

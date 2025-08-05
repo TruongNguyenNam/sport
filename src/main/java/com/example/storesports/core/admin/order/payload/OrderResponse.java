@@ -31,6 +31,21 @@ public class OrderResponse {
     private LocalDateTime createdDate; // Thời gian tạo
     private Integer lastModifiedBy; // Người sửa cuối cùng
     private LocalDateTime lastModifiedDate; // Thời gian sửa cuối cùng
+    private String paymentUrl;
+
+//    @Data
+//    @NoArgsConstructor
+//    public static class PaymentResponse {
+//        private Long id; // ID của thanh toán
+//        private Double amount; // Số tiền thanh toán
+//        private String paymentStatus; // Trạng thái thanh toán (COMPLETED, PENDING, v.v.)
+//        private LocalDateTime paymentDate; // Thời gian thanh toán
+//        private Double changeAmount;
+//        private Long paymentMethodId;
+//        private String paymentMethodName; // Tên phương thức thanh toán (lấy từ PaymentMethodMapping)
+//        private String returnUrl;
+//        private String transactionId;;
+//    }
 
 
 

@@ -35,6 +35,7 @@ public class UpdateOrderRequest {
     @NoArgsConstructor
     public static class ShipmentRequest {
         private Long carrierId;
+        private Double shippingCost;
         private LocalDateTime estimatedDeliveryDate;
     }
 

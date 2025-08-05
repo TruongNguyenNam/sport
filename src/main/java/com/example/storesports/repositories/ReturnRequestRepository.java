@@ -2,6 +2,7 @@ package com.example.storesports.repositories;
 
 
 import com.example.storesports.entity.ReturnRequest;
+import com.example.storesports.infrastructure.constant.ReturnRequestItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +14,15 @@ public interface ReturnRequestRepository extends JpaRepository<ReturnRequest,Lon
 List<ReturnRequest> findByUserName(@Param("userName")String userName);
 @Query ("select count (i)from ReturnRequest r join r.items i where r.code=:code")
     Long countByCode(@Param("code") String code);
-@Query("select r from ReturnRequest r order by r.requestDate desc ")
-    List<ReturnRequest> findAll();
+    @Query ("select count (i)from ReturnRequest r join r.items i where r.code=:code and i.status=:status")
+    Long countByCodeAndStatus(@Param("code") String code,@Param("status") ReturnRequestItemStatus status);
 
+
+    @Query("select r from ReturnRequest r join ReturnRequestItem i on r.id=i.returnRequest.id where i.status=:status order by r.requestDate desc ")
+    List<ReturnRequest> finByStatusItem(@Param("status")ReturnRequestItemStatus status);
+    @Query ("select count (i.status)from ReturnRequest r join r.items i where r.code=:code and i.status=:status")
+    Long countByCodeApproved(@Param("code") String code,@Param("status") ReturnRequestItemStatus status);
+
+    @Query("select r from ReturnRequest r join ReturnRequestItem i on r.id=i.returnRequest.id where r.code like %:code% and i.status=:status")
+    List<ReturnRequest> findByCode(@Param("code") String code, @Param("status") ReturnRequestItemStatus status);
 }

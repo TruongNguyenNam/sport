@@ -190,4 +190,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem,Long>, JpaS
     Long getTotalSoldQuantityBetween(@Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate);
 
+    @Query("select count(oi) from OrderItem oi join Order o on oi.order.id=o.id where o.orderCode=:code")
+    Long countOderItem(@Param("code") String code);
+
 }

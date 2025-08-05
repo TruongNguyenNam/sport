@@ -103,13 +103,15 @@ public class ReturnOderServiceIlm implements ReturnOderService {
             item.setReturnRequest(returnRequest);
             item.setOrderItem(orderItem);
             item.setQuantity(itemRequest.getQuantity());
+
             item.setReason(itemRequest.getReason());
             item.setNote(itemRequest.getNote());
             item.setStatus(ReturnRequestItemStatus.PENDING);
             item.setDeleted(false);
-            item = returnRequestItemRepository.save(item);
 
+            item = returnRequestItemRepository.save(item);
             List<ReturnMedia> returnMedia = uploadVideoOrImage(file, itemRequest.getMediaRequests(), item);
+
             item.setReturnMedias(returnMedia);
 
             items.add(item);
@@ -377,9 +379,11 @@ public class ReturnOderServiceIlm implements ReturnOderService {
             throw new ErrorException("Phải có ít nhất một ảnh hoặc video");
         }
 
-        for(ReturnMediaRequest mediaDTO : mediaDTOs) {
+        for (ReturnMediaRequest mediaDTO : mediaDTOs) {
             MultipartFile matchedFile = findFileByName(files, mediaDTO.getFileName());
-            if (matchedFile == null || matchedFile.isEmpty()) continue;
+            if (matchedFile == null || matchedFile.isEmpty()) {
+                continue; // Không tìm thấy file thì bỏ qua
+            }
 
             String url;
             if (mediaDTO.getType().equalsIgnoreCase("image")) {
@@ -392,14 +396,20 @@ public class ReturnOderServiceIlm implements ReturnOderService {
 
             ReturnMedia media = new ReturnMedia();
             media.setUrl(url);
-            media.setType(MediaStatus.valueOf(mediaDTO.getType().toUpperCase())); // IMAGE or VIDEO
+            media.setType(MediaStatus.valueOf(mediaDTO.getType().toUpperCase()));
             media.setReturnRequestItems(returnRequestItem);
             returnMedias.add(media);
+        }
+
+        // ✅ Kiểm tra lại: nếu metadata có nhưng không có file match thực tế
+        if (returnMedias.isEmpty()) {
+            throw new ErrorException("File ảnh hoặc video không hợp lệ hoặc chưa được đính kèm đúng tên.");
         }
 
         returnMediaRepository.saveAll(returnMedias);
         return returnMedias;
     }
+
     private MultipartFile findFileByName(MultipartFile[] files, String fileName) {
         return Arrays.stream(files)
                 .filter(f -> f.getOriginalFilename().equals(fileName))

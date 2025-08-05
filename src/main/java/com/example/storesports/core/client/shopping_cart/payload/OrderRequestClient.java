@@ -33,11 +33,7 @@ public class OrderRequestClient {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class OrderItemRequest {
-//        @NotNull(message = "Product ID is required")
-//        @Positive(message = "Product ID must be positive")
         private Long productId;
-//        @NotNull(message = "Quantity is required")
-//        @Positive(message = "Quantity must be positive")
         private Integer quantity;
     }
 
@@ -45,13 +41,11 @@ public class OrderRequestClient {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PaymentRequest {
-//        @NotNull(message = "Payment method ID is required")
-//        @Positive(message = "Payment method ID must be positive")
         private Long paymentMethodId;
-//        @NotNull(message = "Amount is required")
-//        @Positive(message = "Amount must be positive")
         private Double amount;
+        private String returnUrl;
     }
+
 
     @Data
     @NoArgsConstructor
@@ -61,6 +55,7 @@ public class OrderRequestClient {
 //        @Positive(message = "Carrier ID must be positive")
         private Long carrierId;
 //        @NotNull(message = "Estimated delivery date is required")
+        private Double shippingCost;
         private LocalDateTime estimatedDeliveryDate;
         private List<Long> orderItemIds; // Sẽ được gán sau khi tạo order_item
     }

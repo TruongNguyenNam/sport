@@ -31,6 +31,10 @@ public class Order extends Auditable {
 
         private Double orderTotal; // tổng số tiền
 
+        private Double totalRefund; //tổng số tiền hoàn
+
+        private String paymentUrl;
+
         private Date orderDate; // ngày thang năm
 
         private Boolean isPos;  // true là bán thường // false là bán ship

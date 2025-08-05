@@ -55,6 +55,10 @@ public class ProductAttributeController {
                 .status(200).build();
 
     }
+    @GetMapping("/search/name/{name}")
+    public List<ProductAttributeResponse> searchName(@PathVariable("name") String name){
+        return attributeService.searchName(name);
+    }
 
 
 }

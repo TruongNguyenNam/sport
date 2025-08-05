@@ -1,11 +1,13 @@
 package com.example.storesports.core.admin.order.controller;
 
 import com.example.storesports.core.admin.order.payload.*;
+import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.constant.OrderStatus;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.order.OrderService;
 import com.example.storesports.service.admin.order.impl.OrderServiceImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,16 @@ public class OrderController {
     private final OrderService orderService;
 
 
+    @GetMapping("/status-counts")
+    public ResponseData<List<OrderStatusCount>> getOrderStatusCounts() {
+        List<OrderStatusCount> counts = orderService.getOrderStatusCounts();
+        return ResponseData.<List<OrderStatusCount>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy số lượng trạng thái đơn hàng thành công")
+                .data(counts)
+                .build();
+    }
+
     @GetMapping("/status")
     public ResponseData<List<OrderResponse>> getOrdersByStatus(@RequestParam("status") OrderStatus orderStatus) {
         List<OrderResponse> orders = orderService.getAllOrderStatus(orderStatus);
@@ -36,7 +48,7 @@ public class OrderController {
                 .build();
     }
 
-
+    // cai edit này sai và add sai
     @PostMapping("/{orderCode}/add-product-v2")
     public ResponseData<OrderResponse> addProductToOrderV2(
             @PathVariable("orderCode") String orderCode,
@@ -67,6 +79,7 @@ public class OrderController {
                     .build();
         }
     }
+
 
     @PutMapping("/{orderCode}/edit-items")
     public ResponseData<OrderResponse> updateOrder(
@@ -165,8 +178,6 @@ public class OrderController {
     }
 
 
-
-
     @PostMapping
     public ResponseData<OrderResponse> createOrder(@RequestBody CreateInvoiceRequest request) {
         try {
@@ -206,9 +217,11 @@ public class OrderController {
     @PostMapping("/{orderCode}/products")
     public ResponseData<OrderResponse> addProductToOrder(
             @PathVariable String orderCode,
-            @RequestBody OrderRequest request) {
+            @RequestBody OrderRequest request,
+            HttpServletRequest httpServletRequest) {
+        log.info("📥 Add product to order {} with payload: {}", orderCode, request);
         request.setOrderCode(orderCode);
-        OrderResponse response = orderService.addProductToOrder(request);
+        OrderResponse response = orderService.addProductToOrderV3(request,httpServletRequest);
         return ResponseData.<OrderResponse>builder()
                 .status(HttpStatus.OK.value())
                 .message("Thêm sản phẩm vào đơn hàng thành công")
@@ -228,14 +241,6 @@ public class OrderController {
     }
 
 
-    @PostMapping("/{orderCode}/details")
-    public ResponseEntity<OrderResponse> addOrderDetails(
-            @PathVariable String orderCode,
-            @RequestBody OrderRequest request
-    ) {
-        OrderResponse response = orderService.addOrderDetails(orderCode, request);
-        return ResponseEntity.ok(response);
-    }
 
     @GetMapping("/chart/monthly-orders")
     public ResponseData<List<MonthlyOrderTypeResponse>> getMonthlyOrderChart() {

@@ -19,13 +19,20 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     @Query("SELECT o FROM Order o WHERE o.orderCode = :key")
     Optional<Order> findByOrderCode(@Param("key") String key);
 
+    @Query("SELECT new com.example.storesports.core.admin.order.payload.OrderStatusCount(o.orderStatus, COUNT(o)) " +
+            "FROM Order o " +
+            "WHERE o.orderStatus IN :statuses " +
+            "GROUP BY o.orderStatus")
+    List<OrderStatusCount> countOrdersByStatus(@Param("statuses") List<OrderStatus> statuses);
+
+
     @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus AND o.deleted = false AND o.createdDate < :createdDate")
     List<Order> findByOrderStatusAndDeletedFalseAndCreatedDateBefore(
             @Param("orderStatus") OrderStatus orderStatus,
             @Param("createdDate") LocalDateTime createdDate
     );
 
-    @Query("select p from Order p order by p.id desc ")
+    @Query("select p from Order p order by p.id desc")
     List<Order> getAllOrder();
 
 
@@ -153,14 +160,16 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
 
 
 
-    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus IN :statuses and o.isPos=true and o.deleted=true order by o.createdDate desc ")
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderStatus IN :statuses and o.isPos=false and o.deleted=true order by o.createdDate desc ")
     List<Order> findByUserAndStatuses(@Param("userId") Long userId,
                                       @Param("statuses") List<OrderStatus> statuses);
 
-    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderCode = :orderCode AND o.orderStatus IN :statuses AND o.isPos = true and o.deleted=true")
+    @Query("SELECT o FROM Order o WHERE o.user.id = :userId AND o.orderCode = :orderCode AND o.orderStatus IN :statuses and o.isPos=false and o.deleted=true")
     Optional<Order> findOrderByUserAndCodeAndStatuses(@Param("userId") Long userId,
                                                       @Param("orderCode") String orderCode,
                                                       @Param("statuses") List<OrderStatus> statuses);
+
+
 
 
 }
