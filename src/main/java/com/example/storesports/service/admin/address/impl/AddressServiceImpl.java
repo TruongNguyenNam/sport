@@ -41,7 +41,23 @@ public class AddressServiceImpl implements AddressService {
                 .map(address -> modelMapper.map(address, AddressResponse.class)).collect(Collectors.toList());
     }
 
-// them dia chi
+
+    @Override
+    public List<AddressResponse> findByCustomerId(Long customerId) {
+        List<UserAddressMapping> mappings = userAddressMappingRepository.findByUserIdAndDeletedFalse(customerId);
+
+        return mappings.stream().map(mapping -> {
+            Address address = mapping.getAddress();
+            AddressResponse response = modelMapper.map(address, AddressResponse.class);
+            response.setReceiverName(mapping.getReceiverName());
+            response.setReceiverPhone(mapping.getReceiverPhone());
+            response.setIsDefault(mapping.getIsDefault());
+            return response;
+        }).collect(Collectors.toList());
+    }
+
+
+    // them dia chi
     @Override
     @Transactional
     public AddressResponse addAddressToCustomer(Long customerId, AddressRequest request) {
@@ -132,6 +148,44 @@ public class AddressServiceImpl implements AddressService {
 
         return response;
     }
+
+
+    @Override
+    @Transactional
+    public AddressResponse setDefaultAddress(Long customerId, Long addressId) {
+        // Tìm mapping hiện tại, chỉ lấy mapping chưa bị xoá
+        UserAddressMapping mapping = userAddressMappingRepository
+                .findByUserIdAndAddressId(customerId, addressId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy địa chỉ tương ứng"));
+
+        // Nếu địa chỉ này đã là mặc định thì không làm gì cả
+        if (Boolean.TRUE.equals(mapping.getIsDefault())) {
+            throw new RuntimeException("Địa chỉ đã là mặc định");
+        }
+
+        // Bỏ mặc định tất cả địa chỉ khác
+        List<UserAddressMapping> existingMappings = userAddressMappingRepository.findByUserIdAndDeletedFalse(customerId);
+        for (UserAddressMapping m : existingMappings) {
+            m.setIsDefault(false);
+        }
+        userAddressMappingRepository.saveAll(existingMappings);
+
+        // Gán mặc định cho địa chỉ hiện tại
+        mapping.setIsDefault(true);
+        userAddressMappingRepository.save(mapping);
+
+        // Tạo response
+        AddressResponse response = modelMapper.map(mapping.getAddress(), AddressResponse.class);
+        response.setReceiverName(mapping.getReceiverName());
+        response.setReceiverPhone(mapping.getReceiverPhone());
+        response.setIsDefault(true);
+
+        return response;
+    }
+
+
+
+
     // xoa mem dia chi
     @Override
     @Transactional
