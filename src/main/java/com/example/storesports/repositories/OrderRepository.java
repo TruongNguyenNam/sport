@@ -26,11 +26,23 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     List<OrderStatusCount> countOrdersByStatus(@Param("statuses") List<OrderStatus> statuses);
 
 
-    @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus AND o.deleted = false AND o.createdDate < :createdDate")
-    List<Order> findByOrderStatusAndDeletedFalseAndCreatedDateBefore(
+//    @Query("SELECT o FROM Order o WHERE o.orderStatus = :orderStatus AND o.deleted = false AND o.createdDate < :createdDate")
+//    List<Order> findByOrderStatusAndDeletedFalseAndCreatedDateBefore(
+//            @Param("orderStatus") OrderStatus orderStatus,
+//            @Param("createdDate") LocalDateTime createdDate
+//    );
+
+    @Query("""
+    SELECT o FROM Order o 
+    WHERE o.orderStatus = :orderStatus 
+    AND SIZE(o.orderItems) = 0 
+    AND o.createdDate < :createdBefore
+""")
+    List<Order> findEmptyPendingOrdersBefore(
             @Param("orderStatus") OrderStatus orderStatus,
-            @Param("createdDate") LocalDateTime createdDate
+            @Param("createdBefore") LocalDateTime createdBefore
     );
+
 
     //danh sách đơn hàng của customer phía client
     @Query("select o from Order o where o.user.id = :customerId and o.isPos = false order by o.id desc ")

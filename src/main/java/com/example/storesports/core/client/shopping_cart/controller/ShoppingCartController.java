@@ -31,16 +31,28 @@ public class ShoppingCartController {
 
     private final ShoppingCartService shoppingCartService;
 
-//    @PostMapping("/checkout")
-//    public ResponseData<OrderResponseClient> checkout(@RequestBody OrderRequestClient request) {
-//        try {
-//            OrderResponseClient response = shoppingCartService.checkoutv2(request);
-//            return new ResponseData<>(200, "Thanh toán thành công", response);
-//        } catch (Exception e) {
-//            log.error("Lỗi khi thanh toán đơn hàng", e);
-//            return new ResponseData<>(500, "Thanh toán thất bại");
-//        }
-//    }
+    @PutMapping("/cancel/{orderCode}")
+    public ResponseData<OrderResponseClient> cancelOrder(@PathVariable("orderCode") String orderCode) {
+        try {
+            OrderResponseClient response = shoppingCartService.updateOrderStatus(orderCode);
+            return new ResponseData<>(200, "Huỷ đơn hàng thành công", response);
+        } catch (IllegalArgumentException e) {
+            return new ResponseData<>(400, e.getMessage());
+        } catch (Exception e) {
+            return new ResponseData<>(500, "Lỗi hệ thống khi huỷ đơn hàng");
+        }
+    }
+    @GetMapping("/order/{userId}")
+    public ResponseData<List<OrderResponseClient>> findByCustomerId(@PathVariable("userId") Long userId) {
+        try {
+            List<OrderResponseClient> responseList = shoppingCartService.findByCustomerId(userId);
+            return new ResponseData<>(200, "Lấy danh sách đơn hàng của khách hàng thành công", responseList);
+        } catch (Exception e) {
+            log.error("Lỗi khi xem đơn hàng", e);
+            return new ResponseData<>(500, "Lỗi không thể lấy danh sách đơn hàng của khách hàng");
+        }
+    }
+
 
     @PostMapping("/checkout")
     public ResponseData<OrderResponseClient> checkout( @RequestBody OrderRequestClient request, HttpServletRequest httpServletRequest) {
@@ -128,6 +140,17 @@ public class ShoppingCartController {
             return new ResponseData<>(500, "Lỗi khi đếm sản phẩm trong giỏ hàng");
         }
     }
+
+//    @PostMapping("/checkout")
+//    public ResponseData<OrderResponseClient> checkout(@RequestBody OrderRequestClient request) {
+//        try {
+//            OrderResponseClient response = shoppingCartService.checkoutv2(request);
+//            return new ResponseData<>(200, "Thanh toán thành công", response);
+//        } catch (Exception e) {
+//            log.error("Lỗi khi thanh toán đơn hàng", e);
+//            return new ResponseData<>(500, "Thanh toán thất bại");
+//        }
+//    }
 
 
 }

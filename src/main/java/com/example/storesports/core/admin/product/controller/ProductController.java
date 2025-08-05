@@ -124,7 +124,7 @@ public class ProductController {
 
         log.info("Received JSON data: {}", productsJson);
         log.info("Received {} parent images", (parentImages != null ? parentImages.length : 0));
-        log.info("Received {} images", (images != null ? images.length : 0));
+        log.info("Received {} variant images", (images != null ? images.length : 0));
 
         try {
             List<ProductRequest> requests = objectMapper.readValue(
@@ -135,6 +135,8 @@ public class ProductController {
             if (requests.isEmpty()) {
                 throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
             }
+
+            // Validate từng request
             for (int i = 0; i < requests.size(); i++) {
                 ProductRequest req = requests.get(i);
                 Set<ConstraintViolation<ProductRequest>> violations = validator.validate(req);
@@ -149,44 +151,126 @@ public class ProductController {
                 }
             }
 
+            // Lấy request chính (request đầu tiên)
             ProductRequest request = requests.get(0);
+
+            // Gán ảnh cha
             if (parentImages != null && parentImages.length > 0) {
-                request.setParentImages(new ArrayList<>(Arrays.asList(parentImages)));
+                request.setParentImages(Arrays.asList(parentImages));
             } else {
                 request.setParentImages(new ArrayList<>());
             }
 
+            // Gán ảnh cho từng biến thể theo đúng thứ tự
+            List<ProductRequest.ProductVariant> variants = request.getVariants();
             if (images != null && images.length > 0) {
-                int index = 0;
-                for (ProductRequest.ProductVariant variant : request.getVariants()) {
-                    if (index < images.length) {
-                        variant.setImages(new ArrayList<>(List.of(images[index])));
-                        index++;
-                    } else {
-                        variant.setImages(new ArrayList<>());
-                    }
+                if (images.length != variants.size()) {
+                    throw new IllegalArgumentException("Số ảnh biến thể (" + images.length + ") không khớp với số biến thể (" + variants.size() + ")");
+                }
+
+                for (int i = 0; i < variants.size(); i++) {
+                    MultipartFile image = images[i];
+                    variants.get(i).setImages(image != null ? List.of(image) : new ArrayList<>());
                 }
             } else {
-                for (ProductRequest.ProductVariant variant : request.getVariants()) {
+                // Nếu không có ảnh, set rỗng
+                for (ProductRequest.ProductVariant variant : variants) {
                     variant.setImages(new ArrayList<>());
                 }
             }
+
+            // Gửi qua service xử lý
             productService.createProductWithVariants(requests, images);
+
             return ResponseData.<Void>builder()
                     .status(HttpStatus.OK.value())
                     .message("Thêm sản phẩm thành công")
                     .build();
+
         } catch (NameNotExists e) {
-            log.warn("Lỗi nghiệp vụ - Tên sản phẩm đã tồn tại: {}", e.getMessage());
-            throw e; // Ném lại để GlobalException xử lý
+            log.warn("Tên sản phẩm đã tồn tại: {}", e.getMessage());
+            throw e;
         } catch (IllegalArgumentException e) {
-            log.warn("Lỗi tham số không hợp lệ: {}", e.getMessage());
+            log.warn("Lỗi tham số: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
-            log.error("Unexpected error while creating product: {}", e.getMessage(), e);
+            log.error("Unexpected error: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
+
+
+//    @PostMapping(consumes = {"multipart/form-data"})
+//    public ResponseData<Void> addProduct(
+//            @RequestParam("products") String productsJson,
+//            @RequestParam(value = "parentImages", required = false) MultipartFile[] parentImages,
+//            @RequestParam(value = "images", required = false) MultipartFile[] images) {
+//
+//        log.info("Received JSON data: {}", productsJson);
+//        log.info("Received {} parent images", (parentImages != null ? parentImages.length : 0));
+//        log.info("Received {} images", (images != null ? images.length : 0));
+//
+//        try {
+//            List<ProductRequest> requests = objectMapper.readValue(
+//                    productsJson,
+//                    objectMapper.getTypeFactory().constructCollectionType(List.class, ProductRequest.class)
+//            );
+//
+//            if (requests.isEmpty()) {
+//                throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
+//            }
+//            for (int i = 0; i < requests.size(); i++) {
+//                ProductRequest req = requests.get(i);
+//                Set<ConstraintViolation<ProductRequest>> violations = validator.validate(req);
+//
+//                if (!violations.isEmpty()) {
+//                    Map<String, String> errors = new HashMap<>();
+//                    for (ConstraintViolation<ProductRequest> violation : violations) {
+//                        String path = "products[" + i + "]." + violation.getPropertyPath();
+//                        errors.put(path, violation.getMessage());
+//                    }
+//                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errors.toString());
+//                }
+//            }
+//
+//            ProductRequest request = requests.get(0);
+//            if (parentImages != null && parentImages.length > 0) {
+//                request.setParentImages(new ArrayList<>(Arrays.asList(parentImages)));
+//            } else {
+//                request.setParentImages(new ArrayList<>());
+//            }
+//
+//            if (images != null && images.length > 0) {
+//                int index = 0;
+//                for (ProductRequest.ProductVariant variant : request.getVariants()) {
+//                    if (index < images.length) {
+//                        variant.setImages(new ArrayList<>(List.of(images[index])));
+//                        index++;
+//                    } else {
+//                        variant.setImages(new ArrayList<>());
+//                    }
+//                }
+//            } else {
+//                for (ProductRequest.ProductVariant variant : request.getVariants()) {
+//                    variant.setImages(new ArrayList<>());
+//                }
+//            }
+//            productService.createProductWithVariants(requests, images);
+//            return ResponseData.<Void>builder()
+//                    .status(HttpStatus.OK.value())
+//                    .message("Thêm sản phẩm thành công")
+//                    .build();
+//        } catch (NameNotExists e) {
+//            log.warn("Lỗi nghiệp vụ - Tên sản phẩm đã tồn tại: {}", e.getMessage());
+//            throw e; // Ném lại để GlobalException xử lý
+//        } catch (IllegalArgumentException e) {
+//            log.warn("Lỗi tham số không hợp lệ: {}", e.getMessage());
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+//        } catch (Exception e) {
+//            log.error("Unexpected error while creating product: {}", e.getMessage(), e);
+//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
+//        }
+//    }
 
 
     @GetMapping("/child")

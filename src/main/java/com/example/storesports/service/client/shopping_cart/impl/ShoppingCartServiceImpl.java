@@ -473,7 +473,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
         // 8. Tạo đơn hàng
         Order order = new Order();
-
+        order.setIsPos(false);
         if (!order.getIsPos() && request.getAddressId() != null) {
             Optional<UserAddressMapping> addressMapping = userAddressMappingRepository
                     .findByUserIdAndAddressId(request.getUserId(), request.getAddressId());
@@ -486,7 +486,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         order.setOrderCode(generateOrderCode());
         order.setOrderDate(new Date());
         order.setOrderStatus(OrderStatus.PENDING);
-        order.setIsPos(false);
+
         order.setOrderSource(OrderSource.CLIENT);
         order.setNodes(request.getNodes());
         order.setDeleted(false);
@@ -672,9 +672,18 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         if (order.getOrderStatus().equals(OrderStatus.PENDING)) {
             order.setOrderStatus(OrderStatus.CANCELLED);
             order.setLastModifiedDate(LocalDateTime.now());
-            order.setOrderTotal((double) 0);
+//            order.setOrderTotal((double) 0);
+
+
             // 4. Lấy danh sách OrderItem và cập nhật lại stock cho sản phẩm
             List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+            for (OrderItem item : orderItems) {
+                List<ShipmentItem> shipmentItems = shipmentItemRepository.findByOrderItem(item);
+                if (!shipmentItems.isEmpty()) {
+                    shipmentItemRepository.deleteAll(shipmentItems);
+                }
+            }
+
             for (OrderItem item : orderItems) {
                 Product product = item.getProduct();
                 product.setStockQuantity(product.getStockQuantity() + item.getQuantity()); // hoàn kho
@@ -695,6 +704,33 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         response.setItems(new ArrayList<>()); // Không còn sản phẩm nào trong đơn
         return response;
     }
+
+    @Override
+    public OrderResponseClient findByOrderCode(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode).orElseThrow(() ->
+                new IllegalArgumentException("không có mã đơn hàng này"));
+        return mapToOrderResponse(order);
+    }
+
+    @Override
+    public OrderResponseClient updateOrderPending(String orderCode) {
+        Order order = orderRepository.findByOrderCode(orderCode).orElseThrow(() ->
+                new IllegalArgumentException("không có mã đơn hàng này"));
+        if(order.getOrderStatus() == OrderStatus.PENDING){
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+            for (OrderItem item : orderItems) {
+                Product product = item.getProduct();
+                product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                productRepository.save(product);
+            }
+
+        }
+
+        return null;
+    }
+
+
+
 
     private String createVnpayPaymentUrl(Order order, double totalAmount, String vnp_TxnRef, String returnUrl, HttpServletRequest httpRequest) {
         try {

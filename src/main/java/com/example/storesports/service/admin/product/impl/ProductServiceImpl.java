@@ -903,6 +903,8 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+
+    // xử lý ảnh sản phẩm của cha
     private List<String> uploadImages(List<MultipartFile> images) {
         List<String> imageUrls = new ArrayList<>();
         if (images != null && !images.isEmpty()) {

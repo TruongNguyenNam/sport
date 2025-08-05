@@ -1,7 +1,9 @@
 package com.example.storesports.repositories;
 
 
+import com.example.storesports.entity.OrderItem;
 import com.example.storesports.entity.Shipment;
+import com.example.storesports.entity.ShipmentItem;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,6 +25,7 @@ public interface ShipmentRepository extends JpaRepository<Shipment,Long> {
 //    @Modifying
 //    @Query("DELETE FROM ShipmentItem si WHERE si.orderItem.order.id = :orderId")
 //    void deleteByOrderId(Long orderId);
+
 
 
     @Query("select p from Shipment p where p.order.id = :id and p.deleted = false")
