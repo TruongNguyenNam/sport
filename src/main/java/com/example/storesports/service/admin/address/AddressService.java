@@ -16,4 +16,8 @@ public interface AddressService {
 
     AddressResponse softDeleteAddressForCustomer(Long customerId, Long addressId);
 
+    List<AddressResponse> findByCustomerId(Long customerId);
+
+    AddressResponse setDefaultAddress(Long customerId, Long addressId);
+
 }

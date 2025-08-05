@@ -22,4 +22,6 @@ public interface UserAddressMappingRepository extends JpaRepository<UserAddressM
 
     boolean existsByUserIdAndAddressId(Long userId, Long addressId);
 
+    List<UserAddressMapping> findByUserIdAndDeletedFalse(Long userId);
+
 }

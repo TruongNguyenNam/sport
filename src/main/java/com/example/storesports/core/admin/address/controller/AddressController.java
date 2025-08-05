@@ -36,6 +36,30 @@ public class AddressController {
                 .build();
     }
 
+    @GetMapping("/customers/{customerId}")
+    public ResponseData<List<AddressResponse>> getAddressesByCustomerId(@PathVariable Long customerId) {
+        List<AddressResponse> addresses = addressService.findByCustomerId(customerId);
+        return ResponseData.<List<AddressResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách địa chỉ theo khách hàng thành công")
+                .data(addresses)
+                .build();
+    }
+
+    @PutMapping("/customers/{customerId}/addresses/{addressId}/default")
+    public ResponseData<AddressResponse> setDefaultAddress(
+            @PathVariable Long customerId,
+            @PathVariable Long addressId
+    ) {
+        AddressResponse updated = addressService.setDefaultAddress(customerId, addressId);
+        return ResponseData.<AddressResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Cập nhật địa chỉ mặc định thành công")
+                .data(updated)
+                .build();
+    }
+
+
     //cap nhat dia chi
     @PutMapping("/customers/{customerId}/addresses/{addressId}")
     public ResponseData<AddressResponse> updateAddress(
