@@ -49,9 +49,10 @@ private String urlImageOderItem;
 
     private String adminNote; // Ghi chú phản hồi từ admin (lý do từ chối, v.v.)
 
-    @CreationTimestamp
+
     private Date respondedAt; // Thời gian phản hồi
 
+    private Date approvedAt; //lần duyệt cuối cùng
 
     private Boolean deleted;
 

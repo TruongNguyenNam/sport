@@ -2,6 +2,7 @@ package com.example.storesports.service.admin.return_order;
 
 import com.example.storesports.core.admin.return_media.payload.ReturnMediaAdminResponse;
 import com.example.storesports.core.admin.return_request.request.ReturnRequestListRequest;
+import com.example.storesports.core.admin.return_request.response.ReturnPriceResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestItemResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestListResponse;
 import com.example.storesports.core.client.returnoder.payload.response.return_history.ReturnHistoryItemResponse;
@@ -37,7 +38,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
 
     @Override
     public List<ReturnRequestListResponse> returnOrderList() {
-        List<ReturnRequest> returnRequestList = returnRequestRepository.findAll();
+        List<ReturnRequest> returnRequestList = returnRequestRepository.finByStatusItem(ReturnRequestItemStatus.PENDING);
         return returnRequestList.stream().map(r->mapToReturnRequestListResponse(r,true)).collect(Collectors.toList());
     }
     public List<ReturnRequestItemResponse> finCodeReturn(String oderCode) {
@@ -63,7 +64,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
         if(status!=null&&!status.isEmpty()){
             System.out.println("day r");
             if(status.equals(ReturnRequestItemStatus.APPROVED.name())){
-
+                item.setRespondedAt(new Date());
                 item.setStatus(ReturnRequestItemStatus.APPROVED);
                 service.sendReturnRequestStatusEmail(item.getReturnRequest().getUser().getEmail(),
                         item.getReturnRequest().getUser().getUsername(),
@@ -73,7 +74,6 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                         null,
                         "công ty shoesport Hoàng Mai Hà Nội",
                         "0982929518",
-                        "Trương Quang Tuấn Khanh",
                         "shoeSport"
 
                         );
@@ -81,8 +81,19 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                 System.out.println(item.getStatus());
             }
             if(status.equals(ReturnRequestItemStatus.REJECTED.name())){
+                item.setRespondedAt(new Date());
                 item.setAdminNote(returnRequestListRequest.getAdminNote());
                 item.setStatus(ReturnRequestItemStatus.REJECTED);
+                service.sendReturnRequestStatusEmail(item.getReturnRequest().getUser().getEmail(),
+                        item.getReturnRequest().getUser().getUsername(),
+                        item.getReturnRequest().getOrder().getOrderCode(),
+                        item.getReturnRequest().getCode(),
+                        "REJECTED",
+                        returnRequestListRequest.getAdminNote(),
+                        "công ty shoeSport Hoàng Mai Hà Nội",
+                        "0982929518", "shoeSport"
+
+                );
             }
             if(status.equals(ReturnRequestItemStatus.RETURNED_TO_STOCK.name())){
                 ReturnRequest returnRequest=item.getReturnRequest();
@@ -106,18 +117,18 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                    throw  new ErrorException("OrderTotal null");
                 }
                 item.setStatus(ReturnRequestItemStatus.RETURNED_TO_STOCK);
+                item.setApprovedAt(new Date());
                 orderItem.setDeleted(false);
+
                 orderItemRepository.save(orderItem);
                 returnRequestItemRepository.save(item);
 
-                Long countReturnOrder=returnRequestRepository.countByCodeAndStatus(returnRequest.getCode(),ReturnRequestItemStatus.RETURNED_TO_STOCK);
-                System.out.println("đơn hoàn có trạng thái .. stock "+countReturnOrder);
-                Long countOrderItem=orderItemRepository.countOderItem(orderItem.getOrder().getOrderCode());
-                System.out.println("số lượng đơn hàng đặt "+countOrderItem);
-                //kiểm tra xem đơn hoàn có sâttus ...stock có bằng với sản phẩm con ko nếu bằng thì chuyển trạng thái
-                if(countReturnOrder.equals(countOrderItem)){
+                Long countReturnOrder=returnRequestRepository.countByOrderCodeAndStatus(order.getOrderCode(),List.of(ReturnRequestItemStatus.APPROVED,ReturnRequestItemStatus.PENDING));
+
+                if(countReturnOrder==0){
                     order.setOrderStatus(OrderStatus.RETURNED);
                 }
+
                 productRepository.save(product);
                 orderRepository.save(order);
             }
@@ -126,7 +137,13 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                 Order order=orderItem.getOrder();
                 double priceReturn=item.getQuantity()*orderItem.getUnitPrice();
                 item.setStatus(ReturnRequestItemStatus.DISCARDED);
+                item.setApprovedAt(new Date());
                 returnRequestItemRepository.save(item);
+                Long countReturnOrder=returnRequestRepository.countByOrderCodeAndStatus(order.getOrderCode(),List.of(ReturnRequestItemStatus.APPROVED,ReturnRequestItemStatus.PENDING));
+
+                if(countReturnOrder==0){
+                    order.setOrderStatus(OrderStatus.RETURNED);
+                }
                 order.setTotalRefund(priceReturn);
                 orderRepository.save(order);
             }
@@ -145,6 +162,37 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
     public List<ReturnRequestListResponse> findByCode(String code) {
         List<ReturnRequest> returnRequest=returnRequestRepository.findByCode(code,ReturnRequestItemStatus.APPROVED);
         return returnRequest.stream().map(r->mapToReturnRequestListResponse(r,true)).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReturnPriceResponse> finReturnPrice() {
+        List<ReturnRequestItem> returnRequest=returnRequestItemRepository.findByStatus(List.of(ReturnRequestItemStatus.RETURNED_TO_STOCK,ReturnRequestItemStatus.DISCARDED));
+        return returnRequest.stream().map(r->mapToReturnPriceResponse(r)).collect(Collectors.toList());
+    }
+
+    @Override
+    public void updateStatus(Long id) {
+        ReturnRequestItem item=returnRequestItemRepository.findById(id).orElseThrow(()->new ErrorException("ko có id đơn hoàn này"));
+        item.setStatus(ReturnRequestItemStatus.REFUNDED);
+        returnRequestItemRepository.save(item);
+    }
+
+    ReturnPriceResponse mapToReturnPriceResponse(ReturnRequestItem returnRequestI){
+        ReturnPriceResponse returnPriceResponse = new ReturnPriceResponse();
+        ReturnRequest returnRequest = returnRequestI.getReturnRequest();
+        returnPriceResponse.setCode(returnRequest.getCode());
+
+
+           OrderItem orderItem= returnRequestI.getOrderItem();
+           Product product=orderItem.getProduct();
+            returnPriceResponse.setIdReturnRequestItem(returnRequestI.getId());
+            returnPriceResponse.setProductName(product.getName());
+        returnPriceResponse.setUserName(returnRequest.getUser().getUsername());
+        returnPriceResponse.setBankName(returnRequest.getBankName());
+        returnPriceResponse.setBankAccountName(returnRequest.getBankAccountName());
+        returnPriceResponse.setBankAccountNumber(returnRequest.getBankAccountNumber());
+        returnPriceResponse.setTotalPrice(returnRequestI.getOrderItem().getUnitPrice());
+        return returnPriceResponse;
     }
 
     public ReturnRequestItemResponse mapToRequestItem(ReturnRequestItem returnRequestItem) {
@@ -190,10 +238,13 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
             response.setStatus("Đã duyệt");
         }
         else if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.RETURNED_TO_STOCK)){
-            response.setStatus("đợi hoàn tiền");
+            response.setStatus("Đợi hoàn tiền");
         }
         else if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.DISCARDED)){
-            response.setStatus("đợi hoàn tiền");
+            response.setStatus("Đợi hoàn tiền");
+        }
+        else{
+            response.setStatus("Đã hoàn tiền");
         }
         response.setImageProduct(productList.getImages()==null||productList.getImages().isEmpty()?"":productList.getImages().get(0).getImageUrl());
         response.setNote(returnRequestItem.getNote());

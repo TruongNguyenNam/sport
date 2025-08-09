@@ -1,8 +1,10 @@
 package com.example.storesports.service.admin.return_order;
 
 import com.example.storesports.core.admin.return_request.request.ReturnRequestListRequest;
+import com.example.storesports.core.admin.return_request.response.ReturnPriceResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestItemResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestListResponse;
+import com.example.storesports.entity.ReturnRequest;
 
 import java.util.List;
 
@@ -13,4 +15,6 @@ public interface ReturnOderAdminService {
     ReturnRequestItemResponse returnResponse(ReturnRequestListRequest returnRequestListRequest,Long id, String status);
     List<ReturnRequestListResponse>  returnOrderApproved();
      List<ReturnRequestListResponse> findByCode(String code);
+     List<ReturnPriceResponse>finReturnPrice();
+     void updateStatus(Long id);
 }

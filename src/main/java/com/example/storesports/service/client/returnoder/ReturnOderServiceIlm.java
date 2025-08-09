@@ -69,18 +69,26 @@ public class ReturnOderServiceIlm implements ReturnOderService {
         for (ReturnRequestItemRequest itemRequest : returnRequestRequest.getItems()) {
             OrderItem orderItem = orderItemRepository.findById(itemRequest.getOrderItemId())
                     .orElseThrow(() -> new ErrorException("Không tìm thấy orderItem"));
-
-
-            boolean exists = returnRequestItemRepository
-                    .existsByOrderItemAndUserAndStatusNotAndDeletedFalse(
-                            orderItem.getId(),
-                            user.getId(),
-                            ReturnRequestItemStatus.REJECTED
-                    );
-
-            if (exists) {
-                throw new ErrorException("Sản phẩm: " + orderItem.getProduct().getName() + " đã gửi yêu cầu hoàn hàng. Vui lòng đợi phản hồi.");
+            Integer quantityOrderItem = orderItem.getQuantity();
+            Integer sumReturnRequest=returnRequestItemRepository.sumQuantityByOrderItemIdAndStatusNot(orderItem.getId(),ReturnRequestItemStatus.REJECTED);
+            if (sumReturnRequest == null) {
+                sumReturnRequest = 0;
             }
+            int totalRequested = sumReturnRequest + itemRequest.getQuantity();
+            if (totalRequested > quantityOrderItem) {
+                throw new ErrorException("Bạn không được gửi sản phẩm hoàn quá số lượng sản phẩm đã đặt");
+            }
+
+//            boolean exists = returnRequestItemRepository
+//                    .existsByOrderItemAndUserAndStatusNotAndDeletedFalse(
+//                            orderItem.getId(),
+//                            user.getId(),
+//                            ReturnRequestItemStatus.REJECTED
+//                    );
+//
+//            if (exists) {
+//                throw new ErrorException("Sản phẩm: " + orderItem.getProduct().getName() + " đã gửi yêu cầu hoàn hàng. Vui lòng đợi phản hồi.");
+//            }
         }
         ReturnRequest returnRequest = new ReturnRequest();
         returnRequest.setCode(generateShortReturnCode());
@@ -177,9 +185,18 @@ public class ReturnOderServiceIlm implements ReturnOderService {
         }
         else if(returnRequestItem.getStatus().equals(ReturnRequestItemStatus.APPROVED)){
             returnHistoryItemResponse.setStatus("Đã duyệt");
+        } else if (returnRequestItem.getStatus().equals(ReturnRequestItemStatus.RETURNED_TO_STOCK)) {
+            returnHistoryItemResponse.setStatus("đợi hoàn tiền");
+
+        } else if (returnRequestItem.getStatus().equals(ReturnRequestItemStatus.DISCARDED)) {
+            returnHistoryItemResponse.setStatus("Đợi hoàn tiền");
+
+        }
+        else{
+            returnHistoryItemResponse.setStatus("Đã hoàn tiền");
         }
 
-        returnHistoryItemResponse.setImageProduct(productList.getImages().get(0).getImageUrl());
+        returnHistoryItemResponse.setImageProduct(productList.getImages()==null||productList.getImages().isEmpty()?"":productList.getImages().get(0).getImageUrl());
         returnHistoryItemResponse.setNote(returnRequestItem.getNote());
         returnHistoryItemResponse.setReason(returnRequestItem.getReason());
         returnHistoryItemResponse.setQuantity(returnRequestItem.getQuantity());
@@ -191,7 +208,7 @@ public class ReturnOderServiceIlm implements ReturnOderService {
         ReturnHistoryResponse returnHistoryResponse = new ReturnHistoryResponse();
         for (ReturnRequestItem returnRequestItem : returnRequest.getItems()) {
             Product product=productRepository.findById(returnRequestItem.getOrderItem().getProduct().getId()).orElseThrow();
-            returnHistoryResponse.setThumbnailUrl(product.getImages().get(0).getImageUrl());
+            returnHistoryResponse.setThumbnailUrl(product.getImages()==null||product.getImages().isEmpty()?"":product.getImages().get(0).getImageUrl());
         }
 
         Long totalItem=returnRequestRepository.countByCode(returnRequest.getCode());
@@ -342,6 +359,7 @@ public class ReturnOderServiceIlm implements ReturnOderService {
             }
 
 
+
             String imageUrl = null;
             if (product.getImages() != null && !product.getImages().isEmpty()) {
                 imageUrl = product.getImages().get(0).getImageUrl();
@@ -361,7 +379,10 @@ public class ReturnOderServiceIlm implements ReturnOderService {
 
         ReturnOderResponse returnOderResponse = new ReturnOderResponse();
         returnOderResponse.setCode(order.getOrderCode());
-        returnOderResponse.setStatus(order.getOrderStatus().name());
+        if(order.getOrderStatus().name().equals("COMPLETED")){
+            returnOderResponse.setStatus("Hoàn thành");
+        }
+
         returnOderResponse.setOrderDate(order.getOrderDate());
         returnOderResponse.setOrderTotal(order.getOrderTotal());
         returnOderResponse.setProductResponses(productResponses);

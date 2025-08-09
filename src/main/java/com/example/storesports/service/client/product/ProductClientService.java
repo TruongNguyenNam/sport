@@ -13,6 +13,7 @@ public interface ProductClientService {
 
     List<ProductResponseClient> findByParentProductId(Long id);
 
+    List<ProductResponseClient> findAllChildProduct();
 
     List<ProductResponseClient> findByCategoryName(String name);
 

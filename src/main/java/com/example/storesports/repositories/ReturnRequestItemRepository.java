@@ -1,5 +1,6 @@
 package com.example.storesports.repositories;
 
+import com.example.storesports.entity.ReturnRequest;
 import com.example.storesports.entity.ReturnRequestItem;
 import com.example.storesports.infrastructure.constant.ReturnRequestItemStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -26,10 +27,24 @@ public interface ReturnRequestItemRepository extends JpaRepository<ReturnRequest
             @Param("userId") Long userId,
             @Param("status") ReturnRequestItemStatus status
     );
+
     @Query("select r from ReturnRequestItem r where r.returnRequest.code=:code and r.returnRequest.user.username=:userName")
     List<ReturnRequestItem> findByReturnRequestCodeAndUserName(@Param("code") String code,@Param("userName") String userName);
     @Query("select r from ReturnRequestItem r where r.returnRequest.code=:code")
     List<ReturnRequestItem> findByReturnRequestCode(@Param("code") String code);
 
+    @Query("select i from ReturnRequestItem i where i.status in:status order by i.approvedAt desc")
+    List<ReturnRequestItem> findByStatus(@Param("status") List<ReturnRequestItemStatus> status);
+    @Query("""
+    SELECT COALESCE(SUM(rri.quantity), 0)
+    FROM ReturnRequestItem rri
+    WHERE rri.orderItem.id = :orderItemId
+      AND rri.status <> :status
+      AND rri.deleted = false
+""")
+    Integer sumQuantityByOrderItemIdAndStatusNot(
+            @Param("orderItemId") Long orderItemId,
+            @Param("status") ReturnRequestItemStatus status
+    );
 
 }

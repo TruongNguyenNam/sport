@@ -4,6 +4,7 @@ import com.example.storesports.core.admin.attribute.payload.ProductAttributeRequ
 import com.example.storesports.core.admin.attribute.payload.ProductAttributeResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.admin.attribute.AttributeService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +40,7 @@ public class ProductAttributeController {
 
 
     @PostMapping("/save")
-    public ResponseData<ProductAttributeResponse> save(@RequestBody ProductAttributeRequest productAttributeRequest){
+    public ResponseData<ProductAttributeResponse> save(@Valid @RequestBody ProductAttributeRequest productAttributeRequest){
         ProductAttributeResponse productAttributeResponse=attributeService.save(productAttributeRequest);
         return ResponseData.<ProductAttributeResponse>builder().status(200)
                 .message("tạo thành công")
@@ -48,7 +49,7 @@ public class ProductAttributeController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseData<ProductAttributeResponse> update(@PathVariable("id") Long id, @RequestBody ProductAttributeRequest productAttributeRequest) {
+    public ResponseData<ProductAttributeResponse> update( @PathVariable("id") Long id,@Valid @RequestBody ProductAttributeRequest productAttributeRequest) {
         ProductAttributeResponse productAttributeResponse = attributeService.update(id, productAttributeRequest);
         return ResponseData.<ProductAttributeResponse>builder().data(productAttributeResponse)
                 .message("update thành công")

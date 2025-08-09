@@ -22,25 +22,32 @@ public class OrderStatusScheduler {
     private final OrderRepository orderRepository;
 
     private final ShipmentRepository shipmentRepository;
-//    @Scheduled(fixedRate = 30000)
-//    @Transactional
-//    public void updateExpiredOrders() {
-//        try {
-//            System.out.println("Scheduler đang chạy lúc: " + LocalDateTime.now());
-//
-//            LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
-//            List<Order> pendingOrders = orderRepository.findByOrderStatusAndDeletedFalseAndCreatedDateBefore(OrderStatus.PENDING, oneMinuteAgo);
-//
-//            System.out.println(" Số đơn hàng sẽ huỷ: " + pendingOrders.size());
-//
-//            for (Order order : pendingOrders) {
-//                order.setOrderStatus(OrderStatus.CANCELLED);
-//            }
-//            orderRepository.saveAll(pendingOrders);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void cancelPendingOrdersWithoutItems() {
+        try {
+            LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(1);
+            List<Order> ordersToCancel = orderRepository.findEmptyPendingOrdersBefore(OrderStatus.PENDING, fiveMinutesAgo);
+
+            if (!ordersToCancel.isEmpty()) {
+                log.info("Tìm thấy {} đơn hàng PENDING không có sản phẩm, sẽ huỷ...", ordersToCancel.size());
+
+                for (Order order : ordersToCancel) {
+                    order.setOrderStatus(OrderStatus.CANCELLED);
+                    order.setLastModifiedDate(LocalDateTime.now());
+                    order.setOrderTotal(0.0);
+                }
+
+                orderRepository.saveAll(ordersToCancel);
+                log.info("Đã huỷ {} đơn hàng không có sản phẩm", ordersToCancel.size());
+            } else {
+                log.info("Không có đơn nào cần huỷ.");
+            }
+
+        } catch (Exception e) {
+            log.error("Lỗi khi chạy scheduler huỷ đơn hàng:", e);
+        }
+    }
 
 
 //    @Scheduled(cron = "0 0 * * * ?")

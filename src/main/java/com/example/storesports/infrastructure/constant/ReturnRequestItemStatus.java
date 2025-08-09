@@ -15,5 +15,5 @@ public enum ReturnRequestItemStatus {
 
     REFUNDED,        // Đã hoàn tiền cho sản phẩm
 
-    COMPLETED        // Đã xử lý xong tất cả các bước (kết thúc luồng)
+//    COMPLETED        // Đã xử lý xong tất cả các bước (kết thúc luồng)
 }

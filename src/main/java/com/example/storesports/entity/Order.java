@@ -26,6 +26,9 @@ public class Order extends Auditable {
         @JoinColumn(name = "user_id")
         private User user;
 
+        @Column(name = "address_id")
+        private Long addressId;
+
         @Column(unique = true)
         private String orderCode; // mã code
 

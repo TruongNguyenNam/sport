@@ -10,12 +10,16 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface UserAddressMappingRepository extends JpaRepository<UserAddressMapping,Long> {
+public interface UserAddressMappingRepository extends JpaRepository<UserAddressMapping, Long> {
 
-    @Query("select p from UserAddressMapping p where p.user.id = :id")
-    Optional<UserAddressMapping> findByUserId(@Param("id") Long id);
-//    List<UserAddressMapping> findByUserId(Long userId);
+    //    @Query("select p from UserAddressMapping p where p.user.id = :id")
+    //    Optional<UserAddressMapping> findByUserId(@Param("id") Long id);
+    @Query("select p from UserAddressMapping p where p.user.id = :id and p.deleted = false")
+    List<UserAddressMapping> findByUserId(@Param("id") Long id);
+
+    //    List<UserAddressMapping> findByUserId(Long userId);
     Optional<UserAddressMapping> findByUserIdAndAddressId(Long userId, Long addressId);
 
     boolean existsByUserIdAndAddressId(Long userId, Long addressId);
+
 }

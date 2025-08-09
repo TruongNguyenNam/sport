@@ -28,6 +28,12 @@ public class UserAddressMapping extends Auditable{
         @JoinColumn(name = "address_id")
         private Address address;
 
+        private String receiverName;   // Tên người nhận hàng
+
+        private String receiverPhone;  // Số điện thoại nhận hàng
+
+        private Boolean isDefault;     // Là địa chỉ mặc định không
+
         private Boolean deleted;
         // Getters and Setters
 

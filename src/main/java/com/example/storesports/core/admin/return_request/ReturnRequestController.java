@@ -1,6 +1,7 @@
 package com.example.storesports.core.admin.return_request;
 
 import com.example.storesports.core.admin.return_request.request.ReturnRequestListRequest;
+import com.example.storesports.core.admin.return_request.response.ReturnPriceResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestItemResponse;
 import com.example.storesports.core.admin.return_request.response.ReturnRequestListResponse;
 import com.example.storesports.service.admin.return_order.ReturnOderAdminService;
@@ -37,5 +38,13 @@ public class ReturnRequestController {
     @GetMapping("/fin-code-approved/{code}")
     public List<ReturnRequestListResponse> findByCode(@PathVariable("code") String code){
         return returnOderAdminService.findByCode(code);
+    }
+    @GetMapping("/return-price")
+    List<ReturnPriceResponse> finReturnPrice(){
+        return returnOderAdminService.finReturnPrice();
+    }
+    @PutMapping("/update-status/{id}")
+    public void updateStatus(@PathVariable("id") Long id){
+        returnOderAdminService.updateStatus(id);
     }
 }
