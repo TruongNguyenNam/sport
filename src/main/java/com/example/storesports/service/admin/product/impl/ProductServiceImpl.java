@@ -662,9 +662,143 @@ public class ProductServiceImpl implements ProductService {
     }
 
 
+//    @Override
+//    @Transactional(rollbackOn = Exception.class)
+//    public void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] images) {
+//        if (requests.isEmpty()) {
+//            throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
+//        }
+//
+//        ProductRequest request = requests.get(0);
+//        Product parentProduct = createParentProduct(request);
+//        handleTags(request, parentProduct);
+//
+//        // Upload và lưu ảnh cho sản phẩm cha
+//        List<String> parentImageUrls = uploadImages(request.getParentImages());
+//        List<ProductImage> parentProductImages = new ArrayList<>();
+//        if (!parentImageUrls.isEmpty()) {
+//            parentProductImages = parentImageUrls.stream()
+//                    .map(url -> {
+//                        ProductImage productImage = new ProductImage();
+//                        productImage.setImageUrl(url);
+//                        productImage.setProduct(parentProduct);
+//                        return productImage;
+//                    })
+//                    .collect(Collectors.toList());
+//            productImageRepository.saveAll(parentProductImages);
+//            parentProduct.getImages().addAll(parentProductImages);
+//            productRepository.save(parentProduct);
+//            log.info("Đã gán {} ảnh cho sản phẩm cha {}: {}", parentProductImages.size(), parentProduct.getSku(), parentImageUrls);
+//        }
+//
+//        // Tạo danh sách attributeValues theo đúng thứ tự của productAttributeValues
+//        List<Long> attributeIds = request.getProductAttributeValues().stream()
+//                .map(ProductRequest.ProductAttributeValue::getAttributeId)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        List<Set<String>> attributeValues = attributeIds.stream()
+//                .map(attrId -> request.getProductAttributeValues().stream()
+//                        .filter(pav -> pav.getAttributeId().equals(attrId))
+//                        .map(ProductRequest.ProductAttributeValue::getValue)
+//                        .collect(Collectors.toSet()))
+//                .collect(Collectors.toList());
+//
+//        List<List<String>> valueCombinations = generateCombinations(attributeValues);
+//        int expectedCombinations = attributeValues.stream().mapToInt(Set::size).reduce(1, (a, b) -> a * b);
+//        if (valueCombinations.size() != expectedCombinations) {
+//            throw new IllegalArgumentException("Số tổ hợp không khớp với số giá trị thuộc tính!");
+//        }
+//
+//        if (request.getVariants().size() != valueCombinations.size()) {
+//            throw new IllegalArgumentException("Số biến thể (" + request.getVariants().size() + ") không khớp với số tổ hợp (" + valueCombinations.size() + ")!");
+//        }
+//        if (images != null && images.length > 0 && images.length < valueCombinations.size()) {
+//            throw new IllegalArgumentException("Số ảnh (" + images.length + ") không đủ cho " + valueCombinations.size() + " tổ hợp!");
+//        }
+//
+//        // Gán ảnh cho các biến thể nếu không có ảnh riêng
+//        if (images != null && images.length > 0) {
+ //           associateImagesWithVariants(request.getVariants(), images);
+//        }
+//
+//        List<Product> childProducts = new ArrayList<>();
+//        List<ProductImage> allChildProductImages = new ArrayList<>();
+//        List<ProductAttributeValue> attributeValuesList = new ArrayList<>();
+//        AtomicInteger variantIndex = new AtomicInteger(0);
+//
+//        for (List<String> combination : valueCombinations) {
+//            ProductRequest.ProductVariant variant = request.getVariants().get(variantIndex.get());
+//            Product childProduct = new Product();
+//            String variantName = String.join(" - ", combination);
+//            childProduct.setName(request.getName() + " - " + variantName);
+//            childProduct.setDescription(request.getDescription());
+//            childProduct.setSportType(request.getSportType());
+//            childProduct.setPrice(variant.getPrice() != null ? variant.getPrice() : 0.0);
+//            childProduct.setStockQuantity(variant.getStockQuantity() != null ? variant.getStockQuantity() : 0);
+//            childProduct.setParentProductId(parentProduct.getId());
+//            childProduct.setSupplier(parentProduct.getSupplier());
+//            childProduct.setCategory(parentProduct.getCategory());
+//            childProduct.setDeleted(false);
+//            String baseSku = request.getSku() != null && !request.getSku().isEmpty()
+//                    ? request.getSku()
+//                    : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
+////            String sku = baseSku + "-" + String.join("-", combination);
+//            childProduct.setSku(baseSku);
+//
+//            // Tải ảnh và thêm vào danh sách images của childProduct
+//            List<String> imageUrls = uploadImages(variant);
+//            List<ProductImage> childProductImages = new ArrayList<>();
+//            for (String imageUrl : imageUrls) {
+//                if (!imageUrl.isEmpty()) {
+//                    ProductImage productImage = new ProductImage();
+//                    productImage.setImageUrl(imageUrl);
+//                    productImage.setProduct(childProduct);
+//                    childProductImages.add(productImage);
+//                    childProduct.getImages().add(productImage);
+//                }
+//            }
+//
+//            if (childProductImages.isEmpty()) {
+//                if (parentProduct.getImages().isEmpty()) {
+//                    throw new IllegalStateException("Không có ảnh nào cho sản phẩm cha hoặc sản phẩm con: " + childProduct.getSku());
+//                }
+//                for (ProductImage parentImage : parentProduct.getImages()) {
+//                    ProductImage childImage = new ProductImage();
+//                    childImage.setImageUrl(parentImage.getImageUrl());
+//                    childImage.setProduct(childProduct);
+//                    childProductImages.add(childImage);
+//                    childProduct.getImages().add(childImage);
+//                }
+//                log.info("Không có ảnh riêng, sử dụng ảnh cha cho biến thể {}", childProduct.getSku());
+//            }
+//
+//            allChildProductImages.addAll(childProductImages);
+//            childProducts.add(childProduct);
+//            attributeValuesList.addAll(mapAttributesToValues(childProduct, combination, request.getProductAttributeValues()));
+//            variantIndex.incrementAndGet();
+//        }
+//
+//        List<Product> allProducts = new ArrayList<>();
+//        allProducts.add(parentProduct);
+//        allProducts.addAll(childProducts);
+//        productRepository.saveAll(allProducts);
+//
+//        List<ProductImage> allImages = new ArrayList<>();
+//        allImages.addAll(parentProductImages);
+//        allImages.addAll(allChildProductImages);
+//        productImageRepository.saveAll(allImages);
+//
+//        productAttributeValueRepository.saveAll(attributeValuesList);
+//
+//        for (Product child : childProducts) {
+//            handleTags(request, child);
+//        }
+//    }
+
     @Override
     @Transactional(rollbackOn = Exception.class)
-    public void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] images) {
+    public void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] imagesFromController) {
         if (requests.isEmpty()) {
             throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
         }
@@ -692,20 +826,25 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Tạo danh sách attributeValues theo đúng thứ tự của productAttributeValues
+        // Lấy danh sách các attributeId duy nhất theo thứ tự xuất hiện trong JSON
         List<Long> attributeIds = request.getProductAttributeValues().stream()
                 .map(ProductRequest.ProductAttributeValue::getAttributeId)
                 .distinct()
                 .collect(Collectors.toList());
 
+        // --- PHẦN ĐÃ SỬA ĐỔI ĐỂ DUY TRÌ THỨ TỰ CỦA CÁC GIÁ TRỊ THUỘC TÍNH ---
         List<Set<String>> attributeValues = attributeIds.stream()
                 .map(attrId -> request.getProductAttributeValues().stream()
                         .filter(pav -> pav.getAttributeId().equals(attrId))
                         .map(ProductRequest.ProductAttributeValue::getValue)
-                        .collect(Collectors.toSet()))
+                        // THAY ĐỔI TỪ Collectors.toSet() sang Collectors.toCollection(LinkedHashSet::new)
+                        .collect(Collectors.toCollection(LinkedHashSet::new))) // <-- Đảm bảo thứ tự chèn được duy trì
                 .collect(Collectors.toList());
+        // --- KẾT THÚC PHẦN ĐÃ SỬA ĐỔI ---
 
         List<List<String>> valueCombinations = generateCombinations(attributeValues);
         int expectedCombinations = attributeValues.stream().mapToInt(Set::size).reduce(1, (a, b) -> a * b);
+
         if (valueCombinations.size() != expectedCombinations) {
             throw new IllegalArgumentException("Số tổ hợp không khớp với số giá trị thuộc tính!");
         }
@@ -713,22 +852,15 @@ public class ProductServiceImpl implements ProductService {
         if (request.getVariants().size() != valueCombinations.size()) {
             throw new IllegalArgumentException("Số biến thể (" + request.getVariants().size() + ") không khớp với số tổ hợp (" + valueCombinations.size() + ")!");
         }
-        if (images != null && images.length > 0 && images.length < valueCombinations.size()) {
-            throw new IllegalArgumentException("Số ảnh (" + images.length + ") không đủ cho " + valueCombinations.size() + " tổ hợp!");
-        }
-
-        // Gán ảnh cho các biến thể nếu không có ảnh riêng
-        if (images != null && images.length > 0) {
-            associateImagesWithVariants(request.getVariants(), images);
-        }
 
         List<Product> childProducts = new ArrayList<>();
         List<ProductImage> allChildProductImages = new ArrayList<>();
         List<ProductAttributeValue> attributeValuesList = new ArrayList<>();
-        AtomicInteger variantIndex = new AtomicInteger(0);
 
-        for (List<String> combination : valueCombinations) {
-            ProductRequest.ProductVariant variant = request.getVariants().get(variantIndex.get());
+        for (int i = 0; i < valueCombinations.size(); i++) {
+            List<String> combination = valueCombinations.get(i);
+            ProductRequest.ProductVariant variant = request.getVariants().get(i);
+
             Product childProduct = new Product();
             String variantName = String.join(" - ", combination);
             childProduct.setName(request.getName() + " - " + variantName);
@@ -743,11 +875,14 @@ public class ProductServiceImpl implements ProductService {
             String baseSku = request.getSku() != null && !request.getSku().isEmpty()
                     ? request.getSku()
                     : generateUniqueSku(request.getName(), request.getCategoryId(), request.getSupplierId());
-//            String sku = baseSku + "-" + String.join("-", combination);
             childProduct.setSku(baseSku);
 
-            // Tải ảnh và thêm vào danh sách images của childProduct
-            List<String> imageUrls = uploadImages(variant);
+            List<String> imageUrls = new ArrayList<>();
+            if (variant.getImages() != null && !variant.getImages().isEmpty()) {
+                imageUrls.addAll(uploadImages(variant.getImages()));
+                log.info("Đã gán {} ảnh riêng cho biến thể {}: {}", variant.getImages().size(), childProduct.getName(), imageUrls);
+            }
+
             List<ProductImage> childProductImages = new ArrayList<>();
             for (String imageUrl : imageUrls) {
                 if (!imageUrl.isEmpty()) {
@@ -776,7 +911,6 @@ public class ProductServiceImpl implements ProductService {
             allChildProductImages.addAll(childProductImages);
             childProducts.add(childProduct);
             attributeValuesList.addAll(mapAttributesToValues(childProduct, combination, request.getProductAttributeValues()));
-            variantIndex.incrementAndGet();
         }
 
         List<Product> allProducts = new ArrayList<>();
@@ -795,39 +929,33 @@ public class ProductServiceImpl implements ProductService {
             handleTags(request, child);
         }
     }
-
     private List<ProductAttributeValue> mapAttributesToValues(Product product, List<String> combination, List<ProductRequest.ProductAttributeValue> productAttributeValues) {
         List<ProductAttributeValue> values = new ArrayList<>();
 
-        // Lấy danh sách attributeId theo thứ tự từ productAttributeValues
         List<Long> attributeIds = productAttributeValues.stream()
                 .map(ProductRequest.ProductAttributeValue::getAttributeId)
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Nhóm các giá trị theo attributeId
+        // THAY ĐỔI TỪ HashMap/HashSet sang LinkedHashMap/LinkedHashSet để duy trì thứ tự
         Map<Long, Set<String>> attributeValueMap = new LinkedHashMap<>();
         for (ProductRequest.ProductAttributeValue pav : productAttributeValues) {
-            attributeValueMap.computeIfAbsent(pav.getAttributeId(), k -> new HashSet<>()).add(pav.getValue());
+            attributeValueMap.computeIfAbsent(pav.getAttributeId(), k -> new LinkedHashSet<>()).add(pav.getValue());
         }
 
-        // Kiểm tra xem combination có đủ giá trị không
         if (combination.size() != attributeIds.size()) {
             throw new IllegalArgumentException("Số giá trị trong tổ hợp không khớp với số thuộc tính!");
         }
 
-        // Duyệt qua attributeId theo thứ tự
         for (int i = 0; i < attributeIds.size(); i++) {
             Long attributeId = attributeIds.get(i);
-            String value = combination.get(i); // Lấy giá trị từ combination theo đúng vị trí
+            String value = combination.get(i);
 
-            // Kiểm tra giá trị hợp lệ
             Set<String> validValues = attributeValueMap.get(attributeId);
             if (!validValues.contains(value)) {
                 throw new IllegalArgumentException("Giá trị '" + value + "' không hợp lệ cho attributeId: " + attributeId);
             }
 
-            // Tạo ProductAttributeValue
             ProductAttribute attribute = productAttributeRepository.findById(attributeId)
                     .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại: " + attributeId));
             ProductAttributeValue pav = new ProductAttributeValue();
@@ -839,6 +967,50 @@ public class ProductServiceImpl implements ProductService {
 
         return values;
     }
+
+//    private List<ProductAttributeValue> mapAttributesToValues(Product product, List<String> combination, List<ProductRequest.ProductAttributeValue> productAttributeValues) {
+//        List<ProductAttributeValue> values = new ArrayList<>();
+//
+//        // Lấy danh sách attributeId theo thứ tự từ productAttributeValues
+//        List<Long> attributeIds = productAttributeValues.stream()
+//                .map(ProductRequest.ProductAttributeValue::getAttributeId)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        // Nhóm các giá trị theo attributeId
+//        Map<Long, Set<String>> attributeValueMap = new LinkedHashMap<>();
+//        for (ProductRequest.ProductAttributeValue pav : productAttributeValues) {
+//            attributeValueMap.computeIfAbsent(pav.getAttributeId(), k -> new HashSet<>()).add(pav.getValue());
+//        }
+//
+//        // Kiểm tra xem combination có đủ giá trị không
+//        if (combination.size() != attributeIds.size()) {
+//            throw new IllegalArgumentException("Số giá trị trong tổ hợp không khớp với số thuộc tính!");
+//        }
+//
+//        // Duyệt qua attributeId theo thứ tự
+//        for (int i = 0; i < attributeIds.size(); i++) {
+//            Long attributeId = attributeIds.get(i);
+//            String value = combination.get(i); // Lấy giá trị từ combination theo đúng vị trí
+//
+//            // Kiểm tra giá trị hợp lệ
+//            Set<String> validValues = attributeValueMap.get(attributeId);
+//            if (!validValues.contains(value)) {
+//                throw new IllegalArgumentException("Giá trị '" + value + "' không hợp lệ cho attributeId: " + attributeId);
+//            }
+//
+//            // Tạo ProductAttributeValue
+//            ProductAttribute attribute = productAttributeRepository.findById(attributeId)
+//                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại: " + attributeId));
+//            ProductAttributeValue pav = new ProductAttributeValue();
+//            pav.setProduct(product);
+//            pav.setAttribute(attribute);
+//            pav.setValue(value);
+//            values.add(pav);
+//        }
+//
+//        return values;
+//    }
 
 
     private Product createParentProduct(ProductRequest request) {
@@ -903,6 +1075,8 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+
+    // xử lý ảnh sản phẩm của cha
     private List<String> uploadImages(List<MultipartFile> images) {
         List<String> imageUrls = new ArrayList<>();
         if (images != null && !images.isEmpty()) {

@@ -51,6 +51,7 @@ public class SecurityConfig  {
                         //.requestMatchers("/api/v1/product/**").anonymous()
 
                        // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/api/v1/client/product_review/product/**").permitAll()
                         .anyRequest().permitAll())
 
                 .httpBasic(withDefaults()) // Sử dụng xác thực cơ bản

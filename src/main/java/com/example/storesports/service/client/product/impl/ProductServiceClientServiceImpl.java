@@ -66,6 +66,12 @@ public class ProductServiceClientServiceImpl implements ProductClientService {
     }
 
     @Override
+    public List<ProductResponseClient> findAllChildProduct() {
+        List<Product> productList = productRepository.findAllChildProduct();
+        return productList.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
     public List<ProductResponseClient> findByCategoryName(String name) {
         List<Product> productList = productRepository.findByCategoryName(name);
         if(productList.isEmpty()){

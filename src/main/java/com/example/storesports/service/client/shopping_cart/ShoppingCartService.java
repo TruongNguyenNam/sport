@@ -1,5 +1,6 @@
 package com.example.storesports.service.client.shopping_cart;
 
+import com.example.storesports.core.admin.order.payload.OrderResponse;
 import com.example.storesports.core.client.shopping_cart.payload.OrderRequestClient;
 import com.example.storesports.core.client.shopping_cart.payload.OrderResponseClient;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRequest;
@@ -27,6 +28,10 @@ public interface ShoppingCartService {
     List<OrderResponseClient> findByCustomerId(Long customerId);
 
     OrderResponseClient updateOrderStatus(String orderCode);
+
+    OrderResponseClient findByOrderCode(String orderCode);
+
+    OrderResponseClient updateOrderPending(String orderCode);
 
 }
 
