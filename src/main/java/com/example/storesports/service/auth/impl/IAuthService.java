@@ -1,23 +1,20 @@
 package com.example.storesports.service.auth.impl;
 
 
-
 import com.example.storesports.core.auth.payload.ChangePasswordRequest;
 import com.example.storesports.core.auth.payload.CouponUserResponse;
+import com.example.storesports.core.auth.payload.LoginInfoDto;
+import com.example.storesports.core.auth.payload.RegisterForm;
 import com.example.storesports.core.auth.payload.UpdateUserForm;
+import com.example.storesports.core.auth.payload.UserResponse;
 import com.example.storesports.entity.Address;
 import com.example.storesports.entity.CouponUsage;
+import com.example.storesports.entity.Token;
+import com.example.storesports.entity.User;
 import com.example.storesports.entity.UserAddressMapping;
 import com.example.storesports.infrastructure.constant.Gender;
 import com.example.storesports.infrastructure.constant.Role;
-import com.example.storesports.core.auth.payload.LoginInfoDto;
-import com.example.storesports.core.auth.payload.RegisterForm;
-import com.example.storesports.core.auth.payload.UserResponse;
-import com.example.storesports.entity.Token;
-import com.example.storesports.entity.User;
-import com.example.storesports.infrastructure.email.EmailService;
 import com.example.storesports.repositories.AddressRepository;
-import com.example.storesports.repositories.CouponRepository;
 import com.example.storesports.repositories.CouponUsageRepository;
 import com.example.storesports.repositories.UserAddressMappingRepository;
 import com.example.storesports.repositories.UserRepository;
@@ -26,8 +23,6 @@ import com.example.storesports.service.auth.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.internal.bytebuddy.implementation.bytecode.Throw;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -41,16 +36,13 @@ public class IAuthService implements AuthService {
 
     private final UserService service;
 
-
     private final ModelMapper modelMapper;
-
 
     private final UserRepository userRepository;
 
     private final AddressRepository addressRepository;
 
     private final UserAddressMappingRepository userAddressMappingRepository;
-
 
     private final IJWTTokenService ijwtTokenService;
 
@@ -180,7 +172,7 @@ public class IAuthService implements AuthService {
         }
 
         // Lưu user với các thông tin đã cập nhật
-       User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         // Trả về thông tin user đã cập nhật
         UserResponse userResponse = mapToResponse(savedUser);
@@ -302,6 +294,8 @@ public class IAuthService implements AuthService {
         response.setMessage("Cập nhật thông tin thành công.");
         return response;
     }
+
+    //quên mật khẩu
 
 
     private UserResponse mapToResponse(User user) {
