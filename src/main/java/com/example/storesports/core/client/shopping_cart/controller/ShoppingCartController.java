@@ -6,6 +6,7 @@ import com.example.storesports.core.client.shopping_cart.payload.OrderRequestCli
 import com.example.storesports.core.client.shopping_cart.payload.OrderResponseClient;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRequest;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartResponse;
+import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.client.shopping_cart.ShoppingCartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,19 @@ import java.util.List;
 public class ShoppingCartController {
 
     private final ShoppingCartService shoppingCartService;
+
+
+
+    @GetMapping("/{orderCode}")
+    public ResponseData<OrderResponseClient> findByOrderCode(@PathVariable("orderCode") String orderCode) {
+        try {
+            OrderResponseClient responseList = shoppingCartService.findByOrderCode(orderCode);
+            return new ResponseData<>(200, "Xem chi tết đơn hàng thành công", responseList);
+        } catch (Exception e) {
+            log.error("Lỗi khi xem đơn hàng", e);
+            return new ResponseData<>(500, "Lỗi không thể tìm thấy đơn hàng");
+        }
+    }
 
     @PutMapping("/cancel/{orderCode}")
     public ResponseData<OrderResponseClient> cancelOrder(@PathVariable("orderCode") String orderCode) {

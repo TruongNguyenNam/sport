@@ -136,23 +136,8 @@ public class ProductController {
                 throw new IllegalArgumentException("Danh sách yêu cầu sản phẩm trống!");
             }
 
-            // Validate từng request
-            for (int i = 0; i < requests.size(); i++) {
-                ProductRequest req = requests.get(i);
-                Set<ConstraintViolation<ProductRequest>> violations = validator.validate(req);
-
-                if (!violations.isEmpty()) {
-                    Map<String, String> errors = new HashMap<>();
-                    for (ConstraintViolation<ProductRequest> violation : violations) {
-                        String path = "products[" + i + "]." + violation.getPropertyPath();
-                        errors.put(path, violation.getMessage());
-                    }
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errors.toString());
-                }
-            }
-
-            // Lấy request chính (request đầu tiên)
             ProductRequest request = requests.get(0);
+            List<ProductRequest.ProductVariant> variants = request.getVariants();
 
             // Gán ảnh cha
             if (parentImages != null && parentImages.length > 0) {
@@ -161,26 +146,27 @@ public class ProductController {
                 request.setParentImages(new ArrayList<>());
             }
 
-            // Gán ảnh cho từng biến thể theo đúng thứ tự
-            List<ProductRequest.ProductVariant> variants = request.getVariants();
+            // --- PHẦN QUAN TRỌNG CẦN ĐẢM BẢO TỪ FRONTEND ---
+            // Gán ảnh biến thể
             if (images != null && images.length > 0) {
                 if (images.length != variants.size()) {
-                    throw new IllegalArgumentException("Số ảnh biến thể (" + images.length + ") không khớp với số biến thể (" + variants.size() + ")");
+                    // Thêm thông báo rõ ràng hơn nếu cần thiết
+                    throw new IllegalArgumentException("Số ảnh biến thể (" + images.length + ") không khớp với số biến thể (" + variants.size() + "). Vui lòng đảm bảo thứ tự ảnh và biến thể khớp nhau.");
                 }
-
+                // Gán từng ảnh vào biến thể tương ứng theo chỉ mục
                 for (int i = 0; i < variants.size(); i++) {
-                    MultipartFile image = images[i];
-                    variants.get(i).setImages(image != null ? List.of(image) : new ArrayList<>());
+                    variants.get(i).setImages(List.of(images[i]));
+                    // Log để kiểm tra
+                    log.info("Gán ảnh '{}' cho biến thể thứ {}.", images[i].getOriginalFilename(), i);
                 }
             } else {
-                // Nếu không có ảnh, set rỗng
+                // Nếu không có ảnh biến thể nào được gửi, đảm bảo danh sách ảnh của biến thể là trống
                 for (ProductRequest.ProductVariant variant : variants) {
                     variant.setImages(new ArrayList<>());
                 }
             }
 
-            // Gửi qua service xử lý
-            productService.createProductWithVariants(requests, images);
+            productService.createProductWithVariants(requests, images); // Truyền mảng 'images' gốc nếu service cần
 
             return ResponseData.<Void>builder()
                     .status(HttpStatus.OK.value())
@@ -198,7 +184,6 @@ public class ProductController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi hệ thống, vui lòng thử lại sau");
         }
     }
-
 
 //    @PostMapping(consumes = {"multipart/form-data"})
 //    public ResponseData<Void> addProduct(
