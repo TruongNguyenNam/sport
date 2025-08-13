@@ -109,16 +109,23 @@ public class ShoppingCartController {
         }
     }
 
+//    @GetMapping("/view")
+//    public ResponseData<List<ShoppingCartResponse>> viewToCart(@RequestParam("userId") Long userId) {
+//        try {
+//            List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
+//            return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
+//        } catch (Exception e) {
+//            log.error("Lỗi khi xem giỏ hàng", e);
+//            return new ResponseData<>(500, "Không thể lấy giỏ hàng");
+//        }
+//    }
+
     @GetMapping("/view")
     public ResponseData<List<ShoppingCartResponse>> viewToCart(@RequestParam("userId") Long userId) {
-        try {
-            List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
-            return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
-        } catch (Exception e) {
-            log.error("Lỗi khi xem giỏ hàng", e);
-            return new ResponseData<>(500, "Không thể lấy giỏ hàng");
-        }
+        List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
+        return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
     }
+
 
     @DeleteMapping("/remove/{id}")
     public ResponseData<Void> removeProductWithCart(@PathVariable Long id) {

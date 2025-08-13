@@ -11,6 +11,7 @@ import com.example.storesports.core.client.wishlist.payload.WishlistResponse;
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.configuration.vnpay.VnPayConfig;
 import com.example.storesports.infrastructure.constant.*;
+import com.example.storesports.infrastructure.exceptions.CartEmptyException;
 import com.example.storesports.repositories.*;
 import com.example.storesports.service.client.shopping_cart.ShoppingCartService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -114,7 +115,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     public List<ShoppingCartResponse> viewToCart(Long userId) {
         List<ShoppingCartItem> shoppingCartItems = shoppingCartItemRepository.findByUserId(userId);
         if(shoppingCartItems.isEmpty()){
-            throw new IllegalArgumentException("giỏ hàng của khách hàng chưa có sản phẩm");
+            throw new CartEmptyException("giỏ hàng của khách hàng chưa có sản phẩm");
         }
         return shoppingCartItems.stream().map(this::mapToShoppingCartResponse).collect(Collectors.toList());
     }
@@ -661,49 +662,95 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         return orders.stream().map(this::mapToOrderResponse).collect(Collectors.toList());
     }
 
-    @Override
-    @Transactional
-    public OrderResponseClient updateOrderStatus(String orderCode) {
+//    @Override
+//    @Transactional
+//    public OrderResponseClient updateOrderStatus(String orderCode) {
+//
+//        // 1. Tìm đơn hàng
+//        Order order = orderRepository.findByOrderCode(orderCode)
+//                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
+//
+//        if (order.getOrderStatus().equals(OrderStatus.PENDING)) {
+//            order.setOrderStatus(OrderStatus.CANCELLED);
+//            order.setLastModifiedDate(LocalDateTime.now());
+////            order.setOrderTotal((double) 0);
+//
+//
+//            // 4. Lấy danh sách OrderItem và cập nhật lại stock cho sản phẩm
+//            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+//            for (OrderItem item : orderItems) {
+//                List<ShipmentItem> shipmentItems = shipmentItemRepository.findByOrderItem(item);
+//                if (!shipmentItems.isEmpty()) {
+//
+//                    shipmentItemRepository.deleteAll(shipmentItems);
+//                }
+//            }
+//
+//            for (OrderItem item : orderItems) {
+//                Product product = item.getProduct();
+//                product.setStockQuantity(product.getStockQuantity() + item.getQuantity()); // hoàn kho
+//                productRepository.save(product);
+//            }
+//
+//            // 5. Xoá các OrderItem khỏi DB
+//            orderItemRepository.deleteAll(orderItems);
+//        } else {
+//            throw new IllegalArgumentException("Chỉ hỗ trợ huỷ đơn hàng (CANCELLED)");
+//        }
+//
+//        // 6. Lưu đơn hàng
+//        orderRepository.save(order);
+//
+//        // 7. Trả về response sau khi cập nhật
+//        OrderResponseClient response = mapToOrderResponse(order);
+//        response.setItems(new ArrayList<>()); // Không còn sản phẩm nào trong đơn
+//        return response;
+//    }
+@Override
+@Transactional
+public OrderResponseClient updateOrderStatus(String orderCode) {
 
-        // 1. Tìm đơn hàng
-        Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
+    // 1. Tìm đơn hàng
+    Order order = orderRepository.findByOrderCode(orderCode)
+            .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng"));
 
-        if (order.getOrderStatus().equals(OrderStatus.PENDING)) {
-            order.setOrderStatus(OrderStatus.CANCELLED);
-            order.setLastModifiedDate(LocalDateTime.now());
-//            order.setOrderTotal((double) 0);
+    if (order.getOrderStatus() == OrderStatus.PENDING) {
+        // 2. Cập nhật trạng thái đơn
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        order.setLastModifiedDate(LocalDateTime.now());
 
+        // 3. Lấy danh sách OrderItem
+        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
 
-            // 4. Lấy danh sách OrderItem và cập nhật lại stock cho sản phẩm
-            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
-            for (OrderItem item : orderItems) {
-                List<ShipmentItem> shipmentItems = shipmentItemRepository.findByOrderItem(item);
-                if (!shipmentItems.isEmpty()) {
-                    shipmentItemRepository.deleteAll(shipmentItems);
-                }
+        // 4. Duyệt từng OrderItem để hoàn kho và cập nhật ShipmentStatus
+        for (OrderItem item : orderItems) {
+            // Hoàn kho
+            Product product = item.getProduct();
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+
+            // Cập nhật trạng thái shipment
+            List<ShipmentItem> shipmentItems = shipmentItemRepository.findByOrderItem(item);
+            for (ShipmentItem shipmentItem : shipmentItems) {
+                Shipment shipment = shipmentItem.getShipment();
+                shipment.setShipmentStatus(ShipmentStatus.CANCELED);
+                shipmentRepository.save(shipment);
             }
-
-            for (OrderItem item : orderItems) {
-                Product product = item.getProduct();
-                product.setStockQuantity(product.getStockQuantity() + item.getQuantity()); // hoàn kho
-                productRepository.save(product);
-            }
-
-            // 5. Xoá các OrderItem khỏi DB
-            orderItemRepository.deleteAll(orderItems);
-        } else {
-            throw new IllegalArgumentException("Chỉ hỗ trợ huỷ đơn hàng (CANCELLED)");
         }
 
-        // 6. Lưu đơn hàng
-        orderRepository.save(order);
-
-        // 7. Trả về response sau khi cập nhật
-        OrderResponseClient response = mapToOrderResponse(order);
-        response.setItems(new ArrayList<>()); // Không còn sản phẩm nào trong đơn
-        return response;
+    } else {
+        throw new IllegalArgumentException("Chỉ hỗ trợ huỷ đơn hàng (CANCELLED)");
     }
+
+    // 5. Lưu đơn hàng
+    orderRepository.save(order);
+
+    // 6. Trả về response
+    OrderResponseClient response = mapToOrderResponse(order);
+    // Giữ nguyên danh sách sản phẩm vì vẫn cần hiển thị lịch sử
+    return response;
+}
+
 
     @Override
     public OrderResponseClient findByOrderCode(String orderCode) {

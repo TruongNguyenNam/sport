@@ -2,10 +2,16 @@ package com.example.storesports.service.admin.product;
 
 import com.example.storesports.core.admin.product.payload.*;
 import com.example.storesports.entity.Product;
+import com.example.storesports.entity.ProductAttributeValue;
+import com.example.storesports.entity.ProductImage;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public interface ProductService {
     Page<ProductResponse> getAllProducts(int page, int size);
@@ -19,6 +25,7 @@ public interface ProductService {
    List<ProductResponse> findByParentId(Long parentId);
    void createProductWithVariants(List<ProductRequest> requests, MultipartFile[] images);
 
+     void createProductWithVariantsV1(List<ProductRequest> requests, MultipartFile[] imagesFromController);
    List<ProductResponse> getAllParentProduct();
 
    List<ProductResponse> searchProduct(ProductSearchRequest productSearchRequest);
