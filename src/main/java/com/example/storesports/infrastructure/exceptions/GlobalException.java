@@ -86,6 +86,10 @@ public class GlobalException {
     public ResponseData<String> handleUsernameNotFound(UsernameNotFoundException ex) {
         return new ResponseData<>(HttpStatus.NOT_FOUND.value(), "Người dùng không tồn tại: " + ex.getMessage());
     }
+    @ExceptionHandler(CartEmptyException.class)
+    public ResponseData<Void> handleCartEmptyException(CartEmptyException e) {
+        return new ResponseData<>(400, e.getMessage());
+    }
 
     // Xử lý lỗi ResponseStatusException
 //    @ExceptionHandler(ResponseStatusException.class)

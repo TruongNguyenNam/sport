@@ -22,7 +22,8 @@ public class ReturnRequestItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-private String urlImageOderItem;
+
+
     @ManyToOne
     @JoinColumn(name = "return_request_id")
     private ReturnRequest returnRequest;
@@ -39,19 +40,21 @@ private String urlImageOderItem;
 
     private Integer quantity;
 
-    //cái này là lưu số lượng gửi đơn để check
-    private Integer quantityReturnTotal;
+//    //cái này là lưu số lượng gửi đơn để check
+//    private Integer quantityReturnTotal;
 
     private String reason;
 
+
     private String note;
 
-
+    @Column(name = "admin_note")
     private String adminNote; // Ghi chú phản hồi từ admin (lý do từ chối, v.v.)
 
-
+    @Column(name = "responded_at")
     private Date respondedAt; // Thời gian phản hồi
 
+    @Column(name = "approved_at")
     private Date approvedAt; //lần duyệt cuối cùng
 
     private Boolean deleted;

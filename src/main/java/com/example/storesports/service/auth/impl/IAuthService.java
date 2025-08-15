@@ -1,17 +1,21 @@
 package com.example.storesports.service.auth.impl;
 
 
+import com.example.storesports.core.auth.payload.ChangePasswordRequest;
+import com.example.storesports.core.auth.payload.CouponUserResponse;
+import com.example.storesports.core.auth.payload.LoginInfoDto;
+import com.example.storesports.core.auth.payload.RegisterForm;
 import com.example.storesports.core.auth.payload.UpdateUserForm;
+import com.example.storesports.core.auth.payload.UserResponse;
 import com.example.storesports.entity.Address;
+import com.example.storesports.entity.CouponUsage;
+import com.example.storesports.entity.Token;
+import com.example.storesports.entity.User;
 import com.example.storesports.entity.UserAddressMapping;
 import com.example.storesports.infrastructure.constant.Gender;
 import com.example.storesports.infrastructure.constant.Role;
-import com.example.storesports.core.auth.payload.LoginInfoDto;
-import com.example.storesports.core.auth.payload.RegisterForm;
-import com.example.storesports.core.auth.payload.UserResponse;
-import com.example.storesports.entity.Token;
-import com.example.storesports.entity.User;
 import com.example.storesports.repositories.AddressRepository;
+import com.example.storesports.repositories.CouponUsageRepository;
 import com.example.storesports.repositories.UserAddressMappingRepository;
 import com.example.storesports.repositories.UserRepository;
 import com.example.storesports.service.auth.AuthService;
@@ -19,11 +23,10 @@ import com.example.storesports.service.auth.UserService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.internal.bytebuddy.implementation.bytecode.Throw;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,9 +36,7 @@ public class IAuthService implements AuthService {
 
     private final UserService service;
 
-
     private final ModelMapper modelMapper;
-
 
     private final UserRepository userRepository;
 
@@ -43,10 +44,38 @@ public class IAuthService implements AuthService {
 
     private final UserAddressMappingRepository userAddressMappingRepository;
 
-
     private final IJWTTokenService ijwtTokenService;
 
     private final PasswordEncoder passwordEncoder;
+
+    private final CouponUsageRepository couponUsageRepository;
+
+
+    @Override
+    public List<CouponUserResponse> getCouponsForUser(Long customerId) {
+        if (customerId == null) {
+            return Collections.emptyList();
+        }
+
+        List<CouponUsage> couponUsages = couponUsageRepository.findByUserIdAndDeletedFalse(customerId);
+
+        return couponUsages.stream()
+                .map(couponUsage -> {
+                    CouponUserResponse dto = new CouponUserResponse();
+                    dto.setId(couponUsage.getId());
+                    dto.setCouponCode(couponUsage.getCoupon().getCodeCoupon());
+                    dto.setCouponName(couponUsage.getCoupon().getCouponName());
+                    dto.setCouponDiscountAmount(couponUsage.getCoupon().getDiscountAmount());
+                    dto.setCouponStatus(couponUsage.getCoupon().getCouponStatus().name());
+                    dto.setStartDate(couponUsage.getCoupon().getStartDate());
+                    dto.setExpiredDate(couponUsage.getCoupon().getExpirationDate());
+                    dto.setUsedDate(couponUsage.getUsedDate());
+                    return dto;
+                })
+                .collect(Collectors.toList()); // ✅ BẮT BUỘC PHẢI CÓ
+    }
+
+
     @Override
     @Transactional
     public LoginInfoDto login(String username) {
@@ -143,7 +172,7 @@ public class IAuthService implements AuthService {
         }
 
         // Lưu user với các thông tin đã cập nhật
-       User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         // Trả về thông tin user đã cập nhật
         UserResponse userResponse = mapToResponse(savedUser);
@@ -200,6 +229,73 @@ public class IAuthService implements AuthService {
         }
         return dto;
     }
+
+
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        // 1. Lấy user từ DB
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Người dùng không tồn tại"));
+
+        // 2. Kiểm tra mật khẩu hiện tại
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu hiện tại không đúng");
+        }
+
+        // 3. Kiểm tra confirm password
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Xác nhận mật khẩu không khớp");
+        }
+        // 4. Kiểm tra độ mạnh mật khẩu mới (nếu cần - bạn có thể tự viết regex hoặc dùng thư viện)
+        // 5. Mã hoá mật khẩu mới và lưu
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+    }
+
+
+    @Override
+    @Transactional
+    public UserResponse updateUserInfo(Long userId, UpdateUserForm form) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng với ID: " + userId));
+
+        // Cập nhật số điện thoại nếu có
+        if (form.getPhoneNumber() != null && !form.getPhoneNumber().isBlank()) {
+            if (userRepository.existsByPhoneNumber(form.getPhoneNumber())
+                    && !form.getPhoneNumber().equals(user.getPhoneNumber())) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng bởi người dùng khác.");
+            }
+            user.setPhoneNumber(form.getPhoneNumber());
+        }
+
+
+        // Cập nhật email nếu có
+        if (form.getEmail() != null && !form.getEmail().isBlank()) {
+            // Kiểm tra email đã tồn tại chưa (trừ chính user này)
+            if (userRepository.existsByEmail(form.getEmail()) && !form.getEmail().equals(user.getEmail())) {
+                throw new IllegalArgumentException("Email đã được sử dụng bởi người dùng khác.");
+            }
+            user.setEmail(form.getEmail());
+        }
+
+        // Cập nhật giới tính nếu có
+        if (form.getGender() != null && !form.getGender().isBlank()) {
+            try {
+                user.setGender(Gender.valueOf(form.getGender()));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Giới tính không hợp lệ.");
+            }
+        }
+
+        // Lưu lại user đã cập nhật
+        User savedUser = userRepository.save(user);
+
+        // Trả về thông tin người dùng sau cập nhật
+        UserResponse response = mapToResponse(savedUser);
+        response.setMessage("Cập nhật thông tin thành công.");
+        return response;
+    }
+
+    //quên mật khẩu
 
 
     private UserResponse mapToResponse(User user) {

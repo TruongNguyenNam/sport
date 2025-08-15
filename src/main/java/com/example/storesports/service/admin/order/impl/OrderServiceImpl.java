@@ -750,6 +750,8 @@ public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, 
                 } else if (newStatus == OrderStatus.COMPLETED) {
                     shipment.setShipmentStatus(ShipmentStatus.DELIVERED);
                     log.info("Cập nhật trạng thái shipment cho đơn hàng {} sang DELIVERED", orderCode);
+                }else if(newStatus == OrderStatus.CANCELLED){
+                    shipment.setShipmentStatus(ShipmentStatus.CANCELED);
                 }
                 shipmentRepository.save(shipment);
             }
@@ -1721,7 +1723,7 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
 }
 
     private String generateOrderCode() {
-        return "NAM" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        return "HĐ" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
     }
 
     private String generateTrackingNumber() {

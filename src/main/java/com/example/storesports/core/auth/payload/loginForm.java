@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 public class loginForm {
     @NotBlank
     private String username;
-
     @NotBlank
     private String password;
 

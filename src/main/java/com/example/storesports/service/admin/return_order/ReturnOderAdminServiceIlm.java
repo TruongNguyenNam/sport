@@ -10,6 +10,7 @@ import com.example.storesports.core.client.returnoder.return_media.payload.Retur
 import com.example.storesports.entity.*;
 import com.example.storesports.infrastructure.constant.OrderStatus;
 import com.example.storesports.infrastructure.constant.ReturnRequestItemStatus;
+import com.example.storesports.infrastructure.constant.ShipmentStatus;
 import com.example.storesports.infrastructure.email.EmailService;
 import com.example.storesports.infrastructure.exceptions.ErrorException;
 import com.example.storesports.repositories.*;
@@ -35,6 +36,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
     private final ReturnMediaRepository returnMediaRepository;
     private final ProductRepository productRepository;
     private final EmailService service;
+    private final ShipmentRepository shipmentRepository;
 
     @Override
     public List<ReturnRequestListResponse> returnOrderList() {
@@ -79,6 +81,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                         );
 
                 System.out.println(item.getStatus());
+
             }
             if(status.equals(ReturnRequestItemStatus.REJECTED.name())){
                 item.setRespondedAt(new Date());
@@ -95,58 +98,49 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
 
                 );
             }
-            if(status.equals(ReturnRequestItemStatus.RETURNED_TO_STOCK.name())){
-                ReturnRequest returnRequest=item.getReturnRequest();
+            if (status.equals(ReturnRequestItemStatus.RETURNED_TO_STOCK.name()) ||
+                    status.equals(ReturnRequestItemStatus.DISCARDED.name())) {
 
-                OrderItem orderItem=item.getOrderItem();
+                OrderItem orderItem = item.getOrderItem();
+                Product product = orderItem.getProduct();
+                Order order = orderItem.getOrder();
 
-                Product product=orderItem.getProduct();
-
-
-                //lấy hóa đơn cha
-                Order order=orderItem.getOrder();
-
-
-                double priceReturn=item.getQuantity()*orderItem.getUnitPrice();
-                product.setStockQuantity(product.getStockQuantity()+item.getQuantity());
-                if(order.getOrderTotal()!=null){
-                    order.setOrderTotal(order.getOrderTotal()-priceReturn);
+                if (order.getOrderTotal() == null) {
+                    throw new ErrorException("OrderTotal null");
                 }
 
-                else{
-                   throw  new ErrorException("OrderTotal null");
+                if (status.equals(ReturnRequestItemStatus.RETURNED_TO_STOCK.name())) {
+                    product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+                    productRepository.save(product);
                 }
-                item.setStatus(ReturnRequestItemStatus.RETURNED_TO_STOCK);
+
+                item.setStatus(ReturnRequestItemStatus.valueOf(status));
                 item.setApprovedAt(new Date());
                 orderItem.setDeleted(false);
 
                 orderItemRepository.save(orderItem);
                 returnRequestItemRepository.save(item);
-
-                Long countReturnOrder=returnRequestRepository.countByOrderCodeAndStatus(order.getOrderCode(),List.of(ReturnRequestItemStatus.APPROVED,ReturnRequestItemStatus.PENDING));
-
-                if(countReturnOrder==0){
-                    order.setOrderStatus(OrderStatus.RETURNED);
-                }
-
-                productRepository.save(product);
                 orderRepository.save(order);
             }
-            if(status.equals(ReturnRequestItemStatus.DISCARDED.name())){
-                OrderItem orderItem=item.getOrderItem();
-                Order order=orderItem.getOrder();
-                double priceReturn=item.getQuantity()*orderItem.getUnitPrice();
-                item.setStatus(ReturnRequestItemStatus.DISCARDED);
-                item.setApprovedAt(new Date());
-                returnRequestItemRepository.save(item);
-                Long countReturnOrder=returnRequestRepository.countByOrderCodeAndStatus(order.getOrderCode(),List.of(ReturnRequestItemStatus.APPROVED,ReturnRequestItemStatus.PENDING));
 
-                if(countReturnOrder==0){
-                    order.setOrderStatus(OrderStatus.RETURNED);
-                }
-                order.setTotalRefund(priceReturn);
-                orderRepository.save(order);
-            }
+
+
+//            if(status.equals(ReturnRequestItemStatus.DISCARDED.name())){
+//                OrderItem orderItem=item.getOrderItem();
+//                Order order=orderItem.getOrder();
+//                double priceReturn=item.getQuantity()*orderItem.getUnitPrice();
+//                item.setStatus(ReturnRequestItemStatus.DISCARDED);
+//                item.setApprovedAt(new Date());
+//                returnRequestItemRepository.save(item);
+//                Long countReturnOrder=returnRequestRepository.countByOrderCodeAndStatus(order.getOrderCode(),List.of(ReturnRequestItemStatus.APPROVED,ReturnRequestItemStatus.PENDING));
+//
+//                if(countReturnOrder==0){
+//                    order.setOrderStatus(OrderStatus.RETURNED);
+//                }
+//                order.setTotalRefund(priceReturn);
+//
+//                orderRepository.save(order);
+//            }
         }
         ReturnRequestItem returnRequestItem= returnRequestItemRepository.save(item);
       return   mapToRequestItem(returnRequestItem);
@@ -174,7 +168,31 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
     public void updateStatus(Long id) {
         ReturnRequestItem item=returnRequestItemRepository.findById(id).orElseThrow(()->new ErrorException("ko có id đơn hoàn này"));
         item.setStatus(ReturnRequestItemStatus.REFUNDED);
+        OrderItem orderItem = item.getOrderItem();
+        Order order = orderItem.getOrder();
+        for (Shipment shipment:order.getShipments()) {
+            shipment.setShipmentStatus(ShipmentStatus.RETURNED);
+            shipmentRepository.save(shipment);
+        }
+
         returnRequestItemRepository.save(item);
+        double priceReturn = item.getQuantity() * orderItem.getUnitPrice();
+        order.setOrderTotal(order.getOrderTotal() - priceReturn);
+
+        Long countReturnOrder = returnRequestRepository.countByOrderCodeAndStatus(
+                order.getOrderCode(),
+                List.of(ReturnRequestItemStatus.REFUNDED)
+        );
+
+        Long countOrderItem = orderItemRepository.countOderItem(order.getOrderCode());
+
+        if (countReturnOrder.equals(countOrderItem)) {
+            order.setOrderStatus(OrderStatus.RETURNED);
+        }
+        orderRepository.save(order);
+
+
+
     }
 
     ReturnPriceResponse mapToReturnPriceResponse(ReturnRequestItem returnRequestI){

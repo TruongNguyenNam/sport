@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "Return_Media")
+@Table(name = "return_media")
 @Getter
 @Setter
 @NoArgsConstructor

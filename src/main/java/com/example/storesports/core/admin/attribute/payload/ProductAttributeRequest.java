@@ -12,7 +12,5 @@ public class ProductAttributeRequest {
     @NotBlank(message = "Name cannot be blank")
     @Length(min = 1,max = 20,message = "length >1 and <20")
     private String name;
-
-    @NotBlank(message = "description cannot be blank")
     private String description;
 }

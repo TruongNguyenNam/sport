@@ -1,6 +1,7 @@
 package com.example.storesports.core.auth.controller;
 
 import com.example.storesports.core.admin.category.payload.CategoryResponse;
+import com.example.storesports.core.admin.coupon_usage.payload.CouponUsageResponse;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.infrastructure.validation.RefreshTokenValid;
 import com.example.storesports.core.auth.payload.*;
@@ -16,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping(value = "api/v1/auth")
@@ -90,12 +93,43 @@ public class AuthController {
     }
 
 
+    @PutMapping("/change-password")
+    public ResponseData<Void> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request,
+            @RequestParam Long userId //
+    ) {
+        authService.changePassword(userId, request);
+        return ResponseData.<Void>builder()
+                .status(HttpStatus.OK.value())
+                .message("Đổi mật khẩu thành công")
+                .data(null)
+                .build();
+    }
 
+    @PutMapping("/{userId}/info")
+    public ResponseData<UserResponse> updateUserInfo(
+            @PathVariable Long userId,
+            @RequestBody @Valid UpdateUserForm userForm
+    ) {
+        try {
+            UserResponse userResponse = authService.updateUserInfo(userId, userForm);
+            return new ResponseData<>(200, "Cập nhật thông tin thành công", userResponse);
+        } catch (IllegalArgumentException e) {
+            return new ResponseData<>(404, e.getMessage());
+        } catch (Exception e) {
+            return new ResponseData<>(500, "Đã xảy ra lỗi khi cập nhật thông tin.");
+        }
+    }
 
-
-
-
-
+    @GetMapping("/{userId}/coupons")
+    public ResponseData<List<CouponUserResponse>> getCouponsForCustomer(@PathVariable(name = "userId") Long userId) {
+        List<CouponUserResponse> couponUsages = authService.getCouponsForUser(userId);
+        return ResponseData.<List<CouponUserResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("lấy danh sách phiếu giảm giá của khách hàng thành công")
+                .data(couponUsages)
+                .build();
+    }
 
 
 }

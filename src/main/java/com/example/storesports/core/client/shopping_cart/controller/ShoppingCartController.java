@@ -6,6 +6,7 @@ import com.example.storesports.core.client.shopping_cart.payload.OrderRequestCli
 import com.example.storesports.core.client.shopping_cart.payload.OrderResponseClient;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartRequest;
 import com.example.storesports.core.client.shopping_cart.payload.ShoppingCartResponse;
+import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.utils.ResponseData;
 import com.example.storesports.service.client.shopping_cart.ShoppingCartService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,19 @@ import java.util.List;
 public class ShoppingCartController {
 
     private final ShoppingCartService shoppingCartService;
+
+
+
+    @GetMapping("/{orderCode}")
+    public ResponseData<OrderResponseClient> findByOrderCode(@PathVariable("orderCode") String orderCode) {
+        try {
+            OrderResponseClient responseList = shoppingCartService.findByOrderCode(orderCode);
+            return new ResponseData<>(200, "Xem chi tết đơn hàng thành công", responseList);
+        } catch (Exception e) {
+            log.error("Lỗi khi xem đơn hàng", e);
+            return new ResponseData<>(500, "Lỗi không thể tìm thấy đơn hàng");
+        }
+    }
 
     @PutMapping("/cancel/{orderCode}")
     public ResponseData<OrderResponseClient> cancelOrder(@PathVariable("orderCode") String orderCode) {
@@ -95,16 +109,23 @@ public class ShoppingCartController {
         }
     }
 
+//    @GetMapping("/view")
+//    public ResponseData<List<ShoppingCartResponse>> viewToCart(@RequestParam("userId") Long userId) {
+//        try {
+//            List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
+//            return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
+//        } catch (Exception e) {
+//            log.error("Lỗi khi xem giỏ hàng", e);
+//            return new ResponseData<>(500, "Không thể lấy giỏ hàng");
+//        }
+//    }
+
     @GetMapping("/view")
     public ResponseData<List<ShoppingCartResponse>> viewToCart(@RequestParam("userId") Long userId) {
-        try {
-            List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
-            return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
-        } catch (Exception e) {
-            log.error("Lỗi khi xem giỏ hàng", e);
-            return new ResponseData<>(500, "Không thể lấy giỏ hàng");
-        }
+        List<ShoppingCartResponse> responseList = shoppingCartService.viewToCart(userId);
+        return new ResponseData<>(200, "Lấy giỏ hàng thành công", responseList);
     }
+
 
     @DeleteMapping("/remove/{id}")
     public ResponseData<Void> removeProductWithCart(@PathVariable Long id) {

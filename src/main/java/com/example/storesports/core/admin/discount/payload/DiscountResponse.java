@@ -18,6 +18,7 @@ public class DiscountResponse {
     private Long id;
     private String name;
     private String discountPercentage;
+    private Double priceThreshold;
     private int countProduct;
     private String status;
     private LocalDateTime startDate;
