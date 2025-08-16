@@ -598,7 +598,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         payment.setAmount(totalAmountWithShipping);
         payment.setChangeAmount(0.0);
         payment.setPaymentDate(LocalDateTime.now());
-        payment.setPaymentStatus(PaymentStatus.PENDING);
+        payment.setPaymentStatus(PaymentStatus.COMPLETED);
         payment.setCreatedBy(request.getUserId().intValue());
         payment.setCreatedDate(LocalDateTime.now());
 

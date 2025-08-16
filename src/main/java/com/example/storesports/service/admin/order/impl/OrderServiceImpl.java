@@ -1389,7 +1389,9 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             payment.setChangeAmount(0.0);
             payment.setPaymentDate(LocalDateTime.now());
             payment.setReturnUrl(request.getPayment().getReturnUrl());
-            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+          //  payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+            payment.setPaymentStatus(PaymentStatus.COMPLETED);
+
             paymentRepository.save(payment);
         } else { // Tiền mặt
             if (paidAmount < totalAmountWithShipping) {
@@ -1398,7 +1400,9 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             payment.setAmount(paidAmount);
             payment.setChangeAmount(paidAmount - totalAmountWithShipping);
             payment.setPaymentDate(LocalDateTime.now());
-            payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+           // payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+            payment.setPaymentStatus(PaymentStatus.COMPLETED);
+
             paymentRepository.save(payment);
         }
 
