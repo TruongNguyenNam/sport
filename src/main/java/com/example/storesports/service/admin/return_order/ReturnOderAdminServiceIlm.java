@@ -170,10 +170,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
         item.setStatus(ReturnRequestItemStatus.REFUNDED);
         OrderItem orderItem = item.getOrderItem();
         Order order = orderItem.getOrder();
-        for (Shipment shipment:order.getShipments()) {
-            shipment.setShipmentStatus(ShipmentStatus.RETURNED);
-            shipmentRepository.save(shipment);
-        }
+
 
         returnRequestItemRepository.save(item);
         double priceReturn = item.getQuantity() * orderItem.getUnitPrice();
@@ -187,11 +184,13 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
         Long countOrderItem = orderItemRepository.countOderItem(order.getOrderCode());
 
         if (countReturnOrder.equals(countOrderItem)) {
+            for (Shipment shipment:order.getShipments()) {
+                shipment.setShipmentStatus(ShipmentStatus.RETURNED);
+                shipmentRepository.save(shipment);
+            }
             order.setOrderStatus(OrderStatus.RETURNED);
         }
         orderRepository.save(order);
-
-
 
     }
 

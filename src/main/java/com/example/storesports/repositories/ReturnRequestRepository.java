@@ -16,18 +16,22 @@ List<ReturnRequest> findByUserName(@Param("userName")String userName);
     Long countByCode(@Param("code") String code);
 //    @Query("select count(i) from ReturnRequestItem i where i.orderItem.order.orderCode = :orderCode and i.status in :status and i.deleted=false ")
 //    Long countByOrderCodeAndStatus(@Param("orderCode") String orderCode, @Param("status") List<ReturnRequestItemStatus> status);
-    @Query("""
-    select count(distinct i.orderItem.id) 
-    from ReturnRequestItem i 
-    where i.orderItem.order.orderCode = :orderCode 
+@Query("""
+    select count(distinct i.orderItem.id)
+    from ReturnRequestItem i
+    where i.orderItem.order.orderCode = :orderCode
       and i.status in :status
+      and (
+        select sum(r.quantity)
+        from ReturnRequestItem r
+        where r.orderItem.id = i.orderItem.id
+          and r.status in :status
+      ) >= i.orderItem.quantity
 """)
-    Long countByOrderCodeAndStatus(
-            @Param("orderCode") String orderCode,
-            @Param("status") List<ReturnRequestItemStatus> status
-    );
-
-
+Long countByOrderCodeAndStatus(
+        @Param("orderCode") String orderCode,
+        @Param("status") List<ReturnRequestItemStatus> status
+);
     @Query("select r from ReturnRequest r join ReturnRequestItem i on r.id=i.returnRequest.id where i.status=:status order by r.requestDate desc ")
     List<ReturnRequest> finByStatusItem(@Param("status")ReturnRequestItemStatus status);
     @Query ("select count (i.status)from ReturnRequest r join r.items i where r.code=:code and i.status=:status")

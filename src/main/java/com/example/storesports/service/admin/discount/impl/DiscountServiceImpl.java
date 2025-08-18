@@ -167,24 +167,19 @@ public class DiscountServiceImpl implements DiscountService {
                     .orElseThrow(() -> new ErrorException("ko có id discount này"));
 
             LocalDateTime now = LocalDateTime.now();
-
-
-            // Date validation
-
-
-
             if (discountRequest.getPercentValue() > 100) {
                 throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập " + discountRequest.getPercentValue() + "%");
             }
-
-
-            if (now.isBefore(discount.getStartDate())) {
-                discount.setStatus(DiscountStatus.PENDING);
-            } else if (now.isAfter(discount.getEndDate())) {
-                discount.setStatus(DiscountStatus.EXPIRED);
-            } else {
-                discount.setStatus(DiscountStatus.ACTIVE);
+            if (discount.getStatus() != DiscountStatus.INACTIVE) {
+                if (now.isBefore(discount.getStartDate())) {
+                    discount.setStatus(DiscountStatus.PENDING);
+                } else if (now.isAfter(discount.getEndDate())) {
+                    discount.setStatus(DiscountStatus.EXPIRED);
+                } else {
+                    discount.setStatus(DiscountStatus.ACTIVE);
+                }
             }
+
 
             discountRepository.save(discount);
 
@@ -224,52 +219,36 @@ public class DiscountServiceImpl implements DiscountService {
 
             Double priceThreshold = discountRequest.getPriceThreshold();
 
-            if (discount.getStatus() == DiscountStatus.ACTIVE) {
-                throw new ErrorException("Không thể sửa discount đang hoạt động");
-//                productDiscountMappingRepository.deleteByDiscount(discount);
-//                Map<Long, List<Discount>> productActiveDiscountsMap = applicableProducts.stream()
-//                        .filter(p -> p.getParentProductId() != null)
-//                        .collect(Collectors.toMap(
-//                                Product::getId,
-//                                p -> discountRepository.findActiveDiscountsByProductId(p.getId(), DiscountStatus.ACTIVE)
-//                                        .stream()
-//                                        .filter(d -> !d.getId().equals(discount.getId()))
-//                                        .collect(Collectors.toList())
-//                        ));
-//
-//                for (Product p : applicableProducts) {
-//                    if (p.getParentProductId() != null) {
-//                        if (p.getOriginalPrice() == null) {
-//                            p.setOriginalPrice(p.getPrice());
-//                            productRepository.save(p);
-//                        }
-//
-//                        if (p.getOriginalPrice() >= priceThreshold) {
-//                            Optional<Double> maxOtherDiscount = productActiveDiscountsMap.getOrDefault(p.getId(), Collections.emptyList())
-//                                    .stream()
-//                                    .map(Discount::getDiscountPercentage)
-//                                    .max(Double::compare);
-//
-//                            double effectiveDiscount = discount.getDiscountPercentage();
-//                            if (maxOtherDiscount.isPresent() && maxOtherDiscount.get() > effectiveDiscount) {
-//                                effectiveDiscount = maxOtherDiscount.get();
-//                            }
-//
-//                            Double discountedPrice = p.getOriginalPrice() - (p.getOriginalPrice() * effectiveDiscount / 100);
-//                            p.setPrice(discountedPrice);
-//                            productRepository.save(p);
-//
-//
-//                            ProductDiscountMapping mapping = new ProductDiscountMapping();
-//                            mapping.setProduct(p);
-//                            mapping.setDiscount(discount);
-//                            productDiscountMappingRepository.save(mapping);
-//                        } else {
-//                            throw new ErrorException("không có sản phẩm nào được ap dụng với ngưỡng giá này vui lòng xem lại");
-//                        }
-//
-//                    }
-//                }
+            if (discount.getStatus() == DiscountStatus.ACTIVE||discount.getStatus() == DiscountStatus.INACTIVE) {
+                boolean updated = false;
+                if (discountRequest.getName() != null) {
+                    if (!discountRequest.getName().equals(discount.getName())) {
+                        discount.setName(discountRequest.getName());
+                        updated = true;
+                    }
+                }
+                if (discountRequest.getEndDate() != null) {
+
+                    if (!discountRequest.getEndDate().equals(discount.getEndDate())) {
+                        LocalDateTime newStart = discount.getStartDate();
+                        LocalDateTime newEnd = discountRequest.getEndDate();
+
+                        if (newStart.isAfter(newEnd)) {
+                            throw new ErrorException("Ngày kết thúc phải sau ngày bắt đầu");
+                        }
+                        discount.setEndDate(newEnd);
+                        updated = true;
+                    }
+                }
+
+                // Nếu không có gì để update
+                if (!updated) {
+                    throw new ErrorException("chỉ được cập nhật khi sửa name hoặc end date");
+                }
+
+                discountRepository.save(discount);
+
+
             }
             else if (discount.getStatus() == DiscountStatus.PENDING||discount.getStatus()==DiscountStatus.EXPIRED) {
 
