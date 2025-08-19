@@ -162,22 +162,307 @@ public class DiscountServiceImpl implements DiscountService {
         return mapToResponse(discount);
     }
 
-        @Override
-        public DiscountResponse update(Long id, DiscountRequest discountRequest) {
-            Discount discount = discountRepository.findById(id)
-                    .orElseThrow(() -> new ErrorException("ko có id discount này"));
+//        @Override
+//        public DiscountResponse update(Long id, DiscountRequest discountRequest) {
+//            Discount discount = discountRepository.findById(id)
+//                    .orElseThrow(() -> new ErrorException("ko có id discount này"));
+//
+//            LocalDateTime now = LocalDateTime.now();
+//
+//
+//            // Date validation
+//            if (discountRequest.getPercentValue() > 100) {
+//                throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập " + discountRequest.getPercentValue() + "%");
+//            }
+//
+//
+//            if (now.isBefore(discount.getStartDate())) {
+//                discount.setStatus(DiscountStatus.PENDING);
+//            } else if (now.isAfter(discount.getEndDate())) {
+//                discount.setStatus(DiscountStatus.EXPIRED);
+//            } else {
+//                discount.setStatus(DiscountStatus.ACTIVE);
+//            }
+//
+//            discountRepository.save(discount);
+//
+//
+//            List<ProductDiscountMapping> oldMappings = productDiscountMappingRepository.findByDiscount(discount);
+//            Set<Product> oldProducts = oldMappings.stream()
+//                    .map(ProductDiscountMapping::getProduct)
+//                    .collect(Collectors.toSet());
+//
+//            boolean noProductSelected = Boolean.FALSE.equals(discountRequest.getApplyToAll())
+//
+//                    && (discountRequest.getProductIds() == null || discountRequest.getProductIds().isEmpty());
+//
+//            if (noProductSelected) {
+//                throw new ErrorException("phải có ít nhất 1 sản phẩm");
+//            }
+//
+//            // ✅ Xác định sản phẩm mới được áp dụng
+//            Set<Product> applicableProducts = new HashSet<>();
+//            if (discountRequest.getProductIds() != null && !discountRequest.getProductIds().isEmpty()) {
+//                applicableProducts.addAll(productRepository.findAllById(discountRequest.getProductIds()));
+//            }
+//
+//            // ✅ Rollback cho sản phẩm KHÔNG còn nằm trong danh sách mới
+//            Set<Long> newProductIds = applicableProducts.stream().map(Product::getId).collect(Collectors.toSet());
+//            for (Product oldProduct : oldProducts) {
+//                if (!newProductIds.contains(oldProduct.getId()) && oldProduct.getParentProductId() != null) {
+//                    if (oldProduct.getOriginalPrice() != null) {
+//                        oldProduct.setPrice(oldProduct.getOriginalPrice());
+//                        productRepository.save(oldProduct);
+//                    }
+//                }
+//            }
+//
+//            // ✅ Xoá tất cả mapping cũ
+////            productDiscountMappingRepository.deleteByDiscount(discount);
+//
+//            Double priceThreshold = discountRequest.getPriceThreshold();
+//
+//            if (discount.getStatus() == DiscountStatus.ACTIVE) {
+//                throw new ErrorException("Không thể sửa discount đang hoạt động");
+////                productDiscountMappingRepository.deleteByDiscount(discount);
+////                Map<Long, List<Discount>> productActiveDiscountsMap = applicableProducts.stream()
+////                        .filter(p -> p.getParentProductId() != null)
+////                        .collect(Collectors.toMap(
+////                                Product::getId,
+////                                p -> discountRepository.findActiveDiscountsByProductId(p.getId(), DiscountStatus.ACTIVE)
+////                                        .stream()
+////                                        .filter(d -> !d.getId().equals(discount.getId()))
+////                                        .collect(Collectors.toList())
+////                        ));
+////
+////                for (Product p : applicableProducts) {
+////                    if (p.getParentProductId() != null) {
+////                        if (p.getOriginalPrice() == null) {
+////                            p.setOriginalPrice(p.getPrice());
+////                            productRepository.save(p);
+////                        }
+////
+////                        if (p.getOriginalPrice() >= priceThreshold) {
+////                            Optional<Double> maxOtherDiscount = productActiveDiscountsMap.getOrDefault(p.getId(), Collections.emptyList())
+////                                    .stream()
+////                                    .map(Discount::getDiscountPercentage)
+////                                    .max(Double::compare);
+////
+////                            double effectiveDiscount = discount.getDiscountPercentage();
+////                            if (maxOtherDiscount.isPresent() && maxOtherDiscount.get() > effectiveDiscount) {
+////                                effectiveDiscount = maxOtherDiscount.get();
+////                            }
+////
+////                            Double discountedPrice = p.getOriginalPrice() - (p.getOriginalPrice() * effectiveDiscount / 100);
+////                            p.setPrice(discountedPrice);
+////                            productRepository.save(p);
+////
+////
+////                            ProductDiscountMapping mapping = new ProductDiscountMapping();
+////                            mapping.setProduct(p);
+////                            mapping.setDiscount(discount);
+////                            productDiscountMappingRepository.save(mapping);
+////                        } else {
+////                            throw new ErrorException("không có sản phẩm nào được ap dụng với ngưỡng giá này vui lòng xem lại");
+////                        }
+////
+////                    }
+////                }
+//            }
+//            else if (discount.getStatus() == DiscountStatus.PENDING||discount.getStatus()==DiscountStatus.EXPIRED) {
+//
+//                LocalDateTime newStart = discountRequest.getStartDate();
+//                LocalDateTime newEnd = discountRequest.getEndDate();
+//
+//                if (newStart.isAfter(newEnd)) {
+//                    throw new ErrorException("Ngày bắt đầu không được sau ngày kết thúc");
+//                }
+//                if (!newStart.isAfter(now)) {
+//                    throw new ErrorException("Ngày bắt đầu phải sau thời điểm hiện tại");
+//                }
+//
+//
+//                discount.setStartDate(newStart);
+//                discount.setEndDate(newEnd);
+//
+//                if (now.isBefore(discount.getStartDate())) {
+//                    discount.setStatus(DiscountStatus.PENDING);
+//                } else if (now.isAfter(discount.getEndDate())) {
+//                    discount.setStatus(DiscountStatus.EXPIRED);
+//                } else {
+//                    discount.setStatus(DiscountStatus.ACTIVE);
+//                }
+//
+//
+//
+//                List<Product> validProducts = new ArrayList<>();
+//                discount.setName(discountRequest.getName());
+//                discount.setDiscountPercentage(discountRequest.getPercentValue());
+//                for (Product p : applicableProducts) {
+//                    if (p.getParentProductId() != null) {
+//                        double productPrice = p.getOriginalPrice() != null ? p.getOriginalPrice() : p.getPrice();
+//                        if (productPrice >= priceThreshold) {
+//                            validProducts.add(p);
+//                        }
+//                    }
+//                }
+//
+//                if (validProducts.isEmpty()) {
+//                    // Không xóa gì cả → dữ liệu cũ vẫn nguyên
+//                    throw new ErrorException("Không có sản phẩm nào đủ điều kiện áp ngưỡng giá này, vui lòng sửa lại");
+//                }
+//
+//                // Chỉ xóa khi chắc chắn có sản phẩm hợp lệ
+//                productDiscountMappingRepository.deleteByDiscount(discount);
+//
+//                discount.setPriceThreshold(discountRequest.getPriceThreshold());
+//                discountRepository.save(discount);
+//
+//                for (Product p : validProducts) {
+//                    ProductDiscountMapping mapping = new ProductDiscountMapping();
+//                    mapping.setDiscount(discount);
+//                    mapping.setProduct(p);
+//                    productDiscountMappingRepository.save(mapping);
+//                }
+//            }
+//
+//
+////            else if (discount.getStatus() == DiscountStatus.EXPIRED) {
+////                LocalDateTime newStart = discountRequest.getStartDate();
+////                LocalDateTime newEnd = discountRequest.getEndDate();
+////
+////                if (newStart.isAfter(newEnd)) {
+////                    throw new ErrorException("Ngày bắt đầu không được sau ngày kết thúc");
+////                }if(discountRequest.getStartDate().isBefore(now)){
+////                    throw new ErrorException("ko dược nhập  ngày bắt đầu  quá khứ");
+////                }
+////
+////
+////                if (newEnd.isBefore(now)) {
+////                    throw new ErrorException("Ngày kết thúc mới phải sau thời điểm hiện tại");
+////                }
+////
+////                discount.setStartDate(newStart);
+////                discount.setEndDate(newEnd);
+////                if (now.isBefore(discount.getStartDate())) {
+////                    discount.setStatus(DiscountStatus.PENDING);
+////                } else if (now.isAfter(discount.getEndDate())) {
+////                    discount.setStatus(DiscountStatus.EXPIRED);
+////                } else {
+////                    discount.setStatus(DiscountStatus.ACTIVE);
+////                }
+////
+////                discountRepository.save(discount);
+////            }
+//
+//
+//            return mapToResponse(discount);
+//        }
 
-            LocalDateTime now = LocalDateTime.now();
+    @Override
+    public DiscountResponse update(Long id, DiscountRequest discountRequest) {
+        Discount discount = discountRepository.findById(id)
+                .orElseThrow(() -> new ErrorException("ko có id discount này"));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (discountRequest.getPercentValue() > 100) {
+            throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập " + discountRequest.getPercentValue() + "%");
+        }
+        if (discount.getStatus() != DiscountStatus.INACTIVE) {
+            if (now.isBefore(discount.getStartDate())) {
+                discount.setStatus(DiscountStatus.PENDING);
+            } else if (now.isAfter(discount.getEndDate())) {
+                discount.setStatus(DiscountStatus.EXPIRED);
+            } else {
+                discount.setStatus(DiscountStatus.ACTIVE);
+            }
+        }
 
 
-            // Date validation
+        discountRepository.save(discount);
 
 
+        List<ProductDiscountMapping> oldMappings = productDiscountMappingRepository.findByDiscount(discount);
+        Set<Product> oldProducts = oldMappings.stream()
+                .map(ProductDiscountMapping::getProduct)
+                .collect(Collectors.toSet());
 
-            if (discountRequest.getPercentValue() > 100) {
-                throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập " + discountRequest.getPercentValue() + "%");
+        boolean noProductSelected = Boolean.FALSE.equals(discountRequest.getApplyToAll())
+
+                && (discountRequest.getProductIds() == null || discountRequest.getProductIds().isEmpty());
+
+        if (noProductSelected) {
+            throw new ErrorException("phải có ít nhất 1 sản phẩm");
+        }
+
+        // ✅ Xác định sản phẩm mới được áp dụng
+        Set<Product> applicableProducts = new HashSet<>();
+        if (discountRequest.getProductIds() != null && !discountRequest.getProductIds().isEmpty()) {
+            applicableProducts.addAll(productRepository.findAllById(discountRequest.getProductIds()));
+        }
+
+        // ✅ Rollback cho sản phẩm KHÔNG còn nằm trong danh sách mới
+        Set<Long> newProductIds = applicableProducts.stream().map(Product::getId).collect(Collectors.toSet());
+        for (Product oldProduct : oldProducts) {
+            if (!newProductIds.contains(oldProduct.getId()) && oldProduct.getParentProductId() != null) {
+                if (oldProduct.getOriginalPrice() != null) {
+                    oldProduct.setPrice(oldProduct.getOriginalPrice());
+                    productRepository.save(oldProduct);
+                }
+            }
+        }
+
+        // ✅ Xoá tất cả mapping cũ
+//            productDiscountMappingRepository.deleteByDiscount(discount);
+
+        Double priceThreshold = discountRequest.getPriceThreshold();
+
+        if (discount.getStatus() == DiscountStatus.ACTIVE||discount.getStatus() == DiscountStatus.INACTIVE) {
+            boolean updated = false;
+            if (discountRequest.getName() != null) {
+                if (!discountRequest.getName().equals(discount.getName())) {
+                    discount.setName(discountRequest.getName());
+                    updated = true;
+                }
+            }
+            if (discountRequest.getEndDate() != null) {
+
+                if (!discountRequest.getEndDate().equals(discount.getEndDate())) {
+                    LocalDateTime newStart = discount.getStartDate();
+                    LocalDateTime newEnd = discountRequest.getEndDate();
+
+                    if (newStart.isAfter(newEnd)) {
+                        throw new ErrorException("Ngày kết thúc phải sau ngày bắt đầu");
+                    }
+                    discount.setEndDate(newEnd);
+                    updated = true;
+                }
             }
 
+            // Nếu không có gì để update
+            if (!updated) {
+                throw new ErrorException("chỉ được cập nhật khi sửa name hoặc end date");
+            }
+
+            discountRepository.save(discount);
+
+
+        }
+        else if (discount.getStatus() == DiscountStatus.PENDING||discount.getStatus()==DiscountStatus.EXPIRED) {
+
+            LocalDateTime newStart = discountRequest.getStartDate();
+            LocalDateTime newEnd = discountRequest.getEndDate();
+
+            if (newStart.isAfter(newEnd)) {
+                throw new ErrorException("Ngày bắt đầu không được sau ngày kết thúc");
+            }
+            if (!newStart.isAfter(now)) {
+                throw new ErrorException("Ngày bắt đầu phải sau thời điểm hiện tại");
+            }
+
+
+            discount.setStartDate(newStart);
+            discount.setEndDate(newEnd);
 
             if (now.isBefore(discount.getStartDate())) {
                 discount.setStatus(DiscountStatus.PENDING);
@@ -187,147 +472,38 @@ public class DiscountServiceImpl implements DiscountService {
                 discount.setStatus(DiscountStatus.ACTIVE);
             }
 
+
+
+            List<Product> validProducts = new ArrayList<>();
+            discount.setName(discountRequest.getName());
+            discount.setDiscountPercentage(discountRequest.getPercentValue());
+            for (Product p : applicableProducts) {
+                if (p.getParentProductId() != null) {
+                    double productPrice = p.getOriginalPrice() != null ? p.getOriginalPrice() : p.getPrice();
+                    if (productPrice >= priceThreshold) {
+                        validProducts.add(p);
+                    }
+                }
+            }
+
+            if (validProducts.isEmpty()) {
+                // Không xóa gì cả → dữ liệu cũ vẫn nguyên
+                throw new ErrorException("Không có sản phẩm nào đủ điều kiện áp ngưỡng giá này, vui lòng sửa lại");
+            }
+
+            // Chỉ xóa khi chắc chắn có sản phẩm hợp lệ
+            productDiscountMappingRepository.deleteByDiscount(discount);
+
+            discount.setPriceThreshold(discountRequest.getPriceThreshold());
             discountRepository.save(discount);
 
-
-            List<ProductDiscountMapping> oldMappings = productDiscountMappingRepository.findByDiscount(discount);
-            Set<Product> oldProducts = oldMappings.stream()
-                    .map(ProductDiscountMapping::getProduct)
-                    .collect(Collectors.toSet());
-
-            boolean noProductSelected = Boolean.FALSE.equals(discountRequest.getApplyToAll())
-
-                    && (discountRequest.getProductIds() == null || discountRequest.getProductIds().isEmpty());
-
-            if (noProductSelected) {
-                throw new ErrorException("phải có ít nhất 1 sản phẩm");
+            for (Product p : validProducts) {
+                ProductDiscountMapping mapping = new ProductDiscountMapping();
+                mapping.setDiscount(discount);
+                mapping.setProduct(p);
+                productDiscountMappingRepository.save(mapping);
             }
-
-            // ✅ Xác định sản phẩm mới được áp dụng
-            Set<Product> applicableProducts = new HashSet<>();
-            if (discountRequest.getProductIds() != null && !discountRequest.getProductIds().isEmpty()) {
-                applicableProducts.addAll(productRepository.findAllById(discountRequest.getProductIds()));
-            }
-
-            // ✅ Rollback cho sản phẩm KHÔNG còn nằm trong danh sách mới
-            Set<Long> newProductIds = applicableProducts.stream().map(Product::getId).collect(Collectors.toSet());
-            for (Product oldProduct : oldProducts) {
-                if (!newProductIds.contains(oldProduct.getId()) && oldProduct.getParentProductId() != null) {
-                    if (oldProduct.getOriginalPrice() != null) {
-                        oldProduct.setPrice(oldProduct.getOriginalPrice());
-                        productRepository.save(oldProduct);
-                    }
-                }
-            }
-
-            // ✅ Xoá tất cả mapping cũ
-//            productDiscountMappingRepository.deleteByDiscount(discount);
-
-            Double priceThreshold = discountRequest.getPriceThreshold();
-
-            if (discount.getStatus() == DiscountStatus.ACTIVE) {
-                throw new ErrorException("Không thể sửa discount đang hoạt động");
-//                productDiscountMappingRepository.deleteByDiscount(discount);
-//                Map<Long, List<Discount>> productActiveDiscountsMap = applicableProducts.stream()
-//                        .filter(p -> p.getParentProductId() != null)
-//                        .collect(Collectors.toMap(
-//                                Product::getId,
-//                                p -> discountRepository.findActiveDiscountsByProductId(p.getId(), DiscountStatus.ACTIVE)
-//                                        .stream()
-//                                        .filter(d -> !d.getId().equals(discount.getId()))
-//                                        .collect(Collectors.toList())
-//                        ));
-//
-//                for (Product p : applicableProducts) {
-//                    if (p.getParentProductId() != null) {
-//                        if (p.getOriginalPrice() == null) {
-//                            p.setOriginalPrice(p.getPrice());
-//                            productRepository.save(p);
-//                        }
-//
-//                        if (p.getOriginalPrice() >= priceThreshold) {
-//                            Optional<Double> maxOtherDiscount = productActiveDiscountsMap.getOrDefault(p.getId(), Collections.emptyList())
-//                                    .stream()
-//                                    .map(Discount::getDiscountPercentage)
-//                                    .max(Double::compare);
-//
-//                            double effectiveDiscount = discount.getDiscountPercentage();
-//                            if (maxOtherDiscount.isPresent() && maxOtherDiscount.get() > effectiveDiscount) {
-//                                effectiveDiscount = maxOtherDiscount.get();
-//                            }
-//
-//                            Double discountedPrice = p.getOriginalPrice() - (p.getOriginalPrice() * effectiveDiscount / 100);
-//                            p.setPrice(discountedPrice);
-//                            productRepository.save(p);
-//
-//
-//                            ProductDiscountMapping mapping = new ProductDiscountMapping();
-//                            mapping.setProduct(p);
-//                            mapping.setDiscount(discount);
-//                            productDiscountMappingRepository.save(mapping);
-//                        } else {
-//                            throw new ErrorException("không có sản phẩm nào được ap dụng với ngưỡng giá này vui lòng xem lại");
-//                        }
-//
-//                    }
-//                }
-            }
-            else if (discount.getStatus() == DiscountStatus.PENDING||discount.getStatus()==DiscountStatus.EXPIRED) {
-
-                LocalDateTime newStart = discountRequest.getStartDate();
-                LocalDateTime newEnd = discountRequest.getEndDate();
-
-                if (newStart.isAfter(newEnd)) {
-                    throw new ErrorException("Ngày bắt đầu không được sau ngày kết thúc");
-                }
-                if (!newStart.isAfter(now)) {
-                    throw new ErrorException("Ngày bắt đầu phải sau thời điểm hiện tại");
-                }
-
-
-                discount.setStartDate(newStart);
-                discount.setEndDate(newEnd);
-
-                if (now.isBefore(discount.getStartDate())) {
-                    discount.setStatus(DiscountStatus.PENDING);
-                } else if (now.isAfter(discount.getEndDate())) {
-                    discount.setStatus(DiscountStatus.EXPIRED);
-                } else {
-                    discount.setStatus(DiscountStatus.ACTIVE);
-                }
-
-
-
-                List<Product> validProducts = new ArrayList<>();
-                discount.setName(discountRequest.getName());
-                discount.setDiscountPercentage(discountRequest.getPercentValue());
-                for (Product p : applicableProducts) {
-                    if (p.getParentProductId() != null) {
-                        double productPrice = p.getOriginalPrice() != null ? p.getOriginalPrice() : p.getPrice();
-                        if (productPrice >= priceThreshold) {
-                            validProducts.add(p);
-                        }
-                    }
-                }
-
-                if (validProducts.isEmpty()) {
-                    // Không xóa gì cả → dữ liệu cũ vẫn nguyên
-                    throw new ErrorException("Không có sản phẩm nào đủ điều kiện áp ngưỡng giá này, vui lòng sửa lại");
-                }
-
-                // Chỉ xóa khi chắc chắn có sản phẩm hợp lệ
-                productDiscountMappingRepository.deleteByDiscount(discount);
-
-                discount.setPriceThreshold(discountRequest.getPriceThreshold());
-                discountRepository.save(discount);
-
-                for (Product p : validProducts) {
-                    ProductDiscountMapping mapping = new ProductDiscountMapping();
-                    mapping.setDiscount(discount);
-                    mapping.setProduct(p);
-                    productDiscountMappingRepository.save(mapping);
-                }
-            }
+        }
 
 
 //            else if (discount.getStatus() == DiscountStatus.EXPIRED) {
@@ -359,10 +535,8 @@ public class DiscountServiceImpl implements DiscountService {
 //            }
 
 
-            return mapToResponse(discount);
-        }
-
-
+        return mapToResponse(discount);
+    }
     @Override
     public List<DiscountResponse> getAll() {
         List<Discount>discounts=discountRepository.findAll();
@@ -451,7 +625,92 @@ public class DiscountServiceImpl implements DiscountService {
 
 
 
-    }@Override
+
+    }
+//    @Override
+//    public DiscountResponse updateStatus(Long id) {
+//        Discount discount = discountRepository.findById(id)
+//                .orElseThrow(() -> new ErrorException("ko co id discount nay"));
+//
+//        List<ProductDiscountMapping> mappings = productDiscountMappingRepository.findByDiscount(discount);
+//        Set<Product> products = mappings.stream()
+//                .map(ProductDiscountMapping::getProduct)
+//                .collect(Collectors.toSet());
+//
+//        LocalDateTime now = LocalDateTime.now();
+//
+//        if (discount.getStatus().equals(DiscountStatus.ACTIVE)) {
+//            discount.setStatus(DiscountStatus.INACTIVE);
+//
+//            for (Product product : products) {
+//                if (product.getParentProductId() != null) {
+//
+//                    if (product.getOriginalPrice() == null) {
+//                        product.setOriginalPrice(product.getPrice());
+//                        productRepository.save(product);
+//                    }
+//
+//
+//                    List<Discount> discounts = discountRepository.findActiveDiscountsByProductId(
+//                            product.getId(), DiscountStatus.ACTIVE);
+//
+//                    Optional<Discount> discountMax = discounts.stream()
+//                            .filter(d -> !d.getId().equals(discount.getId()))
+//                            .filter(d -> product.getOriginalPrice() >= d.getPriceThreshold())
+//                            .max(Comparator.comparing(Discount::getDiscountPercentage));
+//
+//                    if (discountMax.isPresent()) {
+//                        double percent = discountMax.get().getDiscountPercentage();
+//                        double newPrice = product.getOriginalPrice() - (product.getOriginalPrice() * percent / 100);
+//                        product.setPrice(newPrice);
+//                    } else {
+//                        product.setPrice(product.getOriginalPrice());
+//                    }
+//
+//                    productRepository.save(product);
+//                }
+//            }
+//
+//        } else if (discount.getStatus().equals(DiscountStatus.INACTIVE)) {
+//            if (!now.isBefore(discount.getStartDate()) && !now.isAfter(discount.getEndDate())) {
+//                discount.setStatus(DiscountStatus.ACTIVE);
+//
+//                for (Product product : products) {
+//                    if (product.getParentProductId() != null) {
+//
+//                        if (product.getOriginalPrice() == null) {
+//                            product.setOriginalPrice(product.getPrice());
+//                        }
+//
+//                        List<Discount> discounts = discountRepository.findActiveDiscountsByProductId(
+//                                product.getId(), DiscountStatus.ACTIVE);
+//                        discounts.add(discount);
+//
+//                        Optional<Discount> discountMax = discounts.stream()
+//                                .filter(d -> product.getOriginalPrice() >= d.getPriceThreshold())
+//                                .max(Comparator.comparing(Discount::getDiscountPercentage));
+//
+//                        if (discountMax.isPresent()) {
+//                            double percent = discountMax.get().getDiscountPercentage();
+//                            double newPrice = product.getOriginalPrice() - (product.getOriginalPrice() * percent / 100);
+//                            product.setPrice(newPrice);
+//                        } else {
+//                            product.setPrice(product.getOriginalPrice());
+//                        }
+//
+//                        productRepository.save(product);
+//                    }
+//                }
+//            }
+//        } else {
+//            throw new ErrorException("discount đang ko ở trong trạng thái hoạt động");
+//        }
+//
+//        discountRepository.save(discount);
+//        return mapToResponse(discount);
+//    }
+
+    @Override
     public DiscountResponse updateStatus(Long id) {
         Discount discount = discountRepository.findById(id)
                 .orElseThrow(() -> new ErrorException("ko co id discount nay"));
