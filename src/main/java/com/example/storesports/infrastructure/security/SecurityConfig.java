@@ -37,32 +37,32 @@ public class SecurityConfig  {
                 .cors(withDefaults()) // Bật CORS
                 .authorizeHttpRequests(authz -> authz
 //                        api/v1/admin/product
-                     //   .anyRequest().permitAll()
+                        //   .anyRequest().permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()
 
                         //.requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
-                     //  .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
+                        //  .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
                         .requestMatchers("/api/v1/auth/login").permitAll()
                         //.requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
                         //.requestMatchers("/api/v1/admin/category/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
-                       // .requestMatchers("/api/v1/product/**").anonymous()
+                        // .requestMatchers("/api/v1/product/**").anonymous()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         .requestMatchers("/api/vnpay/callback").permitAll()
 //                        .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
 //                       .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
 //                        .requestMatchers("/api/v1/auth/login").permitAll()
-  //                      .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
+                        //                      .requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
 //                        .requestMatchers("/api/v1/client/**").hasAnyAuthority("CUSTOMER")
-                      //  .requestMatchers("/api/v1/admin/category/**").hasAnyAuthority("ADMIN")
+                        //  .requestMatchers("/api/v1/admin/category/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/auth/**").permitAll()
                         //.requestMatchers("/api/v1/admin/**").hasAnyAuthority("ADMIN")
                         //.requestMatchers("/api/v1/product/**").anonymous()
 
-                       // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/v1/client/product_review/product/**").permitAll()
 
                         .anyRequest().permitAll())

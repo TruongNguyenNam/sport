@@ -19,4 +19,6 @@ DiscountResponse finByDiscountId(Long id);
 List<DiscountResponse> finByName(String name);
 List<DiscountResponse>filterStatus(String discountStatus);
 DiscountResponse updateStatus(Long id);
+
+
 }
