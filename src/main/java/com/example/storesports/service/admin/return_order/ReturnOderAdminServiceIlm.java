@@ -74,7 +74,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                         item.getReturnRequest().getCode(),
                         "APPROVED",
                         null,
-                        "công ty shoesport Hoàng Mai Hà Nội",
+                        "cửa hàng ShoeSports  Hà Nội",
                         "0982929518",
                         "shoeSport"
 
@@ -93,7 +93,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                         item.getReturnRequest().getCode(),
                         "REJECTED",
                         returnRequestListRequest.getAdminNote(),
-                        "công ty shoeSport Hoàng Mai Hà Nội",
+                        "cửa hàng ShoeSports  Hà Nội",
                         "0982929518", "shoeSport"
 
                 );
@@ -198,7 +198,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
 
     }
 
-    ReturnPriceResponse mapToReturnPriceResponse(ReturnRequestItem returnRequestI){
+  private  ReturnPriceResponse mapToReturnPriceResponse(ReturnRequestItem returnRequestI){
         ReturnPriceResponse returnPriceResponse = new ReturnPriceResponse();
         ReturnRequest returnRequest = returnRequestI.getReturnRequest();
         returnPriceResponse.setCode(returnRequest.getCode());
