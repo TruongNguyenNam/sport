@@ -10,5 +10,7 @@ public enum OrderStatus {
     COMPLETED, // HOÀN THÀNH
     CANCELLED, // BỊ HUỶ BỎ
     SHIPPED, // ĐANG GIAO
-    RETURNED // TRẢ HÀNG
+    RETURNED, // TRẢ HÀNG,
+    CONFIRMED //Xác nhận
+
 }

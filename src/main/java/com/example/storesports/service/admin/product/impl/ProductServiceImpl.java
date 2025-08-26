@@ -229,6 +229,168 @@ public class ProductServiceImpl implements ProductService {
         productTagMappingRepository.saveAll(mappings);
     }
 
+    @Override
+    @Transactional
+    public void updateChildProductV2(Long id, ProductUpdateChild request) {
+        Product childProduct = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm con không tồn tại hoặc đã bị xóa với ID: " + id));
+
+        // Lấy danh sách các sản phẩm con thuộc cùng parent
+        List<Product> products = productRepository.findByParentProductId(childProduct.getParentProductId());
+        if (products == null || products.isEmpty()) {
+            throw new IllegalStateException("Không tìm thấy sản phẩm con nào thuộc parent với ID: " + childProduct.getParentProductId());
+        }
+
+        // Cập nhật mô tả nếu có
+        if (request.getDescription() != null) {
+            childProduct.setDescription(request.getDescription());
+        }
+
+        // Cập nhật giá và số lượng tồn kho
+        if (request.getPrice() != null) {
+            childProduct.setPrice(request.getPrice());
+        }
+        if (request.getStockQuantity() != null) {
+            childProduct.setStockQuantity(request.getStockQuantity());
+        }
+
+        // Kiểm tra trùng thuộc tính
+        checkDuplicateAtb(request, products, childProduct.getId());
+
+        // Xác định biến thể đầu tiên (ID nhỏ nhất)
+        Product firstVariant = products.stream()
+                .min(Comparator.comparing(Product::getId))
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy sản phẩm con đầu tiên."));
+        boolean isFirstVariant = childProduct.getId().equals(firstVariant.getId());
+
+        // Xử lý thuộc tính sản phẩm
+        if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
+            // Lấy danh sách ID thuộc tính hiện tại của sản phẩm
+            Map<Long, String> currentAttributes = childProduct.getProductAttributeValues().stream()
+                    .collect(Collectors.toMap(
+                            pav -> pav.getAttribute().getId(),
+                            ProductAttributeValue::getValue
+                    ));
+
+            // Lấy danh sách ID thuộc tính mới từ request
+            Map<Long, String> newAttributes = request.getProductAttributeValues().stream()
+                    .collect(Collectors.toMap(
+                            ProductUpdateChild.ProductAttributeValue::getAttributeId,
+                            ProductUpdateChild.ProductAttributeValue::getValue
+                    ));
+
+            // Xóa thuộc tính cũ của sản phẩm hiện tại
+            productAttributeValueRepository.deleteByProductId(childProduct.getId());
+            childProduct.getProductAttributeValues().clear();
+
+            // Thêm thuộc tính mới cho sản phẩm hiện tại
+            List<ProductAttributeValue> newAttributeValues = request.getProductAttributeValues().stream()
+                    .map(attr -> {
+                        ProductAttribute attribute = productAttributeRepository.findById(attr.getAttributeId())
+                                .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại với ID: " + attr.getAttributeId()));
+                        ProductAttributeValue value = new ProductAttributeValue();
+                        value.setProduct(childProduct);
+                        value.setAttribute(attribute);
+                        value.setValue(attr.getValue());
+                        return value;
+                    })
+                    .collect(Collectors.toList());
+
+            productAttributeValueRepository.saveAll(newAttributeValues);
+            childProduct.getProductAttributeValues().addAll(newAttributeValues);
+            log.info("Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+
+            // Nếu là biến thể đầu tiên, cập nhật các biến thể khác
+            if (isFirstVariant) {
+                // Xác định thuộc tính bị xóa
+                Set<Long> removedAttributeIds = currentAttributes.keySet().stream()
+                        .filter(attrId -> !newAttributes.containsKey(attrId))
+                        .collect(Collectors.toSet());
+
+                // Xác định thuộc tính được thêm hoặc sửa
+                Map<Long, String> updatedAttributes = newAttributes.entrySet().stream()
+                        .filter(entry -> !currentAttributes.containsKey(entry.getKey()) || !currentAttributes.get(entry.getKey()).equals(entry.getValue()))
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+                // Cập nhật các biến thể khác
+                for (Product otherProduct : products) {
+                    if (!otherProduct.getId().equals(childProduct.getId())) {
+                        // Xóa thuộc tính bị xóa
+                        List<ProductAttributeValue> attributesToRemove = otherProduct.getProductAttributeValues().stream()
+                                .filter(pav -> removedAttributeIds.contains(pav.getAttribute().getId()))
+                                .collect(Collectors.toList());
+                        productAttributeValueRepository.deleteAll(attributesToRemove);
+                        otherProduct.getProductAttributeValues().removeAll(attributesToRemove);
+
+                        // Cập nhật hoặc thêm thuộc tính mới
+                        for (Map.Entry<Long, String> updatedAttr : updatedAttributes.entrySet()) {
+                            Long attrId = updatedAttr.getKey();
+                            String newValue = updatedAttr.getValue();
+
+                            // Kiểm tra xem thuộc tính đã tồn tại chưa
+                            Optional<ProductAttributeValue> existingAttr = otherProduct.getProductAttributeValues().stream()
+                                    .filter(pav -> pav.getAttribute().getId().equals(attrId))
+                                    .findFirst();
+
+                            if (existingAttr.isPresent()) {
+                                // Cập nhật giá trị thuộc tính
+                                ProductAttributeValue pav = existingAttr.get();
+                                pav.setValue(newValue);
+                                productAttributeValueRepository.save(pav);
+                            } else {
+                                // Thêm thuộc tính mới
+                                ProductAttribute attribute = productAttributeRepository.findById(attrId)
+                                        .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại với ID: " + attrId));
+                                ProductAttributeValue newPav = new ProductAttributeValue();
+                                newPav.setProduct(otherProduct);
+                                newPav.setAttribute(attribute);
+                                newPav.setValue(newValue);
+                                productAttributeValueRepository.save(newPav);
+                                otherProduct.getProductAttributeValues().add(newPav);
+                            }
+                        }
+
+                        // Cập nhật lại tên sản phẩm con
+                        updateChildProductName(otherProduct);
+                        productRepository.save(otherProduct);
+                        log.info("Đã cập nhật thuộc tính và tên cho biến thể {}", otherProduct.getSku());
+                    }
+                }
+            }
+        }
+
+        // Cập nhật lại tên sản phẩm con sau khi cập nhật thuộc tính
+        updateChildProductName(childProduct);
+
+        // Cập nhật ảnh sản phẩm nếu có
+        if (request.getImages() != null && !request.getImages().isEmpty()) {
+            // Xóa ảnh cũ
+            productImageRepository.deleteByProductId(childProduct.getId());
+            childProduct.getImages().clear();
+
+            // Upload ảnh mới
+            List<String> imageUrls = uploadImages(request.getImages());
+            if (!imageUrls.isEmpty()) {
+                List<ProductImage> childProductImages = imageUrls.stream()
+                        .map(url -> {
+                            ProductImage productImage = new ProductImage();
+                            productImage.setImageUrl(url);
+                            productImage.setProduct(childProduct);
+                            return productImage;
+                        })
+                        .collect(Collectors.toList());
+
+                productImageRepository.saveAll(childProductImages);
+                childProduct.getImages().addAll(childProductImages);
+                log.info("Đã cập nhật {} ảnh cho biến thể {}: {}", childProductImages.size(), childProduct.getSku(), imageUrls);
+            }
+        }
+
+        // Lưu lại sản phẩm đã cập nhật
+        productRepository.save(childProduct);
+        log.info("Đã cập nhật biến thể {}", childProduct.getSku());
+    }
+
 
     @Override
     @Transactional
@@ -1483,6 +1645,7 @@ private List<ProductAttributeValue> mapAttributesToValueVariants(Product product
         response.setPrice(product.getPrice());
         response.setOriginalPrice(product.getOriginalPrice());
         response.setStockQuantity(product.getStockQuantity());
+        response.setParentProductId(product.getParentProductId());
         response.setSportType(product.getSportType());
         response.setSku(product.getSku());
 

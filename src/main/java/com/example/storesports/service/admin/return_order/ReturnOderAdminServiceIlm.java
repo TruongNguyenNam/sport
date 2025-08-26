@@ -174,7 +174,7 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
 
         returnRequestItemRepository.save(item);
         double priceReturn = item.getQuantity() * orderItem.getUnitPrice();
-        order.setOrderTotal(order.getOrderTotal() - priceReturn);
+//        order.setOrderTotal(order.getOrderTotal() - priceReturn);
 
         Long countReturnOrder = returnRequestRepository.countByOrderCodeAndStatus(
                 order.getOrderCode(),

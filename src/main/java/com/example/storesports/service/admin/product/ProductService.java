@@ -33,6 +33,8 @@ public interface ProductService {
     List<ProductResponse> getAllChildProduct();
     void updateParentProduct(Long id, ProductUpdateParent request);
 
+
+     void updateChildProductV2(Long id, ProductUpdateChild request);
     void updateChildProduct(Long id, ProductUpdateChild request);
 
     void deleteSoft(Long id);
