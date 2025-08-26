@@ -745,6 +745,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderStatusCount> getOrderStatusCounts() {
         List<OrderStatus> statuses = List.of(
                 OrderStatus.PENDING,
+                OrderStatus.CONFIRMED,
                 OrderStatus.COMPLETED,
                 OrderStatus.CANCELLED,
                 OrderStatus.RETURNED,
@@ -1034,21 +1035,23 @@ public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, 
 
     // Phương thức kiểm tra tính hợp lệ của chuyển đổi trạng thái
 private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-        if (currentStatus == newStatus) {
-            return false; // Không cho phép chuyển sang cùng trạng thái
-        }
-        switch (currentStatus) {
-            case PENDING:
-                return newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.CANCELLED;
-            case SHIPPED:
-                return newStatus == OrderStatus.COMPLETED;
-            case COMPLETED:
-            case CANCELLED:
-            case RETURNED:
-                return false; // Không cho phép chuyển đổi từ các trạng thái này
-            default:
-                return false;
-        }
+    if (currentStatus == newStatus) {
+        return false; // Không cho phép chuyển sang cùng trạng thái
+    }
+    switch (currentStatus) {
+        case PENDING:
+            return newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED;
+        case CONFIRMED:
+            return newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.CANCELLED;
+        case SHIPPED:
+            return newStatus == OrderStatus.COMPLETED;
+        case COMPLETED:
+        case CANCELLED:
+        case RETURNED:
+            return false; // Không cho phép chuyển đổi từ các trạng thái này
+        default:
+            return false;
+    }
 }
 
 
@@ -1760,8 +1763,6 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
     }
 
 
-
-
     @Override
     public List<OrderResponse> getAll() {
         List<Order> orders = orderRepository.findAllOrderIsPos();
@@ -1857,40 +1858,6 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             response.setCouponUsages(new ArrayList<>());
         }
 
-
-        // Map address (nếu không phải đơn hàng tại quầy)
-//        if (order.getIsPos() != null
-//                && order.getUser() != null
-//                && order.getUser().getId() != null) {
-//
-//            Optional<UserAddressMapping> addressMappingOptional = userAddressMappingRepository
-//                    .findByUserId(order.getUser().getId())
-//                    .stream()
-//                    .findFirst(); // Lấy địa chỉ đầu tiên (có thể là địa chỉ mặc định)
-//
-//            if (addressMappingOptional.isPresent() && addressMappingOptional.get().getAddress() != null) {
-//                Address address = addressMappingOptional.get().getAddress();
-//                User user = addressMappingOptional.get().getUser(); // Lấy user từ mapping
-//
-//                response.setAddress(new OrderResponse.AddressResponse(
-//                        address.getId(),
-//                        user.getEmail(),
-//                        user.getId(),
-//                        user.getUsername(),
-//                        user.getPhoneNumber(),
-//                        user.getRole().toString(),
-//                        address.getStreet(),
-//                        address.getWard(),
-//                        address.getCity(),
-//                        address.getState(),
-//                        address.getCountry(),
-//                        address.getZipcode(),
-//                        address.getDistrict(),
-//                        address.getProvince(),
-//                        user.getIsActive()
-//                ));
-//            }
-//        }
 
         if (order.getIsPos() != null
                 && order.getUser() != null
