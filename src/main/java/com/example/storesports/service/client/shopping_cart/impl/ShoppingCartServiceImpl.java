@@ -473,6 +473,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         log.info("Khách hàng: {}", user.getId());
 
         // 8. Tạo đơn hàng
+        // 8. Tạo đơn hàng
         Order order = new Order();
         order.setIsPos(false);
         if (!order.getIsPos() && request.getAddressId() != null) {
@@ -481,20 +482,22 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             if (!addressMapping.isPresent()) {
                 throw new IllegalArgumentException("Địa chỉ với ID " + request.getAddressId() + " không hợp lệ hoặc không thuộc về người dùng");
             }
-            order.setAddressId(request.getAddressId()); // Gán addressId vào Order
+            order.setAddressId(request.getAddressId());
         }
         order.setUser(user);
         order.setOrderCode(generateOrderCode());
         order.setOrderDate(new Date());
         order.setOrderStatus(OrderStatus.PENDING);
-
         order.setOrderSource(OrderSource.CLIENT);
         order.setNodes(request.getNodes());
         order.setDeleted(false);
         order.setCreatedBy(request.getUserId().intValue());
         order.setCreatedDate(LocalDateTime.now());
 
-        // 9. Tính tổng tiền sản phẩm và tạo OrderItem
+// Lưu Order trước để đảm bảo nó có ID trong database
+        order = orderRepository.save(order);
+
+// 9. Tính tổng tiền sản phẩm và tạo OrderItem
         double totalAmount = 0.0;
         double totalShippingCost = 0.0;
         List<OrderItem> savedOrderItems = new ArrayList<>();
@@ -511,7 +514,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             }
 
             OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
+            orderItem.setOrder(order); // Order đã được lưu, nên an toàn
             orderItem.setProduct(product);
             orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setUnitPrice(product.getPrice());
@@ -526,6 +529,10 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             totalAmount += product.getPrice() * itemRequest.getQuantity();
             orderItems.add(new OrderResponseClient.OrderItemResponse(savedItem.getId(), product.getId(), product.getName(), itemRequest.getQuantity(), product.getPrice()));
         }
+
+     // 10. Cập nhật tổng tiền đơn hàng
+        order.setOrderTotal(totalAmount);
+        order = orderRepository.save(order);
 
         // 10. Áp dụng mã giảm giá
         List<OrderResponseClient.CouponResponse> couponResponses = new ArrayList<>();
