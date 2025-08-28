@@ -550,6 +550,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                 totalDiscount += coupon.getDiscountAmount();
                 usage.setUsed(true);
                 usage.setUsedDate(new Date());
+                usage.setOrder(order);
                 usage.setDeleted(true);
                 usage.setLastModifiedBy(request.getUserId().intValue());
                 usage.setLastModifiedDate(LocalDateTime.now());
@@ -598,7 +599,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         payment.setAmount(totalAmountWithShipping);
         payment.setChangeAmount(0.0);
         payment.setPaymentDate(LocalDateTime.now());
-        payment.setPaymentStatus(PaymentStatus.PENDING);
+        payment.setPaymentStatus(PaymentStatus.COMPLETED);
         payment.setCreatedBy(request.getUserId().intValue());
         payment.setCreatedDate(LocalDateTime.now());
 
@@ -886,12 +887,10 @@ public OrderResponseClient updateOrderStatus(String orderCode) {
             response.setPayment(paymentResponse);
         }
 
+        List<CouponUsage> couponUsages = couponUsageRepository.findByOrderId(order.getId());
 
-        // Map coupon usages
-        List<OrderResponseClient.CouponResponse> couponResponses = new ArrayList<>();
-        if (order.getUser() != null) {
-            List<CouponUsage> couponUsages = couponUsageRepository.findByUserId(order.getUser().getId());
-            couponResponses = couponUsages.stream()
+        if (!couponUsages.isEmpty()) {
+            response.setCouponUsages(couponUsages.stream()
                     .map(couponUsage -> new OrderResponseClient.CouponResponse(
                             couponUsage.getId(),
                             couponUsage.getCoupon().getCodeCoupon(),
@@ -902,9 +901,29 @@ public OrderResponseClient updateOrderStatus(String orderCode) {
                             couponUsage.getLastModifiedBy(),
                             couponUsage.getLastModifiedDate()
                     ))
-                    .collect(Collectors.toList());
+                    .toList());
+        } else {
+            response.setCouponUsages(new ArrayList<>());
         }
-        response.setCouponUsages(couponResponses);
+
+        // Map coupon usages
+//        List<OrderResponseClient.CouponResponse> couponResponses = new ArrayList<>();
+//        if (order.getUser() != null) {
+//            List<CouponUsage> couponUsages = couponUsageRepository.findByUserId(order.getUser().getId());
+//            couponResponses = couponUsages.stream()
+//                    .map(couponUsage -> new OrderResponseClient.CouponResponse(
+//                            couponUsage.getId(),
+//                            couponUsage.getCoupon().getCodeCoupon(),
+//                            couponUsage.getCoupon().getDiscountAmount(),
+//                            couponUsage.getUsedDate(),
+//                            couponUsage.getCreatedBy(),
+//                            couponUsage.getCreatedDate(),
+//                            couponUsage.getLastModifiedBy(),
+//                            couponUsage.getLastModifiedDate()
+//                    ))
+//                    .collect(Collectors.toList());
+//        }
+//        response.setCouponUsages(couponResponses);
 
         // Map address
         OrderResponseClient.AddressResponse addressResponse = null;

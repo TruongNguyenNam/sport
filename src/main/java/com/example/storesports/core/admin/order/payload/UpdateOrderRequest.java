@@ -29,6 +29,7 @@ public class UpdateOrderRequest {
     public static class PaymentRequest {
         private Long paymentMethodId;
         private Double amount;
+        private Double changeAmount;
     }
 
     @Data

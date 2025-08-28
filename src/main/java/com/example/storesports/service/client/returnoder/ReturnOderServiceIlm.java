@@ -276,6 +276,9 @@ public class ReturnOderServiceIlm implements ReturnOderService {
         response.setOderId(order.getId());
         response.setCode(order.getOrderCode());
         response.setOrderDate(order.getOrderDate());
+//        if (order.getOrderStatus().equals(OrderStatus.COMPLETED)){
+//            response.setStatus("Hoàn Thành");
+//        }
         response.setStatus(order.getOrderStatus().name());
         response.setPaymentMethod(order.getPayments().get(0).getPaymentMethod().getName());
 

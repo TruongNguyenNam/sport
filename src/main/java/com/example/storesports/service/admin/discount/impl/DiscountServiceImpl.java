@@ -35,6 +35,7 @@ public class DiscountServiceImpl implements DiscountService {
     private final CategoryRepository categoryRepository;
     private final ModelMapper modelMapper;
 
+
     @Override
     @Transactional
     public DiscountResponse create(DiscountRequest discountRequest) {
@@ -47,18 +48,18 @@ public class DiscountServiceImpl implements DiscountService {
             discount.setStartDate(discountRequest.getStartDate());
         }
         else{
-            throw new ErrorException("ko dược nhập  ngày bắt đầu  quá khứ");
+            throw new ErrorException("Ngày bắt đầu không được nhỏ hơn hiện tại");
         }
 
         if(discountRequest.getEndDate().isBefore(now)){
-            throw new ErrorException("ko dược nhập ngay kêt thúc bé hơn hiện thời gian hiện tại");
+            throw new ErrorException("Ngày kết thúc không được nhỏ hơn hiện tại");
 
         }
         else{
             discount.setEndDate(discountRequest.getEndDate());
         }
         if (!discountRequest.getStartDate().isBefore(discountRequest.getEndDate())) {
-            throw new ErrorException("ko được nhập ngày kết thúc bé hơn ngày bắt đầu");
+            throw new ErrorException("Ngày kết thúc phải lớn hơn ngày bắt đầu");
         }
         if(discountRequest.getPercentValue()>100){
             throw new ErrorException("giảm giá không được nhập quá 100% bạn đang nhập "+discountRequest.getPercentValue()+"%");
@@ -236,6 +237,9 @@ public class DiscountServiceImpl implements DiscountService {
                         if (newStart.isAfter(newEnd)) {
                             throw new ErrorException("Ngày kết thúc phải sau ngày bắt đầu");
                         }
+                        if(discount.getEndDate().isAfter(newEnd)){
+                            throw new ErrorException("Ngày kết thúc phải sau ngày kết thúc hiện tại là "+ discount.getEndDate());
+                        }
                         discount.setEndDate(newEnd);
                         updated = true;
                     }
@@ -256,7 +260,7 @@ public class DiscountServiceImpl implements DiscountService {
                 LocalDateTime newEnd = discountRequest.getEndDate();
 
                 if (newStart.isAfter(newEnd)) {
-                    throw new ErrorException("Ngày bắt đầu không được sau ngày kết thúc");
+                    throw new ErrorException("Ngày kết thúc không được trước ngày bắt đầu");
                 }
                 if (!newStart.isAfter(now)) {
                     throw new ErrorException("Ngày bắt đầu phải sau thời điểm hiện tại");

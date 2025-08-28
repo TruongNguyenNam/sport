@@ -174,13 +174,14 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
 
         returnRequestItemRepository.save(item);
         double priceReturn = item.getQuantity() * orderItem.getUnitPrice();
-        order.setOrderTotal(order.getOrderTotal() - priceReturn);
+//        order.setOrderTotal(order.getOrderTotal() - priceReturn);
+//        orderItem.setQuantity(orderItem.getQuantity() - item.getQuantity());
 
         Long countReturnOrder = returnRequestRepository.countByOrderCodeAndStatus(
                 order.getOrderCode(),
                 List.of(ReturnRequestItemStatus.REFUNDED)
         );
-
+        returnRequestItemRepository.save(item);
         Long countOrderItem = orderItemRepository.countOderItem(order.getOrderCode());
 
         if (countReturnOrder.equals(countOrderItem)) {
@@ -189,7 +190,13 @@ public class ReturnOderAdminServiceIlm implements ReturnOderAdminService{
                 shipmentRepository.save(shipment);
             }
             order.setOrderStatus(OrderStatus.RETURNED);
+            for (Shipment shipment:order.getShipments()) {
+                shipment.setShipmentStatus(ShipmentStatus.RETURNED);
+                shipmentRepository.save(shipment);
+            }
         }
+
+
         orderRepository.save(order);
 
     }
