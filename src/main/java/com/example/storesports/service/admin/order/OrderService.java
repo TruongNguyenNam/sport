@@ -58,6 +58,15 @@ public interface OrderService {
 
       OrderResponse updateOrder(UpdateOrderRequest request);
 
+      // thay cái này
       List<OrderStatusCount> getOrderStatusCounts();
+
+      OrderResponse addItemToOrder(String orderCode, OrderRequest.OrderItemRequest itemRequest);
+
+      OrderResponse removeItemFromOrder(String orderCode, Long productId, Integer quantity);
+
+      void deleteOrder(String orderCode);
+
+     List<OrderResponse> getPendingOrders();
 
 }

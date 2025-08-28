@@ -754,6 +754,153 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.countOrdersByStatus(statuses);
     }
 
+    @Override
+    @Transactional
+    public OrderResponse addItemToOrder(String orderCode, OrderRequest.OrderItemRequest itemRequest) {
+        log.info("Bắt đầu thêm sản phẩm vào đơn hàng: {}, productId: {}, quantity: {}",
+                orderCode, itemRequest.getProductId(), itemRequest.getQuantity());
+
+        // Kiểm tra orderCode
+        if (orderCode == null || orderCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
+        }
+
+        // Tìm đơn hàng
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
+
+        // Kiểm tra sản phẩm
+        Product product = productRepository.findById(itemRequest.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
+
+        // Kiểm tra tồn kho
+        if (product.getStockQuantity() < itemRequest.getQuantity()) {
+            throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho");
+        }
+
+        // Tìm hoặc tạo OrderItem
+        Optional<OrderItem> existingItem = order.getOrderItems().stream()
+                .filter(item -> item.getProduct().getId().equals(itemRequest.getProductId()))
+                .findFirst();
+
+        OrderItem orderItem;
+        if (existingItem.isPresent()) {
+            orderItem = existingItem.get();
+            orderItem.setQuantity(orderItem.getQuantity() + itemRequest.getQuantity());
+        } else {
+            orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemRequest.getQuantity());
+            orderItem.setUnitPrice(product.getPrice());
+            order.getOrderItems().add(orderItem);
+        }
+
+        // Cập nhật tồn kho
+        product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
+        productRepository.save(product);
+
+        // Cập nhật tổng tiền đơn hàng
+        double totalAmount = order.getOrderItems().stream()
+                .mapToDouble(item -> item.getQuantity() * item.getUnitPrice())
+                .sum();
+        order.setOrderTotal(totalAmount);
+
+        // Lưu OrderItem và Order
+        orderItemRepository.save(orderItem);
+        Order savedOrder = orderRepository.save(order);
+
+        log.info("Đã thêm sản phẩm {} vào đơn hàng {}, số lượng: {}, tồn kho còn lại: {}",
+                product.getName(), orderCode, itemRequest.getQuantity(), product.getStockQuantity());
+
+        return mapToOrderResponse(savedOrder);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse removeItemFromOrder(String orderCode, Long productId, Integer quantity) {
+        log.info("Bắt đầu xóa sản phẩm khỏi đơn hàng: {}, sản phẩm ID: {}", orderCode, productId);
+
+        // Kiểm tra orderCode
+        if (orderCode == null || orderCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
+        }
+
+        // Tìm đơn hàng
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
+
+        // Tìm sản phẩm
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + productId));
+
+        // Tìm OrderItem
+        OrderItem orderItem = order.getOrderItems().stream()
+                .filter(item -> item.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Sản phẩm không tồn tại trong đơn hàng"));
+
+        // Cập nhật số lượng hoặc xóa
+        int newQuantity = orderItem.getQuantity() - quantity;
+        if (newQuantity <= 0) {
+            order.getOrderItems().remove(orderItem);
+            orderItemRepository.delete(orderItem);
+        } else {
+            orderItem.setQuantity(newQuantity);
+            orderItemRepository.save(orderItem);
+        }
+
+        // Khôi phục tồn kho
+        product.setStockQuantity(product.getStockQuantity() + quantity);
+        productRepository.save(product);
+
+        // Cập nhật tổng tiền đơn hàng
+        double totalAmount = order.getOrderItems().stream()
+                .mapToDouble(item -> item.getQuantity() * item.getUnitPrice())
+                .sum();
+        order.setOrderTotal(totalAmount);
+
+        Order savedOrder = orderRepository.save(order);
+
+        log.info("Xóa sản phẩm {}: số lượng {}, tổng tiền đơn hàng: {}",
+                product.getName(), quantity, totalAmount);
+
+        return mapToOrderResponse(savedOrder);
+    }
+
+    @Override
+    @Transactional
+    public void deleteOrder(String orderCode) {
+        log.info("Bắt đầu xóa đơn hàng: {}", orderCode);
+
+        // Tìm đơn hàng
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
+
+        // Khôi phục tồn kho cho tất cả sản phẩm
+        for (OrderItem item : order.getOrderItems()) {
+            Product product = item.getProduct();
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+            log.info("Khôi phục tồn kho sản phẩm {}: số lượng {}", product.getName(), item.getQuantity());
+        }
+
+        // Xóa đơn hàng
+        order.setDeleted(true);
+        order.setOrderStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        log.info("Đã xóa đơn hàng: {}", orderCode);
+    }
+
+    @Override
+    public List<OrderResponse> getPendingOrders() {
+        List<Order> orders = orderRepository.findByOrderStatusAndDeletedFalse(OrderStatus.PENDING);
+        return orders.stream()
+                .map(this::mapToOrderResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     @Override
     public OrderResponse editOrderItems(String code, OrderRequest request) {
@@ -884,50 +1031,6 @@ public class OrderServiceImpl implements OrderService {
         payment.setPaymentStatus(PaymentStatus.PENDING);
         paymentRepository.save(payment);
 
-        // Cập nhật shipment
-//        if (!order.getIsPos()) {
-//            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
-//            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
-//                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
-//            }
-//
-//            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
-//                Shipment shipment = new Shipment();
-//                shipment.setOrder(order);
-//                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
-//                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
-//                shipment.setCarrier(carrier);
-//                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
-//                shipment.setShipmentStatus(ShipmentStatus.PENDING);
-//                shipment.setTrackingNumber(generateTrackingNumber());
-//                shipment.setShipmentDate(new Date());
-//                shipment.setDeleted(false);
-//                Shipment savedShipment = shipmentRepository.save(shipment);
-//
-//                List<Long> orderItemIds = shipmentReq.getOrderItemIds() != null ? shipmentReq.getOrderItemIds() : new ArrayList<>();
-//                if (orderItemIds.isEmpty()) {
-//                    for (OrderItem item : savedOrderItems) {
-//                        ShipmentItem shipmentItem = new ShipmentItem();
-//                        shipmentItem.setShipment(savedShipment);
-//                        shipmentItem.setOrderItem(item);
-//                        shipmentItemRepository.save(shipmentItem);
-//                    }
-//                } else {
-//                    for (Long orderItemId : orderItemIds) {
-//                        OrderItem orderItem = orderItemRepository.findById(orderItemId)
-//                                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy OrderItem với ID: " + orderItemId));
-//                        if (!orderItem.getOrder().getId().equals(order.getId())) {
-//                            throw new IllegalArgumentException("OrderItem " + orderItemId + " không thuộc đơn hàng này");
-//                        }
-//                        ShipmentItem shipmentItem = new ShipmentItem();
-//                        shipmentItem.setShipment(savedShipment);
-//                        shipmentItem.setOrderItem(orderItem);
-//                        shipmentItemRepository.save(shipmentItem);
-//                    }
-//                }
-//            }
-//        }
-
         order.setNodes(request.getNodes());
         order.setOrderDate(new Date());
         orderRepository.save(order);
@@ -951,9 +1054,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-@Transactional
-@Override
-public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes) {
+    @Transactional
+    @Override
+    public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, String nodes) {
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + orderCode));
 
@@ -963,9 +1066,9 @@ public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, 
         }
 
         // Kiểm tra đơn hàng đã bị xóa
-        if (order.getDeleted()) {
-            throw new IllegalArgumentException("Đơn hàng đã bị đánh dấu xóa, không thể cập nhật trạng thái");
-        }
+//        if (order.getDeleted()) {
+//            throw new IllegalArgumentException("Đơn hàng đã bị đánh dấu xóa, không thể cập nhật trạng thái");
+//        }
 
         // Kiểm tra tính hợp lệ của chuyển đổi trạng thái
         OrderStatus currentStatus = order.getOrderStatus();
@@ -1010,10 +1113,10 @@ public OrderResponse updateOrderStatus(String orderCode, OrderStatus newStatus, 
         }
 
         // Nếu trạng thái mới là COMPLETED thì set deleted = true
-        if (newStatus == OrderStatus.COMPLETED) {
-            order.setDeleted(true);
-            log.info("Đơn hàng {} đã hoàn thành, cập nhật deleted = true", orderCode);
-        }
+//        if (newStatus == OrderStatus.COMPLETED) {
+//            order.setDeleted(true);
+//            log.info("Đơn hàng {} đã hoàn thành, cập nhật deleted = true", orderCode);
+//        }
 
         // Ghi chú nếu có
         if (nodes != null && !nodes.trim().isEmpty()) {
@@ -1458,6 +1561,260 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
     }
 
 
+//    @Override
+//    @Transactional
+//    public OrderResponse addProductToOrderV3(OrderRequest request, HttpServletRequest httpServletRequest) {
+//        log.info("Bắt đầu thêm sản phẩm vào đơn hàng: {}", request.getOrderCode());
+//        // Kiểm tra HttpServletRequest
+//        if (httpServletRequest == null) {
+//            throw new IllegalArgumentException("Yêu cầu HTTP không được để trống");
+//        }
+//
+//        // Kiểm tra orderCode
+//        if (request.getOrderCode() == null || request.getOrderCode().trim().isEmpty()) {
+//            throw new IllegalArgumentException("Mã đơn hàng không được để trống");
+//        }
+//
+//        // Tìm đơn hàng
+//        Order order = orderRepository.findByOrderCode(request.getOrderCode())
+//                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn hàng với mã: " + request.getOrderCode()));
+//
+//        if (!order.getOrderCode().equals(request.getOrderCode())) {
+//            throw new IllegalArgumentException("Mã đơn hàng không khớp");
+//        }
+//
+//        // Kiểm tra đầu vào
+//        if (request.getItems() == null || request.getItems().isEmpty()) {
+//            throw new IllegalArgumentException("Vui lòng cung cấp danh sách sản phẩm");
+//        }
+//        if (request.getPayment() == null) {
+//            throw new IllegalArgumentException("Vui lòng cung cấp thông tin thanh toán");
+//        }
+//
+//        // Kiểm tra đơn POS hoặc giao hàng
+//        if (!order.getIsPos()) {
+//            if (request.getUserId() == null || request.getShipments() == null || request.getShipments().isEmpty()) {
+//                throw new IllegalArgumentException("Vui lòng cung cấp userId và thông tin shipment cho đơn giao hàng");
+//            }
+//        } else {
+//            if (request.getShipments() != null && !request.getShipments().isEmpty()) {
+//                throw new IllegalArgumentException("Đơn POS không được chứa shipment");
+//            }
+//        }
+//
+//        // Xác thực người dùng
+//        User user = null;
+//        if (request.getUserId() != null) {
+//            user = userRepository.findById(request.getUserId())
+//                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy userId: " + request.getUserId()));
+//            log.info("Khách hàng đã đăng ký: {}", user.getId());
+//        } else if (order.getIsPos()) {
+//            log.info("Khách vãng lai cho đơn POS");
+//        } else {
+//            throw new IllegalArgumentException("Đơn ship yêu cầu userId");
+//        }
+//        order.setUser(user);
+//
+//        if (!order.getIsPos() && request.getAddressId() != null) {
+//            Optional<UserAddressMapping> addressMapping = userAddressMappingRepository
+//                    .findByUserIdAndAddressId(request.getUserId(), request.getAddressId());
+//            if (!addressMapping.isPresent()) {
+//                throw new IllegalArgumentException("Địa chỉ với ID " + request.getAddressId() + " không hợp lệ hoặc không thuộc về người dùng");
+//            }
+//            order.setAddressId(request.getAddressId()); // Gán addressId vào Order
+//        }
+//
+//        // Logic thêm sản phẩm
+//        double totalAmount = 0.0;
+//        double totalShippingCost = 0.0;
+//        List<OrderItem> savedOrderItems = new ArrayList<>();
+//
+//        for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
+//            Product product = productRepository.findById(itemRequest.getProductId())
+//                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
+//
+//            // Kiểm tra tồn kho
+//            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+//                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho");
+//            }
+//
+//            OrderItem orderItem = new OrderItem();
+//            orderItem.setOrder(order);
+//            orderItem.setProduct(product);
+//            orderItem.setQuantity(itemRequest.getQuantity());
+//            orderItem.setUnitPrice(product.getPrice());
+//            log.info("Thêm sản phẩm {}: số lượng {}, giá {}", product.getName(), itemRequest.getQuantity(), product.getPrice());
+//            OrderItem savedItem = orderItemRepository.save(orderItem);
+//
+//            savedOrderItems.add(savedItem);
+//            totalAmount += savedItem.getQuantity() * savedItem.getUnitPrice();
+//
+//            // Cập nhật tồn kho
+////            product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
+////            productRepository.save(product);
+//        }
+//
+//        // Xử lý phí vận chuyển cho đơn giao hàng
+//        if (!order.getIsPos()) {
+//            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+//            if (shipmentRequests == null || shipmentRequests.isEmpty()) {
+//                throw new IllegalArgumentException("Danh sách shipment không được để trống đối với đơn giao hàng.");
+//            }
+//
+//            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+//                if (shipmentReq.getShippingCost() == null || shipmentReq.getShippingCost() < 0) {
+//                    throw new IllegalArgumentException("Phí vận chuyển không hợp lệ cho shipment với carrier ID: " + shipmentReq.getCarrierId());
+//                }
+//                totalShippingCost += shipmentReq.getShippingCost();
+//                log.info("Phí vận chuyển cho shipment với carrier ID {}: {}", shipmentReq.getCarrierId(), shipmentReq.getShippingCost());
+//            }
+//        }
+//
+//        // Gán tổng tiền của đơn hàng (chỉ bao gồm tiền sản phẩm)
+//        order.setOrderTotal(totalAmount);
+//        log.info("Tổng số tiền sản phẩm trước khi áp dụng coupon: {}", order.getOrderTotal());
+//
+//        // Áp dụng coupon nếu có
+//        if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
+//            List<CouponUsage> couponUsages = couponUsageRepository.findAllById(request.getCouponUsageIds());
+//            if (couponUsages.size() != request.getCouponUsageIds().size()) {
+//                throw new IllegalArgumentException("Một hoặc nhiều CouponUsage không tồn tại");
+//            }
+//            double totalDiscount = 0.0;
+//            for (CouponUsage usage : couponUsages) {
+//                if (user == null || !usage.getUser().getId().equals(user.getId())) {
+//                    throw new IllegalArgumentException("CouponUsage không thuộc về khách hàng này");
+//                }
+//
+//                Coupon coupon = usage.getCoupon();
+//                if (coupon.getCouponStatus() != CouponStatus.ACTIVE ||
+//                        coupon.getExpirationDate().isBefore(LocalDateTime.now()) ||
+//                        coupon.getDeleted()) {
+//                    throw new IllegalArgumentException("Mã giảm giá " + coupon.getCodeCoupon() + " không hợp lệ hoặc đã hết hạn");
+//                }
+//                usage.setOrder(order);
+//                usage.setUsedDate(new Date());
+//                totalDiscount += coupon.getDiscountAmount();
+//                log.info("Áp dụng mã giảm giá: {}, giảm: {}", coupon.getCodeCoupon(), coupon.getDiscountAmount());
+//                usage.setDeleted(true);
+//                couponUsageRepository.save(usage);
+//            }
+//
+//            order.setOrderTotal(totalAmount - totalDiscount);
+//            if (order.getOrderTotal() < 0) {
+//                order.setOrderTotal(0.0);
+//            }
+//        }
+//
+//        log.info("Tổng số tiền sản phẩm sau khi áp dụng coupon: {}", order.getOrderTotal());
+//        log.info("Tổng phí vận chuyển: {}", totalShippingCost);
+//
+//        // Tính tổng tiền phải trả (bao gồm phí vận chuyển)
+//        double totalAmountWithShipping = order.getOrderTotal() + totalShippingCost;
+//
+//        // Thanh toán
+//        Optional<Payment> paymentOptional = paymentRepository.findByOrderId(order.getId());
+//        Payment payment = paymentOptional.orElseGet(() -> {
+//            Payment newPayment = new Payment();
+//            newPayment.setOrder(order);
+//            return newPayment;
+//        });
+//        PaymentMethod paymentMethod = paymentMethodRepository.findById(request.getPayment().getPaymentMethodId())
+//                .orElseThrow(() -> new IllegalArgumentException("Phương thức thanh toán không hợp lệ"));
+//        payment.setPaymentMethod(paymentMethod);
+//        double paidAmount = request.getPayment().getAmount();
+//        log.info("Số tiền khách đưa: {}", paidAmount);
+//
+//        // Khởi tạo response
+//        OrderResponse response = new OrderResponse();
+//        String paymentUrl = null;
+//
+//        if (paymentMethod.getId().equals(2L)) { // VNPay
+//            // Kiểm tra số tiền thanh toán
+//            if (Math.abs(paidAmount - totalAmountWithShipping) > 0.01) {
+//                throw new IllegalArgumentException("Số tiền thanh toán VNPay phải khớp với tổng tiền: " + paidAmount + " != " + totalAmountWithShipping);
+//            }
+//
+//            // Tạo URL thanh toán VNPay
+//            String vnp_TxnRef = order.getOrderCode() + "-" + VnPayConfig.getRandomNumber(8);
+//            paymentUrl = createVnpayPaymentUrl(order, totalAmountWithShipping, vnp_TxnRef, request.getPayment().getReturnUrl(), httpServletRequest);
+//            log.info("Tạo URL thanh toán VNPay: {}", paymentUrl);
+//
+//            payment.setTransactionId(vnp_TxnRef);
+//            payment.setAmount(paidAmount);
+//            payment.setChangeAmount(0.0);
+//            payment.setPaymentDate(LocalDateTime.now());
+//            payment.setReturnUrl(request.getPayment().getReturnUrl());
+//          //  payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+//            payment.setPaymentStatus(PaymentStatus.COMPLETED);
+//
+//            paymentRepository.save(payment);
+//        } else { // Tiền mặt
+//            if (paidAmount < totalAmountWithShipping) {
+//                throw new IllegalArgumentException("Số tiền thanh toán không đủ: " + paidAmount + " < " + totalAmountWithShipping);
+//            }
+//            payment.setAmount(paidAmount);
+//            payment.setChangeAmount(paidAmount - totalAmountWithShipping);
+//            payment.setPaymentDate(LocalDateTime.now());
+//           // payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
+//            payment.setPaymentStatus(PaymentStatus.COMPLETED);
+//
+//            paymentRepository.save(payment);
+//        }
+//
+//        // Xử lý vận chuyển cho đơn giao hàng
+//        if (!order.getIsPos()) {
+//            List<OrderRequest.ShipmentRequest> shipmentRequests = request.getShipments();
+//            for (OrderRequest.ShipmentRequest shipmentReq : shipmentRequests) {
+//                Shipment shipment = new Shipment();
+//                shipment.setOrder(order);
+//                Carrier carrier = carrierRepository.findById(shipmentReq.getCarrierId())
+//                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn vị vận chuyển với ID: " + shipmentReq.getCarrierId()));
+//                shipment.setCarrier(carrier);
+//                shipment.setEstimatedDeliveryDate(shipmentReq.getEstimatedDeliveryDate());
+//                shipment.setShipmentStatus(ShipmentStatus.PENDING);
+//                shipment.setTrackingNumber(generateTrackingNumber());
+//                shipment.setShipmentDate(new Date());
+//                shipment.setShippingCost(shipmentReq.getShippingCost());
+//                shipment.setDeleted(false);
+//                Shipment savedShipment = shipmentRepository.save(shipment);
+//
+//                for (OrderItem item : savedOrderItems) {
+//                    ShipmentItem shipmentItem = new ShipmentItem();
+//                    shipmentItem.setShipment(savedShipment);
+//                    shipmentItem.setOrderItem(item);
+//                    shipmentItemRepository.save(shipmentItem);
+//                }
+//            }
+//        }
+//
+//        // Cài đặt trạng thái đơn hàng
+//        order.setNodes(request.getNodes());
+//        order.setOrderDate(new Date());
+//        if (order.getIsPos()) {
+//            order.setOrderStatus(OrderStatus.COMPLETED);
+//            order.setDeleted(true);
+//        } else {
+//            order.setOrderStatus(OrderStatus.PENDING);
+//            order.setDeleted(false);
+//        }
+//
+//        Order savedOrder = orderRepository.save(order);
+//        response = mapToOrderResponse(savedOrder);
+//
+//        // Gán paymentUrl nếu là VNPay
+//        if (paymentMethod.getId().equals(2L)) {
+//            if (paymentUrl == null) {
+//                throw new IllegalStateException("paymentUrl không được khởi tạo cho thanh toán VNPay");
+//            }
+//            response.setPaymentUrl(paymentUrl);
+//        }
+//
+//        log.info("Hoàn tất xử lý đơn hàng {}: status = {}, deleted = {}, paymentUrl = {}",
+//                order.getOrderCode(), order.getOrderStatus(), order.getDeleted(), paymentUrl);
+//        return response;
+//    }
+
     @Override
     @Transactional
     public OrderResponse addProductToOrderV3(OrderRequest request, HttpServletRequest httpServletRequest) {
@@ -1518,38 +1875,33 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             if (!addressMapping.isPresent()) {
                 throw new IllegalArgumentException("Địa chỉ với ID " + request.getAddressId() + " không hợp lệ hoặc không thuộc về người dùng");
             }
-            order.setAddressId(request.getAddressId()); // Gán addressId vào Order
+            order.setAddressId(request.getAddressId());
         }
 
-        // Logic thêm sản phẩm
-        double totalAmount = 0.0;
-        double totalShippingCost = 0.0;
-        List<OrderItem> savedOrderItems = new ArrayList<>();
-
+        // Kiểm tra dự phòng: Đảm bảo tất cả sản phẩm trong request tồn tại trong OrderItem và kiểm tra tồn kho
+        List<OrderItem> existingItems = order.getOrderItems();
         for (OrderRequest.OrderItemRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy sản phẩm với ID: " + itemRequest.getProductId()));
 
-            // Kiểm tra tồn kho
-            if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho");
+            log.info("Kiểm tra tồn kho sản phẩm {}: stockQuantity = {}", product.getName(), product.getStockQuantity());
+//            if (product.getStockQuantity() < itemRequest.getQuantity()) {
+//                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không đủ số lượng tồn kho: yêu cầu " +
+//                        itemRequest.getQuantity() + ", còn " + product.getStockQuantity());
+//            }
+
+            Optional<OrderItem> existingItem = existingItems.stream()
+                    .filter(item -> item.getProduct().getId().equals(itemRequest.getProductId()))
+                    .findFirst();
+
+            if (!existingItem.isPresent()) {
+                throw new IllegalArgumentException("Sản phẩm " + product.getName() + " không tồn tại trong đơn hàng");
             }
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemRequest.getQuantity());
-            orderItem.setUnitPrice(product.getPrice());
-            log.info("Thêm sản phẩm {}: số lượng {}, giá {}", product.getName(), itemRequest.getQuantity(), product.getPrice());
-            OrderItem savedItem = orderItemRepository.save(orderItem);
-
-            savedOrderItems.add(savedItem);
-            totalAmount += savedItem.getQuantity() * savedItem.getUnitPrice();
-
-            // Cập nhật tồn kho
-            product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
-            productRepository.save(product);
         }
+
+        // Lấy tổng tiền từ database (đã được cập nhật bởi addItemToOrder)
+        double totalAmount = order.getOrderTotal();
+        double totalShippingCost = 0.0;
 
         // Xử lý phí vận chuyển cho đơn giao hàng
         if (!order.getIsPos()) {
@@ -1567,9 +1919,7 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             }
         }
 
-        // Gán tổng tiền của đơn hàng (chỉ bao gồm tiền sản phẩm)
-        order.setOrderTotal(totalAmount);
-        log.info("Tổng số tiền sản phẩm trước khi áp dụng coupon: {}", order.getOrderTotal());
+        log.info("Tổng số tiền sản phẩm trước khi áp dụng coupon: {}", totalAmount);
 
         // Áp dụng coupon nếu có
         if (request.getCouponUsageIds() != null && !request.getCouponUsageIds().isEmpty()) {
@@ -1597,10 +1947,11 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
                 couponUsageRepository.save(usage);
             }
 
-            order.setOrderTotal(totalAmount - totalDiscount);
-            if (order.getOrderTotal() < 0) {
-                order.setOrderTotal(0.0);
+            totalAmount -= totalDiscount;
+            if (totalAmount < 0) {
+                totalAmount = 0.0;
             }
+            order.setOrderTotal(totalAmount);
         }
 
         log.info("Tổng số tiền sản phẩm sau khi áp dụng coupon: {}", order.getOrderTotal());
@@ -1627,12 +1978,10 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
         String paymentUrl = null;
 
         if (paymentMethod.getId().equals(2L)) { // VNPay
-            // Kiểm tra số tiền thanh toán
             if (Math.abs(paidAmount - totalAmountWithShipping) > 0.01) {
                 throw new IllegalArgumentException("Số tiền thanh toán VNPay phải khớp với tổng tiền: " + paidAmount + " != " + totalAmountWithShipping);
             }
 
-            // Tạo URL thanh toán VNPay
             String vnp_TxnRef = order.getOrderCode() + "-" + VnPayConfig.getRandomNumber(8);
             paymentUrl = createVnpayPaymentUrl(order, totalAmountWithShipping, vnp_TxnRef, request.getPayment().getReturnUrl(), httpServletRequest);
             log.info("Tạo URL thanh toán VNPay: {}", paymentUrl);
@@ -1641,9 +1990,8 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             payment.setAmount(paidAmount);
             payment.setChangeAmount(0.0);
             payment.setPaymentDate(LocalDateTime.now());
+            payment.setPaymentStatus(PaymentStatus.PENDING);
             payment.setReturnUrl(request.getPayment().getReturnUrl());
-          //  payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
-            payment.setPaymentStatus(PaymentStatus.COMPLETED);
 
             paymentRepository.save(payment);
         } else { // Tiền mặt
@@ -1653,7 +2001,6 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             payment.setAmount(paidAmount);
             payment.setChangeAmount(paidAmount - totalAmountWithShipping);
             payment.setPaymentDate(LocalDateTime.now());
-           // payment.setPaymentStatus(order.getIsPos() ? PaymentStatus.COMPLETED : PaymentStatus.PENDING);
             payment.setPaymentStatus(PaymentStatus.COMPLETED);
 
             paymentRepository.save(payment);
@@ -1676,7 +2023,7 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
                 shipment.setDeleted(false);
                 Shipment savedShipment = shipmentRepository.save(shipment);
 
-                for (OrderItem item : savedOrderItems) {
+                for (OrderItem item : order.getOrderItems()) {
                     ShipmentItem shipmentItem = new ShipmentItem();
                     shipmentItem.setShipment(savedShipment);
                     shipmentItem.setOrderItem(item);
@@ -1686,14 +2033,16 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
         }
 
         // Cài đặt trạng thái đơn hàng
-        order.setNodes(request.getNodes());
+//        order.setNotes(request.getNotes());
         order.setOrderDate(new Date());
         if (order.getIsPos()) {
             order.setOrderStatus(OrderStatus.COMPLETED);
             order.setDeleted(true);
         } else {
-            order.setOrderStatus(OrderStatus.PENDING);
-            order.setDeleted(false);
+            order.setOrderStatus(
+                     OrderStatus.PENDING
+                    );
+            order.setDeleted(true);
         }
 
         Order savedOrder = orderRepository.save(order);
@@ -1707,8 +2056,11 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             response.setPaymentUrl(paymentUrl);
         }
 
-        log.info("Hoàn tất xử lý đơn hàng {}: status = {}, deleted = {}, paymentUrl = {}",
-                order.getOrderCode(), order.getOrderStatus(), order.getDeleted(), paymentUrl);
+        log.info("Hoàn tất xử lý đơn hàng {}: status = {}, deleted = {}, paymentUrl = {}, stockQuantity kiểm tra: {}",
+                order.getOrderCode(), order.getOrderStatus(), order.getDeleted(), paymentUrl,
+                order.getOrderItems().stream()
+                        .map(item -> item.getProduct().getName() + ": " + item.getProduct().getStockQuantity())
+                        .collect(Collectors.joining(", ")));
         return response;
     }
     private String createVnpayPaymentUrl(Order order, double totalAmount, String vnp_TxnRef, String returnUrl, HttpServletRequest httpRequest) {

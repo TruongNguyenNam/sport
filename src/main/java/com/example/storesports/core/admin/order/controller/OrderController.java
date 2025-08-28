@@ -26,6 +26,52 @@ import java.util.List;
 public class OrderController {
     private final OrderService orderService;
 
+    @GetMapping("/pending")
+    public ResponseData<List<OrderResponse>> getPendingOrders() {
+        List<OrderResponse> pendingOrders = orderService.getPendingOrders();
+        return ResponseData.<List<OrderResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy danh sách đơn hàng đang chờ xử lý thành công")
+                .data(pendingOrders)
+                .build();
+    }
+
+    @PostMapping("/{orderCode}/items")
+    public ResponseData<OrderResponse> addItemToOrder(
+            @PathVariable String orderCode,
+            @RequestBody OrderRequest.OrderItemRequest itemRequest
+    ) {
+        OrderResponse response = orderService.addItemToOrder(orderCode, itemRequest);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Thêm sản phẩm vào đơn hàng thành công")
+                .data(response)
+                .build();
+    }
+
+    @DeleteMapping("/{orderCode}/items/{productId}")
+    public ResponseData<OrderResponse> removeItemFromOrder(
+            @PathVariable String orderCode,
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "1") Integer quantity
+    ) {
+        OrderResponse response = orderService.removeItemFromOrder(orderCode, productId, quantity);
+        return ResponseData.<OrderResponse>builder()
+                .status(HttpStatus.OK.value())
+                .message("Xóa sản phẩm khỏi đơn hàng thành công")
+                .data(response)
+                .build();
+    }
+
+    @DeleteMapping("/{orderCode}")
+    public ResponseData<Void> deleteOrder(@PathVariable String orderCode) {
+        orderService.deleteOrder(orderCode);
+        return ResponseData.<Void>builder()
+                .status(HttpStatus.OK.value())
+                .message("Xóa đơn hàng thành công")
+                .build();
+    }
+
 
     @GetMapping("/status-counts")
     public ResponseData<List<OrderStatusCount>> getOrderStatusCounts() {
@@ -50,7 +96,7 @@ public class OrderController {
 
     // cai edit này sai và add sai
     @PostMapping("/{orderCode}/add-product-v2")
-    public ResponseData<OrderResponse> addProductToOrderV2(
+ public ResponseData<OrderResponse> addProductToOrderV2(
             @PathVariable("orderCode") String orderCode,
             @Valid @RequestBody OrderRequest request
     ) {
@@ -81,46 +127,46 @@ public class OrderController {
     }
 
 
-    @PutMapping("/{orderCode}/edit-items")
-    public ResponseData<OrderResponse> updateOrder(
-            @PathVariable("orderCode") String orderCode,
-            @Valid @RequestBody OrderRequest request) {
-        log.info("Nhận yêu cầu cập nhật đơn hàng: {}", orderCode);
-        try {
-            request.setOrderCode(orderCode);
-            OrderResponse response = orderService.editOrderItems(orderCode, request);
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.OK.value())
-                    .message("Cập nhật đơn hàng thành công")
-                    .data(response)
-                    .build();
-        } catch (IllegalArgumentException e) {
-            log.error("Lỗi khi cập nhật đơn hàng {}: {}", orderCode, e.getMessage());
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .data(null)
-                    .build();
-        } catch (Exception e) {
-            log.error("Lỗi hệ thống khi cập nhật đơn hàng {}: {}", orderCode, e.getMessage());
-            return ResponseData.<OrderResponse>builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("Lỗi server: " + e.getMessage())
-                    .data(null)
-                    .build();
-        }
-    }
+//    @PutMapping("/{orderCode}/edit-items")
+//    public ResponseData<OrderResponse> updateOrder(
+//            @PathVariable("orderCode") String orderCode,
+//            @Valid @RequestBody OrderRequest request) {
+//        log.info("Nhận yêu cầu cập nhật đơn hàng: {}", orderCode);
+//        try {
+//            request.setOrderCode(orderCode);
+//            OrderResponse response = orderService.editOrderItems(orderCode, request);
+//            return ResponseData.<OrderResponse>builder()
+//                    .status(HttpStatus.OK.value())
+//                    .message("Cập nhật đơn hàng thành công")
+//                    .data(response)
+//                    .build();
+//        } catch (IllegalArgumentException e) {
+//            log.error("Lỗi khi cập nhật đơn hàng {}: {}", orderCode, e.getMessage());
+//            return ResponseData.<OrderResponse>builder()
+//                    .status(HttpStatus.BAD_REQUEST.value())
+//                    .message(e.getMessage())
+//                    .data(null)
+//                    .build();
+//        } catch (Exception e) {
+//            log.error("Lỗi hệ thống khi cập nhật đơn hàng {}: {}", orderCode, e.getMessage());
+//            return ResponseData.<OrderResponse>builder()
+//                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+//                    .message("Lỗi server: " + e.getMessage())
+//                    .data(null)
+//                    .build();
+//        }
+//    }
 
-    @PutMapping("/{orderCode}")
-    public ResponseData<OrderResponse> updateOrder(@PathVariable String orderCode, @RequestBody UpdateOrderRequest request) {
-        request.setOrderCode(orderCode);
-        OrderResponse response = orderService.updateOrder(request);
-        return ResponseData.<OrderResponse>builder()
-                .status(HttpStatus.OK.value())
-                .message("Cập nhật đơn hàng thành công")
-                .data(response)
-                .build();
-    }
+//    @PutMapping("/{orderCode}")
+//    public ResponseData<OrderResponse> updateOrder(@PathVariable String orderCode, @RequestBody UpdateOrderRequest request) {
+//        request.setOrderCode(orderCode);
+//        OrderResponse response = orderService.updateOrder(request);
+//        return ResponseData.<OrderResponse>builder()
+//                .status(HttpStatus.OK.value())
+//                .message("Cập nhật đơn hàng thành công")
+//                .data(response)
+//                .build();
+//    }
 
 
     @GetMapping("/findByShip")

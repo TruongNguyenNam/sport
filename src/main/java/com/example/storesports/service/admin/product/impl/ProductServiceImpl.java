@@ -418,27 +418,29 @@ public class ProductServiceImpl implements ProductService {
 
         checkDuplicateAtb(request, products, childProduct.getId());
         // Cập nhật giá trị thuộc tính sản phẩm và valid thuộc tính sản phẩm bị trùng
-        if (request.getProductAttributeValues() != null && !request.getProductAttributeValues().isEmpty()) {
-            // Xóa thuộc tính cũ
+        if (request.getProductAttributeValues() != null) {
+            // Luôn xóa thuộc tính cũ
             productAttributeValueRepository.deleteByProductId(childProduct.getId());
             childProduct.getProductAttributeValues().clear();
 
-            // Thêm thuộc tính mới
-            List<ProductAttributeValue> newAttributeValues = request.getProductAttributeValues().stream()
-                    .map(attr -> {
-                        ProductAttribute attribute = productAttributeRepository.findById(attr.getAttributeId())
-                                .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại với ID: " + attr.getAttributeId()));
-                        ProductAttributeValue value = new ProductAttributeValue();
-                        value.setProduct(childProduct);
-                        value.setAttribute(attribute);
-                        value.setValue(attr.getValue());
-                        return value;
-                    })
-                    .collect(Collectors.toList());
+            // Nếu request có dữ liệu thì thêm mới
+            if (!request.getProductAttributeValues().isEmpty()) {
+                List<ProductAttributeValue> newAttributeValues = request.getProductAttributeValues().stream()
+                        .map(attr -> {
+                            ProductAttribute attribute = productAttributeRepository.findById(attr.getAttributeId())
+                                    .orElseThrow(() -> new IllegalArgumentException("Thuộc tính không tồn tại với ID: " + attr.getAttributeId()));
+                            ProductAttributeValue value = new ProductAttributeValue();
+                            value.setProduct(childProduct);
+                            value.setAttribute(attribute);
+                            value.setValue(attr.getValue());
+                            return value;
+                        })
+                        .collect(Collectors.toList());
 
-            productAttributeValueRepository.saveAll(newAttributeValues);
-            childProduct.getProductAttributeValues().addAll(newAttributeValues);
-            log.info("Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+                productAttributeValueRepository.saveAll(newAttributeValues);
+                childProduct.getProductAttributeValues().addAll(newAttributeValues);
+                log.info("Đã cập nhật {} giá trị thuộc tính cho biến thể {}", newAttributeValues.size(), childProduct.getSku());
+            }
         }
 
         // Cập nhật lại tên sản phẩm con sau khi cập nhật thuộc tính

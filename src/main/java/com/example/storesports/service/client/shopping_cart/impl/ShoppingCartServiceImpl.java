@@ -490,7 +490,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         order.setOrderStatus(OrderStatus.PENDING);
         order.setOrderSource(OrderSource.CLIENT);
         order.setNodes(request.getNodes());
-        order.setDeleted(false);
+        order.setDeleted(true);
         order.setCreatedBy(request.getUserId().intValue());
         order.setCreatedDate(LocalDateTime.now());
 
