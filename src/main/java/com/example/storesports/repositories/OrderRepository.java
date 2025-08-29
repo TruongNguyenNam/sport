@@ -55,10 +55,10 @@ public interface OrderRepository extends JpaRepository<Order,Long>, JpaSpecifica
     List<Order> getAllOrder();
 
 
-    @Query("select o from  Order o where o.orderStatus = :orderStatus")
-    List<Order> findByOrderStatusAndDeletedFalseAndOrderSource
-            (@Param("orderStatus") OrderStatus orderStatus);
-//
+//    @Query("select o from  Order o where o.orderStatus = :orderStatus")
+//    List<Order> findByOrderStatusAndDeletedFalseAndOrderSource
+//            (@Param("orderStatus") OrderStatus orderStatus);
+////
     @Query("select o from Order o WHERE o.orderStatus= :orderStatus")
     List<Order> findByOrderStatus(@Param("orderStatus") OrderStatus orderStatus);
 

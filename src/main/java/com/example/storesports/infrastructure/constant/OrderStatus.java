@@ -9,6 +9,7 @@ public enum OrderStatus {
     PENDING, // CHỜ XÁC NHẬN
     COMPLETED, // HOÀN THÀNH
     CANCELLED, // BỊ HUỶ BỎ
+    PROCESSING, //Đang chuẩn bị hàng
     SHIPPED, // ĐANG GIAO
     RETURNED, // TRẢ HÀNG,
     CONFIRMED //Xác nhận

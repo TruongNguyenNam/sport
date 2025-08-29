@@ -1,5 +1,6 @@
 package com.example.storesports.core.admin.order.controller;
 
+import com.example.storesports.core.admin.history.payload.OrderHistoryResponse;
 import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.core.admin.product.payload.ProductResponse;
 import com.example.storesports.entity.Order;
@@ -25,6 +26,18 @@ import java.util.List;
 @Slf4j
 public class OrderController {
     private final OrderService orderService;
+
+    @GetMapping("/{orderId}/history")
+    public ResponseData<List<OrderHistoryResponse>> getOrderHistory(@PathVariable Long orderId) {
+        List<OrderHistoryResponse> history = orderService.getOrderHistory(orderId);
+
+        return ResponseData.<List<OrderHistoryResponse>>builder()
+                .status(HttpStatus.OK.value())
+                .message("Lấy lịch sử đơn hàng thành công")
+                .data(history)
+                .build();
+    }
+
 
     @GetMapping("/pending")
     public ResponseData<List<OrderResponse>> getPendingOrders() {

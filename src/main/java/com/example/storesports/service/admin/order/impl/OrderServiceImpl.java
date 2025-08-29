@@ -1,6 +1,7 @@
 package com.example.storesports.service.admin.order.impl;
 
 
+import com.example.storesports.core.admin.history.payload.OrderHistoryResponse;
 import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.core.admin.orderItem.payload.OrderItemResponse;
 import com.example.storesports.core.admin.payment.payload.PaymentResponse;
@@ -68,6 +69,8 @@ public class OrderServiceImpl implements OrderService {
     private final CarrierRepository carrierRepository;
 
     private final   HttpServletRequest httpServletRequest;
+
+    private final OrderHistoryRepository orderHistoryRepository;
 
 
     @Transactional
@@ -748,6 +751,7 @@ public class OrderServiceImpl implements OrderService {
                 OrderStatus.CONFIRMED,
                 OrderStatus.COMPLETED,
                 OrderStatus.CANCELLED,
+                OrderStatus.PROCESSING,
                 OrderStatus.RETURNED,
                 OrderStatus.SHIPPED
         );
@@ -900,6 +904,32 @@ public class OrderServiceImpl implements OrderService {
                 .map(this::mapToOrderResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<OrderHistoryResponse> getOrderHistory(Long orderId) {
+        List<OrderHistory> histories = orderHistoryRepository.findByOrderIdOrderByCreatedDateAsc(orderId);
+
+        return histories.stream()
+                .map(h -> {
+                    OrderHistoryResponse response = new OrderHistoryResponse();
+                    response.setCreatedDate(h.getCreatedDate()); //ngày tạo
+                    response.setLastModifiedDate(h.getLastModifiedDate()); //ngày cập nhật
+                    response.setOrderStatus(h.getOrder().getOrderStatus().name()); // trạng thái đơn hàng
+//                    response.setUsername(h.getOrder().getUser().getUsername()); // người xác nhận
+                    response.setNote(h.getNote()); // nội dung
+
+                    Integer createdBy = h.getCreatedBy();
+                    if (createdBy != null) {
+                        User user = userRepository.findById(createdBy.longValue())
+                                .orElse(null);
+                        response.setUsername(user.getUsername());
+                    }
+
+                    return response;
+                })
+                .toList();
+    }
+
 
     @Transactional
     @Override
@@ -1130,6 +1160,15 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         log.info("Cập nhật trạng thái đơn hàng {} sang {} thành công", orderCode, newStatus);
 
+        OrderHistory history = new OrderHistory();
+        history.setOrder(order);
+        history.setOrderStatus(newStatus);
+        history.setNote(nodes);
+        history.setLastModifiedDate(LocalDateTime.now());
+        orderHistoryRepository.save(history);
+
+        log.info("Lưu lịch sử: Đơn hàng {} cập nhật sang {} với note: {}", orderCode, newStatus, history.getNote());
+
         return mapToOrderResponse(order);
     }
 
@@ -1137,25 +1176,27 @@ public class OrderServiceImpl implements OrderService {
 
 
     // Phương thức kiểm tra tính hợp lệ của chuyển đổi trạng thái
-private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
-    if (currentStatus == newStatus) {
-        return false; // Không cho phép chuyển sang cùng trạng thái
+    private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus newStatus) {
+        if (currentStatus == newStatus) {
+            return false; // Không cho phép chuyển sang cùng trạng thái
+        }
+        switch (currentStatus) {
+            case PENDING:
+                return newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED;
+            case CONFIRMED:
+                return newStatus == OrderStatus.PROCESSING || newStatus == OrderStatus.CANCELLED; // Cho phép chuyển sang PROCESSING
+            case PROCESSING:
+                return newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.CANCELLED;
+            case SHIPPED:
+                return newStatus == OrderStatus.COMPLETED;
+            case COMPLETED:
+            case CANCELLED:
+            case RETURNED:
+                return false; // Không cho phép chuyển đổi từ các trạng thái này
+            default:
+                return false;
+        }
     }
-    switch (currentStatus) {
-        case PENDING:
-            return newStatus == OrderStatus.CONFIRMED || newStatus == OrderStatus.CANCELLED;
-        case CONFIRMED:
-            return newStatus == OrderStatus.SHIPPED || newStatus == OrderStatus.CANCELLED;
-        case SHIPPED:
-            return newStatus == OrderStatus.COMPLETED;
-        case COMPLETED:
-        case CANCELLED:
-        case RETURNED:
-            return false; // Không cho phép chuyển đổi từ các trạng thái này
-        default:
-            return false;
-    }
-}
 
 
 
@@ -1361,6 +1402,14 @@ private boolean isValidStatusTransition(OrderStatus currentStatus, OrderStatus n
             order.setDeleted(false);
 //            order.setUser(currentUser); // Gán user
             orderRepository.save(order);
+
+            OrderHistory history = new OrderHistory();
+            history.setOrder(order);
+            history.setOrderStatus(order.getOrderStatus());
+            history.setNote("đang chờ");
+            history.setCreatedDate(LocalDateTime.now());
+            history.setLastModifiedDate(LocalDateTime.now());
+            orderHistoryRepository.save(history);
 
             return mapToOrderResponse(order);
         } catch (AccessDeniedException e) {

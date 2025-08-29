@@ -1,5 +1,6 @@
 package com.example.storesports.service.admin.order;
 
+import com.example.storesports.core.admin.history.payload.OrderHistoryResponse;
 import com.example.storesports.core.admin.order.payload.*;
 import com.example.storesports.entity.Order;
 import com.example.storesports.infrastructure.constant.OrderStatus;
@@ -68,5 +69,8 @@ public interface OrderService {
       void deleteOrder(String orderCode);
 
      List<OrderResponse> getPendingOrders();
+
+      List<OrderHistoryResponse> getOrderHistory(Long orderId);
+
 
 }
